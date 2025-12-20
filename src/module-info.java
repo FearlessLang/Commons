@@ -1,0 +1,3 @@
+module MetaParser {
+  exports metaParser;
+}
