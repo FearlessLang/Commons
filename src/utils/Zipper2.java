@@ -6,7 +6,7 @@ import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.stream.Stream;
 
-public interface Zipper<A, B> {
+public interface Zipper2<A, B> {
   void forEach(BiConsumer<A, B> f);
 
   <R> Stream<R> map(BiFunction<A, B, R> f);
@@ -17,9 +17,9 @@ public interface Zipper<A, B> {
 
   <R> Stream<R> filterMap(BiFunction<A, B, Optional<R>> f);
 
-  Zipper<A, B> filter(BiPredicate<A, B> f);
+  Zipper2<A, B> filter(BiPredicate<A, B> f);
 
-  <R> R fold(Streams.Acc<R, A, B> folder, R initial);
+  <R> R fold(Streams.Acc2<R, A, B> folder, R initial);
 
   boolean anyMatch(BiPredicate<A, B> test);
 
