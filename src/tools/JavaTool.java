@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+
 import utils.Bug;
 
 public final class JavaTool{
@@ -13,8 +15,8 @@ public final class JavaTool{
     catch(IOException | InterruptedException e){ throw Bug.of(e.toString()); }
   }
   private static String _runMain(String classesDir, String mainClass) throws IOException, InterruptedException {
-    var p= new ProcessBuilder(javaExe().toString(), "-cp", classesDir, mainClass)
-      .redirectErrorStream(true).start();
+    var cmd= List.of(javaExe().toString(), "-cp", classesDir, mainClass);
+    var p= new ProcessBuilder(cmd).redirectErrorStream(true).start();
     p.getOutputStream().close();
     var baos= new ByteArrayOutputStream();
     var in= p.getInputStream();
@@ -25,7 +27,7 @@ public final class JavaTool{
     }
     var out= baos.toString(StandardCharsets.UTF_8);
     int ec= p.waitFor();
-    if (ec != 0){ throw Bug.of(out); }
+    if (ec != 0){ throw Bug.of("java failed (ec="+ec+") cmd="+cmd+"\n"+out); }
     return out;
   }
   static Path javaExe(){
