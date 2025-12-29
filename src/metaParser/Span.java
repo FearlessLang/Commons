@@ -13,4 +13,11 @@ public record Span(URI fileName, int startLine, int startCol, int endLine, int e
     return PrettyFileName.displayFileName(fileName)+"["+startLine+":"+startCol+".."+endLine+":"+endCol+"]";
   }
   public boolean isSingleLine(){ return startLine == endLine; }
+  public boolean contained(Span other){
+    if (!fileName.equals(other.fileName)){ return false; }
+    return startLine <= other.startLine
+      && endLine >= other.endLine
+      && startCol <= other.startCol
+      && endCol >= other.endCol;
+    }
 }
