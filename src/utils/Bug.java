@@ -2,6 +2,14 @@ package utils;
 
 @SuppressWarnings("serial")
 public class Bug extends RuntimeException{
+  //assert Bug.breakOn(..,"...") || //expected usage
+  //  Bug.breakHere(); //breakpoint on this line
+  public static boolean breakOn(Object o, String s){
+    var res= o.toString().contains(s);
+    if (res){ System.out.println("Remove after debugging.\n"+o); }
+    return !res;
+    }
+  public static boolean breakHere(){ return !Bug.class.getSimpleName().isEmpty(); }//True, but not optimized away
   public Bug() {super();}
   public Bug(Throwable cause) {super(cause);}
   public Bug(String msg) {super(msg);}
