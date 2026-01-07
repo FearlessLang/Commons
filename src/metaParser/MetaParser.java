@@ -49,7 +49,7 @@ public abstract class MetaParser<
 
   public Optional<T> peek(){ return peek(0); }
   public Optional<T> peekAbs(int index){
-    if (index < this.index || index >= limit){ return Optional.empty(); }
+    if (index < 0 || index >= limit){ return Optional.empty(); }
     return Optional.of(ts.get(index));
   }
   private T currentT(){ return index<ts.size()? ts.get(index) : ts.get(index-1); }
