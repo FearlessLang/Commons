@@ -6,10 +6,28 @@ public class Bug extends RuntimeException{
   //  Bug.breakHere(); //breakpoint on this line
   public static boolean breakOn(Object o, String s){
     var res= o.toString().contains(s);
-    if (res){ System.out.println("Remove after debugging.\n"+o); }
+    if (res){ 
+      System.out.println("Remove after debugging.\n"+o);
+    }
+    return !res;
+  }
+  public static boolean breakOn2(Object o1, String s1,Object o2, String s2){
+    var res= o1.toString().contains(s1) && o2.toString().contains(s2);
+    if (res){ 
+      System.out.println("Remove after debugging.\n"+o1+" -- "+o2);
+    }
+    return !res;
+  }
+  public static boolean breakOn(Object o, String s1,String s2){
+    var res= o.toString().contains(s1) && o.toString().contains(s2);
+    if (res){
+      System.out.println("Remove after debugging.\n"+o);
+    }
     return !res;
     }
-  public static boolean breakHere(){ return !Bug.class.getSimpleName().isEmpty(); }//True, but not optimized away
+  public static boolean breakHere(){//True, but not optimized away
+    return !Bug.class.getSimpleName().isEmpty();
+  }
   public Bug() {super();}
   public Bug(Throwable cause) {super(cause);}
   public Bug(String msg) {super(msg);}
