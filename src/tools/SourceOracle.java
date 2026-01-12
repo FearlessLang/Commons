@@ -19,7 +19,9 @@ public interface SourceOracle {
   boolean exists(URI uri);
   List<URI> allFiles();
   static URI defaultDbgUri(int index){
-    return Path.of("___DBG___/in_memory"+index+".fear").toAbsolutePath().normalize().toUri();
+    var name= "___DBG___/in_memory"+index+".fear";
+    if (index == 0){ name = "___DBG___/_rank_app999.fear"; }
+    return Path.of(name).toAbsolutePath().normalize().toUri();
   }
   default String loadString(URI uri){ return load(uri).toString(); }
   default SourceOracle withFallback(SourceOracle fb){
