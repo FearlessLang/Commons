@@ -18,8 +18,8 @@ You need to add a file LocalResources.java (that is already in the gitignore)
 following the template LocalResourcesTemplate.java
 */
 public record ResolveResource(Path assetRoot, Path artefactRoot, Optional<Path> testsRoot, FileSystem virtualFs) {
-  static private final ResolveResource instance= ResolveResource.infer(LocalResources.compilerPath);
-  static public final String javaVersion= LocalResources.javaVersion;
+  static private final ResolveResource instance= ResolveResource.infer(LocalResourcesAAA.compilerPath);
+  static public final String javaVersion= LocalResourcesAAA.javaVersion;
 
   public ResolveResource{
     assert Files.exists(assetRoot):assetRoot;
