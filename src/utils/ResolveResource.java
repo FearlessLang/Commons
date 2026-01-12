@@ -17,10 +17,14 @@ This project needs to know how to locate some resources on your machine.
 You need to add a file LocalResources.java (that is already in the gitignore)
 following the template LocalResourcesTemplate.java
 */
-public record ResolveResource(Path assetRoot, Path artefactRoot, Optional<Path> testsRoot, FileSystem virtualFs) {
+public record ResolveResource(Path assetRoot, Path artefactRoot, Optional<Path> testsRoot, FileSystem virtualFs){
+  static public final Path stLibPath= LocalResources.stLibPath;
+  static public final Path stLibRTPath= LocalResources.stLibRTPath;
+  static public final Path stLibDebugOut= LocalResources.stLibDebugOut;
+
   static private final ResolveResource instance= ResolveResource.infer(LocalResources.compilerPath);
   static public final String javaVersion= LocalResources.javaVersion;
-
+  
   public ResolveResource{
     assert Files.exists(assetRoot):assetRoot;
     assert Files.exists(artefactRoot):artefactRoot;
@@ -29,7 +33,7 @@ public record ResolveResource(Path assetRoot, Path artefactRoot, Optional<Path> 
   static ResolveResource infer(Path start) {
     var url= ResolveResource.class.getResource("/base");
     var testResourceUrl= Optional.ofNullable(ResolveResource.class.getResource("/.compiler-tests"));
-    if(url==null) {
+    if(url == null) {
       // We're running with a working dir of the Fearless Compiler project, likely in something like Eclipse.
       var root = start.toAbsolutePath().getParent();
       return new ResolveResource(
@@ -90,9 +94,6 @@ public record ResolveResource(Path assetRoot, Path artefactRoot, Optional<Path> 
     return IoErr.of(()->Files.readString(path, StandardCharsets.UTF_8));
   }
   static public Path freshTmpPath(){
-    /*var res= Paths.get(
-      System.getProperty("java.io.tmpdir"),
-      "fearOut"+UUID.randomUUID());*/
     var res = ResolveResource.artefact("/.tmp")
       .resolve("fearOut"+UUID.randomUUID());
     IoErr.of(()->Files.createDirectories(res));
