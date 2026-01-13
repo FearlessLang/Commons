@@ -21,6 +21,7 @@ public record ResolveResource(Path assetRoot, Path artefactRoot, Optional<Path> 
   static public final Path stLibPath= LocalResources.stLibPath;
   static public final Path stLibRTPath= LocalResources.stLibRTPath;
   static public final Path stLibDebugOut= LocalResources.stLibDebugOut;
+  static public final Path integrationTests= LocalResources.integrationTests;
 
   static private final ResolveResource instance= ResolveResource.infer(LocalResources.compilerPath);
   static public final String javaVersion= LocalResources.javaVersion;
