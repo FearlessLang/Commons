@@ -18,6 +18,7 @@ public interface SourceOracle {
   CharSequence load(URI uri);
   boolean exists(URI uri);
   List<URI> allFiles();
+  long lastModified(URI uri);
   static URI defaultDbgUri(int index){
     var name= "___DBG___/in_memory"+index+".fear";
     if (index == 0){ name = "___DBG___/_rank_app999.fear"; }
@@ -28,9 +29,14 @@ public interface SourceOracle {
     var p= this;
     assert nonNull(fb);
     return new SourceOracle(){
-      public CharSequence load(URI u){ return p.exists(u) ? p.load(u) : fb.load(u); }
-      public boolean exists(URI u){ return p.exists(u) || fb.exists(u); }
-      public List<URI> allFiles(){ return Push.of(p.allFiles(),fb.allFiles()); }
+      @Override public CharSequence load(URI u){ return p.exists(u) ? p.load(u) : fb.load(u); }
+      @Override public boolean exists(URI u){ return p.exists(u) || fb.exists(u); }
+      @Override public List<URI> allFiles(){ return Push.of(p.allFiles(),fb.allFiles()); }
+      @Override public long lastModified(URI u){
+        if (p.exists(u)){ return p.lastModified(u); }
+        if (fb.exists(u)){ return fb.lastModified(u); }
+        return -1; 
+      }
     };
   }
   static boolean isFile(URI k){ return "file".equalsIgnoreCase(k.getScheme()); }
@@ -40,6 +46,7 @@ public interface SourceOracle {
   final class Debug implements SourceOracle{
     private final ConcurrentHashMap<URI,String> map;
     @Override public List<URI> allFiles(){ return map.entrySet().stream().map(e->e.getKey()).toList(); }
+    @Override public long lastModified(URI uri){ return exists(uri) ? System.currentTimeMillis() : -1; }
     private Debug(Map<URI,String> seed){ this.map= new ConcurrentHashMap<>(seed); }
 
     @Override public CharSequence load(URI uri){
