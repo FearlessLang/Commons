@@ -1,7 +1,10 @@
 package tools;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
@@ -21,7 +24,7 @@ public final class Fs{
   }
   public static void writeUtf8(Path file, String content){
     ensureDir(file.getParent());
-    IoErr.ofV(()->Files.writeString(file, content, StandardOpenOption.CREATE_NEW, StandardOpenOption.TRUNCATE_EXISTING));
+    IoErr.ofV(()->Files.writeString(file, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
   }
   public static void copyTree(Path from, Path to){
     IoErr.walkV(from,s->s.forEach(src->IoErr.ofV(()->copyOne(from, to, src))));
@@ -33,4 +36,21 @@ public final class Fs{
     Files.createDirectories(dst.getParent());
     Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
   }
+  public static long lastModified(Path file){
+    try{ return Files.getLastModifiedTime(file, LinkOption.NOFOLLOW_LINKS).toMillis(); }
+    catch(NoSuchFileException _){ return -1; }
+    catch(IOException ioe){ throw new UncheckedIOException(ioe); }
+  }
+  //----
+  // Writes (overwriting if needed) and guarantees mtime > minExclusiveMillis. Returns the actual mtime.
+  public static long writeUtf8(Path file, String content, long minExclusiveMillis){
+    ensureDir(file.getParent());
+    for(;;){
+      IoErr.ofV(()->Files.writeString(file, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
+      var m= lastModified(file);
+      if (m > minExclusiveMillis){ return m; }
+      try{ Thread.sleep(10); }
+      catch(InterruptedException ie){ Thread.currentThread().interrupt(); throw new RuntimeException(ie); }
+    }
+  }  
 }
