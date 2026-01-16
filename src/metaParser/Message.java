@@ -495,16 +495,4 @@ if (caretAtStart){
 }
 return String.join("\n", out);
 }
-  @SuppressWarnings("unused")
-  private static void dbgSpans(String label, java.util.List<metaParser.Frame> fs){
-    System.err.println("\n=== " + label + " ===");
-    for (int i = 0; i < fs.size(); i++){
-      var f = fs.get(i);
-      var s = f.s();
-      String name = (f.name() == null || f.name().isBlank()) ? "(anon)" : f.name();
-      String kind = s.isSingleLine() ? "single" : "multi";
-      System.err.printf("#%02d %-30s [%d:%d .. %d:%d] (%s)%n",
-       i, name, s.startLine(), s.startCol(), s.endLine(), s.endCol(), kind);
-    }
-  }
 }

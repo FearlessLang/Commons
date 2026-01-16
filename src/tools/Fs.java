@@ -1,7 +1,10 @@
 package tools;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
@@ -9,13 +12,15 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.Comparator;
+import java.util.List;
+import java.util.spi.ToolProvider;
 
 import utils.IoErr;
 
 public final class Fs{
   public static void ensureDir(Path p){ IoErr.of(()->Files.createDirectories(p)); }
   public static void cleanDirContents(Path p){
-    assert Files.isDirectory(p);
+    req(Files.isDirectory(p), "Expected directory: "+p);
     IoErr.walkV(p,s-> s
       .filter(x->!x.equals(p))
       .sorted(Comparator.reverseOrder())
@@ -52,5 +57,31 @@ public final class Fs{
       try{ Thread.sleep(10); }
       catch(InterruptedException ie){ Thread.currentThread().interrupt(); throw new RuntimeException(ie); }
     }
-  }  
+  }
+  public static void req(boolean ok, String msg){ if (!ok){ throw new IllegalArgumentException(msg); } }
+  public static void reqDir(Path p, String what){ req(Files.isDirectory(p), "Expected dir "+what+": "+p); }
+  public static void cleanDir(Path p){
+    if (!Files.exists(p)){ ensureDir(p); return; }
+    req(Files.isDirectory(p), "Expected directory: "+p);
+    cleanDirContents(p);
+  }
+  public static void rmTree(Path p){
+    if (!Files.exists(p)){ return; }
+    if (!Files.isDirectory(p)){ IoErr.ofV(()->Files.deleteIfExists(p)); return; }
+    cleanDirContents(p);
+    IoErr.ofV(()->Files.deleteIfExists(p));
+  }
+  public static void copyFresh(Path from, Path to){
+    rmTree(to);
+    copyTree(from, to);
+  }
+  public static String runTool(String tool, List<String> args, String ctx){
+    var tp= ToolProvider.findFirst(tool).orElseThrow();
+    var baos= new ByteArrayOutputStream();
+    var ps= new PrintStream(baos, true, StandardCharsets.UTF_8);
+    int rc= tp.run(ps, ps, args.toArray(String[]::new));
+    var out= baos.toString(StandardCharsets.UTF_8);
+    req(rc == 0, ctx+"\n"+out);
+    return out;
+  }
 }
