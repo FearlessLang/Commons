@@ -14,6 +14,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
+import static offensiveUtils.Require.*;
 
 public abstract class MetaTokenizer<
     T extends Token<T,TK>,
@@ -82,11 +83,8 @@ public abstract class MetaTokenizer<
   public Tokenizer input(URI fileName, Charset charset){
     Objects.requireNonNull(fileName, "fileName");
     Objects.requireNonNull(charset, "charset");
-    if (!"file".equalsIgnoreCase(fileName.getScheme())){
-      throw new IllegalArgumentException("Only \"file: URIs\" are supported by input(URI,Charset): " + fileName);
-    }
-    return input(Path.of(fileName),charset);
-    
+    check("file".equalsIgnoreCase(fileName.getScheme()),"Only \"file: URIs\" are supported by input(URI,Charset): " + fileName);
+    return input(Path.of(fileName),charset);  
   }
   public Tokenizer input(Path path){ return input(path,StandardCharsets.UTF_8); }
   public Tokenizer input(Path path, Charset charset){

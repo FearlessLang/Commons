@@ -14,13 +14,13 @@ import java.nio.file.StandardOpenOption;
 import java.util.Comparator;
 import java.util.List;
 import java.util.spi.ToolProvider;
-
+import static offensiveUtils.Require.*;
 import utils.IoErr;
 
 public final class Fs{
   public static void ensureDir(Path p){ IoErr.of(()->Files.createDirectories(p)); }
   public static void cleanDirContents(Path p){
-    req(Files.isDirectory(p), "Expected directory: "+p);
+    check(Files.isDirectory(p), "Expected directory: "+p);
     IoErr.walkV(p,s-> s
       .filter(x->!x.equals(p))
       .sorted(Comparator.reverseOrder())
@@ -46,7 +46,6 @@ public final class Fs{
     catch(NoSuchFileException _){ return -1; }
     catch(IOException ioe){ throw new UncheckedIOException(ioe); }
   }
-  //----
   // Writes (overwriting if needed) and guarantees mtime > minExclusiveMillis. Returns the actual mtime.
   public static long writeUtf8(Path file, String content, long minExclusiveMillis){
     ensureDir(file.getParent());
@@ -58,11 +57,10 @@ public final class Fs{
       catch(InterruptedException ie){ Thread.currentThread().interrupt(); throw new RuntimeException(ie); }
     }
   }
-  public static void req(boolean ok, String msg){ if (!ok){ throw new IllegalArgumentException(msg); } }
-  public static void reqDir(Path p, String what){ req(Files.isDirectory(p), "Expected dir "+what+": "+p); }
+  public static void reqDir(Path p, String what){ check(Files.isDirectory(p), "Expected dir "+what+": "+p); }
   public static void cleanDir(Path p){
     if (!Files.exists(p)){ ensureDir(p); return; }
-    req(Files.isDirectory(p), "Expected directory: "+p);
+    check(Files.isDirectory(p), "Expected directory: "+p);
     cleanDirContents(p);
   }
   public static void rmTree(Path p){
@@ -81,7 +79,7 @@ public final class Fs{
     var ps= new PrintStream(baos, true, StandardCharsets.UTF_8);
     int rc= tp.run(ps, ps, args.toArray(String[]::new));
     var out= baos.toString(StandardCharsets.UTF_8);
-    req(rc == 0, ctx+"\n"+out);
+    check(rc == 0, ctx+"\n"+out);
     return out;
   }
 }

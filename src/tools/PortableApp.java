@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import static offensiveUtils.Require.*;
 
 public final class PortableApp{
   public static void build(
@@ -34,7 +35,7 @@ public final class PortableApp{
   }
   private static void compileMod(String name, Path srcRoot, Path miRoot, Path app, Path tmp){
     var mi= miRoot.resolve("module-info.java");
-    Fs.req(Files.isRegularFile(mi), "Missing module-info.java: "+mi);
+    check(Files.isRegularFile(mi), "Missing module-info.java: "+mi);
     var classes= tmp.resolve(name);
     Fs.cleanDir(classes);
     var jar= app.resolve(name+".jar");
@@ -42,7 +43,7 @@ public final class PortableApp{
       .filter(p->!p.getFileName().toString().equals("module-info.java"))
       .sorted(Comparator.comparing(Path::toString))
       .toList();
-    Fs.req(!srcs.isEmpty(), name+" has no sources under "+srcRoot);
+    check(!srcs.isEmpty(), name+" has no sources under "+srcRoot);
     var args= new ArrayList<String>(12+srcs.size());
     args.add("-encoding"); args.add("UTF-8");
     args.add("-d"); args.add(classes.toString());
@@ -55,7 +56,7 @@ public final class PortableApp{
   private static void jlink(Path runtimeDir, Path appDir, String mainModule, List<String> extraMods){
     Fs.rmTree(runtimeDir);
     var jmods= Path.of(System.getProperty("java.home"), "jmods");
-    Fs.req(Files.isDirectory(jmods), "No jmods dir at "+jmods+" (need a JDK)");
+    check(Files.isDirectory(jmods), "No jmods dir at "+jmods+" (need a JDK)");
     var mp= jmods.toString()+File.pathSeparator+appDir.toString();
     var mods= mainModule+(extraMods.isEmpty() ? "" : ","+String.join(",", extraMods));
     Fs.runTool("jlink", List.of(
@@ -63,7 +64,7 @@ public final class PortableApp{
       "--add-modules", mods,
       "--output", runtimeDir.toString()
     ), "jlink");
-    Fs.req(Files.isDirectory(runtimeDir), "jlink did not create "+runtimeDir);
+    check(Files.isDirectory(runtimeDir), "jlink did not create "+runtimeDir);
   }
   private static void writeLaunchers(Path binDir, String mainModule, String mainClass){
     var sh= """

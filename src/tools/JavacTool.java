@@ -8,14 +8,14 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-
+import static offensiveUtils.Require.*;
 import utils.IoErr;
 
 public final class JavacTool{
   public static String compileTree(Path srcRoot, Path classesDir, Path jarPath) throws IOException{
     var srcs= javaSourcesUnder(srcRoot);
     IoErr.of(()->Files.deleteIfExists(jarPath));
-    Fs.req(!srcs.isEmpty(), "No .java files under "+srcRoot);
+    check(!srcs.isEmpty(), "No .java files under "+srcRoot);
     var args= new ArrayList<String>(10+srcs.size());
     args.add("-encoding"); args.add("UTF-8");
     args.add("-d"); args.add(classesDir.toString());

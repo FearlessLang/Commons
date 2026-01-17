@@ -28,8 +28,8 @@ public final class Require {
       return jdkUmodLists.contains(xs.getClass().getName());
   }
   public static <E> boolean unmodifiable(List<E> xs, String what){
-    if (isKnownJdkUnmodifiableList(xs)){ return true; }
-    throw new IllegalArgumentException(what+" must be unmodifiable. Name is: "+xs.getClass().getName());
+    assert isKnownJdkUnmodifiableList(xs): what+" must be unmodifiable. Name is: "+xs.getClass().getName();
+    return true;
   }
   public static <K,V> boolean unmodifiable(SequencedMap<K,V> m, String what){
     Objects.requireNonNull(m);
@@ -37,16 +37,16 @@ public final class Require {
     if (m == Collections.EMPTY_MAP){ return true; }
     String cn = m.getClass().getName();
     if (cn.startsWith("java.util.ImmutableCollections$")){ return true; }
-    if (cn.contains("Unmodifiable")){ return true; }
-    throw new IllegalArgumentException(what+" must be an unmodifiable sequenced map");
+    assert cn.contains("Unmodifiable"): what+" must be an unmodifiable sequenced map";
+    return true;
   }
   public static boolean nonNull(Object...os){
     for (var o:os){ Objects.requireNonNull(o); }
     return true;
   }
   public static boolean eq(Object left, Object right, String what){
-    if (left.equals(right)){ return true; }
-    throw new IllegalArgumentException(what+" mismatch: ["+left+"] != ["+right+"]");
+    assert left.equals(right) : what+" mismatch: ["+left+"] != ["+right+"]";
+    return true;
   }
   public static <T> boolean validOpt(Optional<T> o, Consumer<T> p){
     o.ifPresent(p);//the consumer itself would throw the error
@@ -70,15 +70,18 @@ public final class Require {
       for (int i= 0; i < n; i++){
         var xi= xs.get(i);
         for (int j= i + 1; j < n; j++){
-          if (xi == xs.get(j)){ throw new IllegalArgumentException(what+" must have distinct elements (==)"); }
+          assert xi != xs.get(j) : what+" must have distinct elements (==)";
         }
       }
       return true;
     }
     var seen= Collections.newSetFromMap(new java.util.IdentityHashMap<E,Boolean>());
     for (var x: xs){
-      if (!seen.add(x)){ throw new IllegalArgumentException(what+" must have distinct elements (==)"); }
+      assert seen.add(x): what+" must have distinct elements (==)";
     }
     return true;
+  }
+  public static void check(boolean ok, String msg){
+    if(!ok){ throw new IllegalArgumentException(msg); }
   }
 }
