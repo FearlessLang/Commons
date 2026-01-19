@@ -1,11 +1,10 @@
 package tools;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 import static offensiveUtils.Require.*;
 import utils.Push;
 
@@ -14,59 +13,78 @@ import utils.Push;
  * Some Source oracles may cache the content from the disk, some may not.
  * Some Source oracles may provide a view of some disk content.
  */
-public interface SourceOracle {
-  CharSequence load(URI uri);
-  boolean exists(URI uri);
-  List<URI> allFiles();
-  long lastModified(URI uri);
-  static URI defaultDbgUri(int index){
-    var name= "___DBG___/in_memory"+index+".fear";
-    if (index == 0){ name = "___DBG___/_rank_app999.fear"; }
-    return Path.of(name).toAbsolutePath().normalize().toUri();
+
+public interface SourceOracle{
+  interface Ref extends RefParent{
+    byte[] loadBytes();
+    long lastModified();
+    default String loadString(){ return new String(loadBytes(), StandardCharsets.UTF_8); }
+    //NOTE: we also need to manually override toString=fearPath in all the implementations
   }
-  default String loadString(URI uri){ return load(uri).toString(); }
+  interface RefParent{
+    String fearPath();        // "fear:/a/b.c"
+    default URI fearURI(){ return URI.create(fearPath()); }
+    //NOTE: we also need to manually override toString=fearPath in all the implementations
+    default RefParent parent(){//may return 'this' for root
+      var fp= fearPath();
+      var p= RefParents.parentFearPath(fp);
+      return p.equals(fp) ? this : RefParents.dir(p);
+    }
+    final class RefParents{
+      private static final String root="fear:/";
+      private static String parentFearPath(String fp){
+        assert fp.startsWith(root);
+        int rootLen= root.length();
+        int i= fp.lastIndexOf('/');
+        assert i >= rootLen - 1;
+        if (i == rootLen - 1){ return root; }
+        return fp.substring(0, i);
+      }
+      private static SourceOracle.RefParent dir(String fp){
+        return new SourceOracle.RefParent(){
+          @Override public SourceOracle.RefParent parent(){
+            var p= parentFearPath(fp);
+            return p.equals(fp) ? this : dir(p);
+          }
+          @Override public String fearPath(){ return fp; }
+          @Override public String toString(){ return fp; }
+        };
+      }
+    }
+  }
+  List<Ref> allFiles();
+  default String loadString(URI uri){
+    return allFiles().stream().filter(f->f.fearURI().equals(uri)).findFirst().get().loadString();
+  }  
+  public static URI defaultDbgFearPath(int index){
+    return URI.create("fear:/___DBG___/"+(index==0 ? "_rank_app999.fear" : "in_memory"+index+".fear"));
+  }
   default SourceOracle withFallback(SourceOracle fb){
-    var p= this;
     assert nonNull(fb);
-    return new SourceOracle(){
-      @Override public CharSequence load(URI u){ return p.exists(u) ? p.load(u) : fb.load(u); }
-      @Override public boolean exists(URI u){ return p.exists(u) || fb.exists(u); }
-      @Override public List<URI> allFiles(){ return Push.of(p.allFiles(),fb.allFiles()); }
-      @Override public long lastModified(URI u){
-        if (p.exists(u)){ return p.lastModified(u); }
-        if (fb.exists(u)){ return fb.lastModified(u); }
-        return -1; 
-      }
-    };
+    var all= Push.of(allFiles(), fb.allFiles());
+    assert all.stream().map(e->e.fearPath()).distinct().count()== all.size();
+    return ()->all;
   }
-  static boolean isFile(URI k){ return "file".equalsIgnoreCase(k.getScheme()); }
-
-  static Debug.Builder debugBuilder(){ return new Debug.Builder(); }
-
-  final class Debug implements SourceOracle{
-    private final ConcurrentHashMap<URI,String> map;
-    @Override public List<URI> allFiles(){ return map.entrySet().stream().map(e->e.getKey()).toList(); }
-    @Override public long lastModified(URI uri){ return exists(uri) ? System.currentTimeMillis() : -1; }
-    private Debug(Map<URI,String> seed){ this.map= new ConcurrentHashMap<>(seed); }
-
-    @Override public CharSequence load(URI uri){
-      URI k= uri.normalize();
-      String s= map.get(k);
-      if (s == null){ 
-      throw new IllegalArgumentException("No debug content for "+k); }
-      return s;
+  public static Builder debugBuilder(){ return new Builder(); }
+  public static final class Builder{
+    private record DebugRef(String fearPath, byte[] loadBytes,String loadString) implements Ref{
+      DebugRef{ assert nonNull(fearPath,loadBytes); }
+      @Override public long lastModified(){ return System.currentTimeMillis(); }
+      @Override public String toString(){ return fearPath; }
     }
-    @Override public boolean exists(URI uri){ return map.containsKey(uri.normalize()); }
-
-    public static final class Builder{
-      private final ConcurrentHashMap<URI,String> seed= new ConcurrentHashMap<>();
-      public Builder putURI(URI uri, String content){ seed.put(uri.normalize(), Objects.requireNonNull(content)); return this; }
-      public Builder put(String pathLike, String content){
-        URI u = Path.of(pathLike).toAbsolutePath().normalize().toUri();
-        return putURI(u, content);
+    private record Debug(List<Ref> allFiles) implements SourceOracle{//should be private inside builder?
+      public Debug{
+        assert unmodifiable(allFiles,"Debug.fileList");//still should be guaranteed by builder?
+        assert allFiles.stream().map(e->e.fearPath()).distinct().count()== allFiles.size();
       }
-      public Builder put(int index,String content){ return putURI(defaultDbgUri(index), content); }
-      public Debug build(){ return new Debug(Map.copyOf(seed)); }
     }
+    ArrayList<Ref> allFiles = new ArrayList<>();
+    public Builder putURI(URI uri, String content){ allFiles.add(new DebugRef(uri.normalize().toString(),content.getBytes(),content)); return this; }
+    public Builder put(String pathLike, String content){
+      URI u = Path.of(pathLike).toAbsolutePath().normalize().toUri();
+      return putURI(u, content);
+    }
+    public Builder put(int index,String content){ return putURI(defaultDbgFearPath(index), content); }
+    public SourceOracle build(){ return new Debug(List.copyOf(allFiles)); }
   }
 }
