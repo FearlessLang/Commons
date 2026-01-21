@@ -15,6 +15,8 @@ import utils.Push;
  */
 
 public interface SourceOracle{
+  public static final String root="fear:/";
+
   interface Ref extends RefParent{
     byte[] loadBytes();
     long lastModified();
@@ -27,28 +29,20 @@ public interface SourceOracle{
     //NOTE: we also need to manually override toString=fearPath in all the implementations
     default RefParent parent(){//may return 'this' for root
       var fp= fearPath();
-      var p= RefParents.parentFearPath(fp);
+      var p= Fs.removeFileNameAllowTop(fp);
       return p.equals(fp) ? this : RefParents.dir(p);
     }
     final class RefParents{
-      private static final String root="fear:/";
-      private static String parentFearPath(String fp){
-        assert fp.startsWith(root);
-        int rootLen= root.length();
-        int i= fp.lastIndexOf('/');
-        assert i >= rootLen - 1;
-        if (i == rootLen - 1){ return root; }
-        return fp.substring(0, i);
-      }
       private static SourceOracle.RefParent dir(String fp){
-        return new SourceOracle.RefParent(){
+        record DirRefParent(String fearPath) implements SourceOracle.RefParent{
           @Override public SourceOracle.RefParent parent(){
-            var p= parentFearPath(fp);
-            return p.equals(fp) ? this : dir(p);
+              var p= Fs.removeFileNameAllowTop(fearPath);
+              return p.equals(fearPath) ? this : dir(p);
           }
-          @Override public String fearPath(){ return fp; }
-          @Override public String toString(){ return fp; }
-        };
+          @Override public String fearPath(){ return fearPath; }
+          @Override public String toString(){ return fearPath; }
+        }
+        return new DirRefParent(fp);
       }
     }
   }

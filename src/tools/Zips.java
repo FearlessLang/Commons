@@ -22,7 +22,8 @@ public final class Zips{
         .sorted(Comparator.comparing(p->dir.relativize(p).toString().replace('\\','/')))
         .toList();
       for (var p: files){
-        var rel= dir.relativize(p).toString().replace('\\','/');
+        var rel= dir.relativize(p).toString();
+        assert !rel.contains("\\");
         var e= new ZipEntry(rel);
         e.setTime(Files.getLastModifiedTime(p).toMillis());
         out.putNextEntry(e);

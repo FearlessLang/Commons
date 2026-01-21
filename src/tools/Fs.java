@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -81,5 +82,42 @@ public final class Fs{
     var out= baos.toString(StandardCharsets.UTF_8);
     check(rc == 0, ctx+"\n"+out);
     return out;
+  }
+  ///Returns the filename with extension (the substring after the last '/').
+  public static String fileNameWithExtension(URI s){ return fileNameWithExtension(s.toString()); } 
+  public static String fileNameWithExtension(String s){
+    var res= s.substring(lastSlashIndex(s)+1);
+    assert !res.isEmpty();
+    return res;
+  }
+  /// Returns the filename without the extension. Example: "fear:/a/b/c.tar.gz" -> "c"
+  public static String fileNameWithoutExtension(URI u){ return fileNameWithoutExtension(u.toString()); }
+  public static String fileNameWithoutExtension(String s){
+    int slash= lastSlashIndex(s);
+    int dot= s.indexOf('.', slash + 1); // first dot after last slash
+    assert dot >= 0 && dot + 1 < s.length();
+    assert dot > slash + 1 && dot + 1 < s.length();
+    return s.substring(slash + 1, dot);
+  }
+  /// Returns the extension including the leading '.' Example: "fear:/a/b/c.tar.gz" -> ".tar.gz"; but also /a.b/c.z -> .z
+  public static String extensionWithDot(String s){
+    int dot= s.indexOf('.', lastSlashIndex(s) + 1); // first dot after last slash
+    assert dot >= 0 && dot + 1 < s.length();
+    return s.substring(dot);
+  }
+  ///Returns the path without the filename
+  public static String removeFileName(URI s){ return removeFileName(s.toString()); } 
+  public static String removeFileName(String s){ return s.substring(0,lastSlashIndex(s)); }
+  public static String removeFileNameAllowTop(URI s){ return removeFileNameAllowTop(s.toString()); } 
+  public static String removeFileNameAllowTop(String s){
+    int i= s.lastIndexOf('/');
+    if (i == -1){ return ""; }
+    int j= s.indexOf(":/");
+    return i == j+1 ? s.substring(0,i+1) : s.substring(0,i);
+  }  
+  private static int lastSlashIndex(String s){
+    int i= s.lastIndexOf('/');
+    assert i >= 0 && i + 1 < s.length();
+    return i;
   }
 }
