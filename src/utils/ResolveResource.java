@@ -30,7 +30,7 @@ public record ResolveResource(Path assetRoot, Path artefactRoot, Optional<Path> 
   static public final Path coordinatorSrcModule= LocalResources.coordinatorSrcModule; 
 
   static public final Path portableFolderOut= LocalResources.portableFolderOut;
-
+  static public final Path badZipCorpous= LocalResources.badZipCorpous;
 
   static private final ResolveResource instance= ResolveResource.infer(LocalResources.compilerPath);
   static public final String javaVersion= LocalResources.javaVersion;
