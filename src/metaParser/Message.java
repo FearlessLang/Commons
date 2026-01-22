@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -250,20 +251,6 @@ public record Message(String msg, int priority){
     return l > start.line || (l == start.line && c >= start.col);
   }
   private record Pos(int line, int col){}
-
-  public static String displayChar(int cp){
-    if (cp < 0 || cp > Character.MAX_CODE_POINT){
-      return "[Out of character range: 0x" + Integer.toHexString(cp).toUpperCase() + "]";
-    }
-    if (cp >= 0xD800 && cp <= 0xDFFF){
-      String kind= (cp <= 0xDBFF ? "HIGH" : "LOW");
-      return "["+kind + " SURROGATE " + String.format(java.util.Locale.ROOT, "\\u%04X", cp)+"]";
-    }
-    String named= Named.get(cp);
-    if (named != null){ return "["+named+"]"; }
-    if (cp >= 0x21 && cp <= 0x7E){ return "\""+String.valueOf((char)cp)+"\""; }
-    return "\""+toJavaUnicodeEscape(cp)+"\"";
-  }
   private static String toJavaUnicodeEscape(int cp){
     if (Character.isBmpCodePoint(cp)){
       return String.format(java.util.Locale.ROOT, "\\u%04X", cp);
@@ -271,66 +258,114 @@ public record Message(String msg, int priority){
     char[] sur= Character.toChars(cp);
     return String.format(java.util.Locale.ROOT, "\\u%04X\\u%04X", (int)sur[0], (int)sur[1]);
   }
+  /*private static String extra(int cp){//Messy and out of my control
+    String charName="";
+    try { charName= Character.getName(cp); }
+    catch (RuntimeException ignored){}
+    String hex= String.format(Locale.ROOT,"U+%04X",cp);
+    return charName.isEmpty() ? "("+hex+")" : "("+charName+" "+hex+")";
+  }*/
+  public static String displayChar(int cp){
+    if (cp < 0 || cp > Character.MAX_CODE_POINT){
+      return "[Out of character range: 0x"+Integer.toHexString(cp).toUpperCase(Locale.ROOT)+"]";
+    }
+    if (cp >= 0xD800 && cp <= 0xDFFF){
+      String kind= (cp <= 0xDBFF ? "HIGH" : "LOW");
+      return "["+kind+" SURROGATE "+String.format(Locale.ROOT,"\\u%04X",cp)+"]";
+    }
+    String named= Named.get(cp);
+    if (named != null){ return "["+named+"]"; }
+    if (cp >= 0x21 && cp <= 0x7E){ return "\""+String.valueOf((char)cp)+"\""; }
+    return "\""+toJavaUnicodeEscape(cp)+"\"";
+  }
   private static final class Named{
     private static final HashMap<Integer,String> M= new HashMap<>();
     static{
       // C0 controls
       String[] c0= {
-        "NUL","SOH","STX","ETX","EOT","ENQ","ACK","BEL","BS","TAB","LF","VT","FF","CR",
-        "SO","SI","DLE","DC1","DC2","DC3","DC4","NAK","SYN","ETB","CAN","EM","SUB","ESC","FS","GS","RS","US"
+        "Null",
+        "Start Of Heading",
+        "Start Of Text",
+        "End Of Text",
+        "End Of Transmission",
+        "Enquiry",
+        "Acknowledge",
+        "Bell",
+        "Backspace",
+        "Tab",
+        "Line Feed",
+        "Vertical Tab",
+        "Form Feed",
+        "Carriage Return",
+        "Shift Out",
+        "Shift In",
+        "Data Link Escape",
+        "Device Control 1",
+        "Device Control 2",
+        "Device Control 3",
+        "Device Control 4",
+        "Negative Acknowledge",
+        "Synchronous Idle",
+        "End Of Transmission Block",
+        "Cancel",
+        "End Of Medium",
+        "Substitute",
+        "Escape",
+        "File Separator",
+        "Group Separator",
+        "Record Separator",
+        "Unit Separator"
       };
       for (int i= 0; i < c0.length; i++) {
         M.put(i, c0[i] + " 0x" + String.format(java.util.Locale.ROOT, "%02X", i));
       }
       // DEL and a couple C1s commonly seen
-      M.put(0x7F,"DEL 0x7F");
-      M.put(0x85,"NEL 0x85");
-      M.put(0x9B,"CSI 0x9B");
-
+      M.put(0x7F,"Delete 0x7F");
+      M.put(0x85,"Next Line 0x85");
+      M.put(0x9B,"Control Sequence Introducer 0x9B");
       // Spaces and separators
-      M.put(0x22, "DQUOTE (\") 0x22");
-      M.put(0x27, "SQUOTE (') 0x27");
-      M.put(0x5C, "BACKSLASH (\\) 0x5C");
-      M.put(0x60, "BACKTICK (`) 0x60");
-      M.put(0x20, "SPACE ( ) 0x20");
-      M.put(0x00A0,"NBSP 0x00A0");
-      M.put(0x1680,"OGHAM SPACE 0x1680");
-      M.put(0x2000,"EN QUAD 0x2000");
-      M.put(0x2001,"EM QUAD 0x2001");
-      M.put(0x2002,"EN SPACE 0x2002");
-      M.put(0x2003,"EM SPACE 0x2003");
-      M.put(0x2004,"THREE-PER-EM SPACE 0x2004");
-      M.put(0x2005,"FOUR-PER-EM SPACE 0x2005");
-      M.put(0x2006,"SIX-PER-EM SPACE 0x2006");
-      M.put(0x2007,"FIGURE SPACE 0x2007");
-      M.put(0x2008,"PUNCTUATION SPACE 0x2008");
-      M.put(0x2009,"THIN SPACE 0x2009");
-      M.put(0x200A,"HAIR SPACE 0x200A");
-      M.put(0x2028,"LS 0x2028");
-      M.put(0x2029,"PS 0x2029");
-      M.put(0x202F,"NARROW NBSP 0x202F");
-      M.put(0x205F,"MEDIUM MATHEMATICAL SPACE 0x205F");
-      M.put(0x3000,"IDEOGRAPHIC SPACE 0x3000");
-
+      M.put(0x22, "Double Quote (\") 0x22");
+      M.put(0x27, "Single Quote (') 0x27");
+      M.put(0x5C, "Backslash (\\) 0x5C");
+      M.put(0x60, "Backtick (`) 0x60");
+      M.put(0x20, "Space ( ) 0x20");
+      M.put(0x00A0,"No-Break Space 0x00A0");
+      M.put(0x1680,"Ogham Space Mark 0x1680");
+      M.put(0x2000,"En Quad 0x2000");
+      M.put(0x2001,"Em Quad 0x2001");
+      M.put(0x2002,"En Space 0x2002");
+      M.put(0x2003,"Em Space 0x2003");
+      M.put(0x2004,"Three-Per-Em Space 0x2004");
+      M.put(0x2005,"Four-Per-Em Space 0x2005");
+      M.put(0x2006,"Six-Per-Em Space 0x2006");
+      M.put(0x2007,"Figure Space 0x2007");
+      M.put(0x2008,"Punctuation Space 0x2008");
+      M.put(0x2009,"Thin Space 0x2009");
+      M.put(0x200A,"Hair Space 0x200A");
+      M.put(0x2028,"Line Separator 0x2028");
+      M.put(0x2029,"Paragraph Separator 0x2029");
+      M.put(0x202F,"Narrow No-Break Space 0x202F");
+      M.put(0x205F,"Medium Mathematical Space 0x205F");
+      M.put(0x3000,"Ideographic Space 0x3000");
       // Format and bidi controls
-      M.put(0x00AD,"SHY 0x00AD");
-      M.put(0x061C,"ALM 0x061C");
-      M.put(0x200B,"ZWSP 0x200B");
-      M.put(0x200C,"ZWNJ 0x200C");
-      M.put(0x200D,"ZWJ 0x200D");
-      M.put(0x200E,"LRM 0x200E");
-      M.put(0x200F,"RLM 0x200F");
-      M.put(0x202A,"LRE 0x202A");
-      M.put(0x202B,"RLE 0x202B");
-      M.put(0x202C,"PDF 0x202C");
-      M.put(0x202D,"LRO 0x202D");
-      M.put(0x202E,"RLO 0x202E");
-      M.put(0x2060,"WJ 0x2060");
-      M.put(0x2066,"LRI 0x2066");
-      M.put(0x2067,"RLI 0x2067");
-      M.put(0x2068,"FSI 0x2068");
-      M.put(0x2069,"PDI 0x2069");
-      M.put(0xFEFF,"BOM 0xFEFF");
+      M.put(0x00AD,"Soft Hyphen 0x00AD");
+      M.put(0x061C,"Arabic Letter Mark 0x061C");
+      M.put(0x200B,"Zero Width Space 0x200B");
+      M.put(0x200C,"Zero Width Non-Joiner 0x200C");
+      M.put(0x200D,"Zero Width Joiner 0x200D");
+      M.put(0x200E,"Left-To-Right Mark 0x200E");
+      M.put(0x200F,"Right-To-Left Mark 0x200F");
+      M.put(0x202A,"Left-To-Right Embedding 0x202A");
+      M.put(0x202B,"Right-To-Left Embedding 0x202B");
+      M.put(0x202C,"Pop Directional Formatting 0x202C");
+      M.put(0x202D,"Left-To-Right Override 0x202D");
+      M.put(0x202E,"Right-To-Left Override 0x202E");
+      M.put(0x2060,"Word Joiner 0x2060");
+      M.put(0x2066,"Left-To-Right Isolate 0x2066");
+      M.put(0x2067,"Right-To-Left Isolate 0x2067");
+      M.put(0x2068,"First Strong Isolate 0x2068");
+      M.put(0x2069,"Pop Directional Isolate 0x2069");
+      M.put(0xFEFF,"Byte Order Mark 0xFEFF");
     }
     static String get(int cp){ return M.get(cp); }
   }
@@ -338,7 +373,7 @@ public record Message(String msg, int priority){
   public static String displayString(String s){
     // If exactly one Unicode scalar, delegate to displayChar (already bracketed).
     int n = s.codePointCount(0, s.length());
-    if (n == 1) return displayChar(s.codePointAt(0));
+    if (n == 1){ return displayChar(s.codePointAt(0));}
 
     StringBuilder out = new StringBuilder(s.length() + 2);
     out.append('\"');

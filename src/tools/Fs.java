@@ -19,6 +19,14 @@ import static offensiveUtils.Require.*;
 import utils.IoErr;
 
 public final class Fs{
+  // ASCII whitelist
+  public static final String allowed=
+    "0123456789" +
+    "abcdefghijklmnopqrstuvwxyz" +
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+    "+-*/=<>,.;:()[]{}" +
+    "`'\"!?@#$%^&_|~\\" +
+    " \n";
   public static void ensureDir(Path p){ IoErr.of(()->Files.createDirectories(p)); }
   public static void cleanDirContents(Path p){
     check(Files.isDirectory(p), "Expected directory: "+p);

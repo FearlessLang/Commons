@@ -22,8 +22,7 @@ public final class Zips{
         .sorted(Comparator.comparing(p->dir.relativize(p).toString().replace('\\','/')))
         .toList();
       for (var p: files){
-        var rel= dir.relativize(p).toString();
-        assert !rel.contains("\\");
+        var rel= dir.relativize(p).toString().replace("\\","/");//Can have / on windows; currently both linux and mac use /
         var e= new ZipEntry(rel);
         e.setTime(Files.getLastModifiedTime(p).toMillis());
         out.putNextEntry(e);
