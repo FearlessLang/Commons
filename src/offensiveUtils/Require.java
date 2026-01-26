@@ -82,6 +82,7 @@ public final class Require {
     return true;
   }
   public static void check(boolean ok, String msg){
-    if(!ok){ throw new IllegalArgumentException(msg); }
+    if(!ok){ 
+    throw new IllegalArgumentException(msg); }
   }
 }

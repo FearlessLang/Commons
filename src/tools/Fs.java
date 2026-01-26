@@ -12,6 +12,9 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.DosFileAttributeView;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.Comparator;
 import java.util.List;
 import java.util.spi.ToolProvider;
@@ -30,12 +33,28 @@ public final class Fs{
   public static void ensureDir(Path p){ IoErr.of(()->Files.createDirectories(p)); }
   public static void cleanDirContents(Path p){
     check(Files.isDirectory(p), "Expected directory: "+p);
-    IoErr.walkV(p,s-> s
+    var xs= IoErr.walk(p, s-> s
       .filter(x->!x.equals(p))
       .sorted(Comparator.reverseOrder())
-      .forEach(x->IoErr.ofV(()->Files.deleteIfExists(x))
-    ));
+      .toList()
+    );
+    xs.forEach(x->IoErr.ofV(()->forceDelete(x)));
   }
+  private static void forceDelete(Path p) throws IOException{
+    try{ makeWritableIfPossible(p); } catch(Throwable _){}
+    Files.deleteIfExists(p);
+  }
+  private static void makeWritableIfPossible(Path p) throws IOException{
+    var dos= Files.getFileAttributeView(p, DosFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
+    if (dos != null){ dos.setReadOnly(false); return; }
+    var posix= Files.getFileAttributeView(p, PosixFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
+    if (posix != null){
+      var ps= posix.readAttributes().permissions();
+      if (ps.add(PosixFilePermission.OWNER_WRITE)){ Files.setPosixFilePermissions(p, ps); }
+      return;
+    }
+    p.toFile().setWritable(true);
+  }  
   public static void writeUtf8(Path file, String content){
     ensureDir(file.getParent());
     IoErr.ofV(()->Files.writeString(file, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
@@ -82,13 +101,13 @@ public final class Fs{
     rmTree(to);
     copyTree(from, to);
   }
-  public static String runTool(String tool, List<String> args, String ctx){
+  public static String runTool(String tool, List<String> args){
     var tp= ToolProvider.findFirst(tool).orElseThrow();
     var baos= new ByteArrayOutputStream();
     var ps= new PrintStream(baos, true, StandardCharsets.UTF_8);
     int rc= tp.run(ps, ps, args.toArray(String[]::new));
     var out= baos.toString(StandardCharsets.UTF_8);
-    check(rc == 0, ctx+"\n"+out);
+    check(rc == 0, "Tool error:\n"+out);
     return out;
   }
   ///Returns the filename with extension (the substring after the last '/').
