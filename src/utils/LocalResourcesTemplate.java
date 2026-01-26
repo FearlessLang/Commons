@@ -3,17 +3,23 @@ package utils;
 import java.nio.file.Path;
 
 public class LocalResourcesTemplate { //public class LocalResources {
-  //example for windows 
-  static public final Path compilerPath= Path.of("C:\\")
-    .resolve("Users","UserName",/*..,..*/"GitHub","Fearless","compiler");
-  static public final Path stLibPath= Path.of("C:\\")
-    .resolve("Users","UserName",/*..,..*/"GitHub","StandardLibrary","base");
-  static public final Path stLibRTPath= Path.of("C:\\")
-    .resolve("Users","UserName",/*..,..*/"GitHub","StandardLibrary","rt");
-  static public final Path stLibDebugOut= Path.of("C:\\")
-    .resolve("Users","UserName",/*..,..*/"GitHub","StandardLibrary","dbgOut");
-  static public final String javaVersion= "24";
-  //example for linux
+  //example for windows
+  private static Path prefix=Path.of("C:\\").resolve("Users","...","OneDrive","Documents","GitHub");
+  //example for linux  
+  //example for mac  
+  static public final Path compilerPath= prefix.resolve("Fearless","compiler");
+  static public final Path stLibPath= prefix.resolve("StandardLibrary","base");
+  static public final Path stLibRTPath= prefix.resolve("StandardLibrary","rt");
+  static public final Path stLibDebugOut= prefix.resolve("StandardLibrary","dbgOut");
+  static public final Path integrationTests= prefix.resolve("StandardLibrary","integrationTests");
   
-  //example for mac
+  static public final Path commonsSrc= prefix.resolve("Commons","src");
+  static public final Path frontendSrc= prefix.resolve("Frontend","FearlessFrontend","src");
+  static public final Path frontendSrcModule= prefix.resolve("Frontend","FearlessFrontend","srcModule");
+  static public final Path coordinatorSrc= prefix.resolve("Coordinator","src");
+  static public final Path coordinatorSrcModule= prefix.resolve("Coordinator","srcModule");
+
+  static public final Path portableFolderOut= prefix.resolve("StandardLibrary","fearlessArtefact","fearless");
+  static public final Path badZipCorpous= prefix.resolve("Coordinator","badZips");
+  static public final String javaVersion= "24";
 }
