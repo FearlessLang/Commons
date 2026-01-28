@@ -21,5 +21,6 @@ public class LocalResourcesTemplate { //public class LocalResources {
 
   static public final Path portableFolderOut= prefix.resolve("StandardLibrary","fearlessArtefact","fearless");
   static public final Path badZipCorpous= prefix.resolve("Coordinator","badZips");
+  static public final Path packaging= prefix.resolve("Coordinator","_fearless_packaging");
   static public final String javaVersion= "24";
 }

@@ -31,6 +31,7 @@ public record ResolveResource(Path assetRoot, Path artefactRoot, Optional<Path> 
 
   static public final Path portableFolderOut= LocalResources.portableFolderOut;
   static public final Path badZipCorpous= LocalResources.badZipCorpous;
+  static public final Path packaging= LocalResources.packaging;
 
   static private final ResolveResource instance= ResolveResource.infer(LocalResources.compilerPath);
   static public final String javaVersion= LocalResources.javaVersion;

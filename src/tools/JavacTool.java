@@ -7,9 +7,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 import static offensiveUtils.Require.*;
+
+import utils.Bug;
 import utils.IoErr;
 import utils.Join;
 
@@ -53,50 +54,75 @@ public final class JavacTool{
     b.append("module=").append(moduleMain).append('\n');
     var opts= joinJvmOpts(javaOptions);
     if (!opts.isEmpty()){ b.append("java-options=").append(opts).append('\n'); }
-    if (isWindows()){ b.append("win-console=").append(winConsole ? "true" : "false").append('\n'); }
+    if (Fs.isWindows()){ b.append("win-console=").append(winConsole ? "true" : "false").append('\n'); }
     return b.toString();
   }
   private static String joinJvmOpts(List<String> opts){ return Join.of(opts,""," ","",""); }
-  private static boolean isWindows(){ return System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"); }
   public static void javac(List<Path> srcs, Path classesDir){}
   public static final String launcherKey= "app.launcher";
   public static final String appDirKey= "app.dir";
   public static final String consoleKey= "console";
   public static final String winKey= "w";
   public static final List<String> javaOptions= List.of("-ea","-D"+appDirKey+"=$APPDIR");
-  public static void jpackage(Path dest, String appName, String moduleMain, Path appContent){
+  public static void jpackage(Path dest, Path packaging, String moduleMain, Path appContent){
     var slash= moduleMain.indexOf('/');
     check(slash > 0, "Bad moduleMain (need Mod/pkg.Main): "+moduleMain);
-    check(!appName.isEmpty(), "Empty appName");
+    check(Files.isDirectory(packaging), "Not a directory: "+packaging);
     check(Files.isDirectory(appContent), "Not a directory: "+appContent);
-    var modsDir= dest.resolve("_mods");
-    check(Files.isDirectory(modsDir), "Missing "+modsDir+" (put your module jars there)");
     var runtimeImage= Path.of(System.getProperty("java.home"));
     check(Files.isDirectory(runtimeImage), "No runtime image dir at "+runtimeImage);
     var tmp= dest.resolve("_tmp_jpackage");
     Fs.cleanDir(tmp); Fs.ensureDir(tmp);
-    try{ jpBody(dest, moduleMain, appName, appName+"w", appContent, modsDir, runtimeImage, tmp); }
+    try{ jpBody(dest, moduleMain, appContent, runtimeImage, tmp, packaging); }
     finally{ Fs.rmTree(tmp); }
   }
-  private static void jpBody(
-    Path dest, String moduleMain, String appName, String wName,
-    Path appContent, Path modsDir, Path runtimeImage, Path tmp
-  ){
+  private static List<String> expected= List.of("windows","macos","linux");
+  private static String getName(Path packaging){
+    List<String> extra= IoErr.of(()->{
+      try(var fs= Files.list(packaging)){
+        return fs.map(pi->pi.getFileName().toString())
+          .filter(pi->!expected.contains(pi)).toList();
+        }});
+    check(extra.size() == 1,"Not exactly one candidate name for the deployed app: "+extra);
+    return extra.getFirst();
+    }
+  private static void jpBody(Path dest, String moduleMain, Path appContent, Path runtimeImage, Path tmp, Path packaging){
+    String name= getName(packaging);
+    String wName= name + "w";
+    var icon= iconForCurrentOs(packaging);
     var wProps= tmp.resolve(wName+".properties");
-    Fs.writeUtf8(wProps, launcherProps(moduleMain, jvmOpts(winKey), false));
+    Fs.writeUtf8(wProps, launcherProps(moduleMain, jvmOpts(winKey), false)+"icon="+icon.toString().replace("\\","\\\\")+"\n");
+    var modsDir= dest.resolve("_mods");
+    check(Files.isDirectory(modsDir), "Missing "+modsDir+" (put your module jars there)");
     var args= new ArrayList<String>(96);
     args.add("--type"); args.add("app-image");
     args.add("--dest"); args.add(dest.toString());
-    args.add("--name"); args.add(appName);
+    args.add("--name"); args.add(name);
+    args.add("--icon"); args.add(icon.toString());
     args.add("--module-path"); args.add(modsDir.toString());
     args.add("--module"); args.add(moduleMain);
     args.add("--runtime-image"); args.add(runtimeImage.toString());
     var consoleOpts= joinJvmOpts(jvmOpts(consoleKey));
     if (!consoleOpts.isEmpty()){ args.add("--java-options"); args.add(consoleOpts); }
-    if (isWindows()){ args.add("--win-console"); }
+    if (Fs.isWindows()){ args.add("--win-console"); }
     args.add("--add-launcher"); args.add(wName+"="+wProps);
     args.add("--app-content"); args.add(appContent.toString());
     Fs.runTool("jpackage", args);
+  }
+  private static Path iconFile(Path packaging, String osDir, String file){
+    var p= packaging.resolve(osDir).resolve(file);
+    check(Files.isRegularFile(p), "Missing icon file: "+p);
+    return p.toAbsolutePath().normalize();
+  }
+  private static Path iconForCurrentOs(Path packaging){
+    iconFile(packaging, "windows", "icon.ico");
+    iconFile(packaging, "macos", "icon.icns");
+    iconFile(packaging, "linux", "icon.png");
+    if (Fs.isWindows()){ return iconFile(packaging, "windows", "icon.ico"); }
+    if (Fs.isMac()){ return iconFile(packaging, "macos", "icon.icns"); }
+    if (Fs.isLinux()){ return iconFile(packaging, "linux", "icon.png"); }
+    check(false,"Unsupported OS: "+System.getProperty("os.name"));
+    throw Bug.unreachable();
   }
   private static List<String> jvmOpts(String launcherValue){
     var xs= new ArrayList<String>(javaOptions.size()+1);

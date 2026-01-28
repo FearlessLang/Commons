@@ -17,6 +17,7 @@ import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.spi.ToolProvider;
 import static offensiveUtils.Require.*;
 import utils.IoErr;
@@ -146,5 +147,14 @@ public final class Fs{
     int i= s.lastIndexOf('/');
     assert i >= 0 && i + 1 < s.length();
     return i;
+  }
+  public static boolean isWindows(){
+    return System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win");
+  }
+  public static boolean isMac(){
+    return System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("mac");
+  }
+  public static boolean isLinux(){
+    return System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("linux");
   }
 }

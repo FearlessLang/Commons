@@ -4,10 +4,9 @@ import java.nio.file.Path;
 import java.util.List;
 
 public record PortableApp(
-  Path commonsSrc,Path frontendSrc,Path frontendSrcModule,
-  Path coordinatorSrc,Path coordinatorSrcModule,Path base,Path rt,Path out
+  Path packaging, Path out, Path commonsSrc,Path frontendSrc,Path frontendSrcModule,
+  Path coordinatorSrc,Path coordinatorSrcModule,Path base,Path rt
 ){
-  private static final String appName= "Fearless";
   private static final String moduleMain= "Coordinator/mainCoordinator.Main";
   public void build(){
     reqInputs();
@@ -21,7 +20,7 @@ public record PortableApp(
     Fs.cleanDir(modsDir);
     compileAllMods(modsDir, tmp);
     var stdLib= prepareAppContent(tmp);
-    JavacTool.jpackage(out, appName, moduleMain, stdLib);
+    JavacTool.jpackage(out, packaging, moduleMain, stdLib);
   }
   private void reqInputs(){
     Fs.reqDir(base, "base"); Fs.reqDir(rt, "rt");
@@ -47,6 +46,7 @@ public record PortableApp(
     var stdLib= app.resolve("stdLib");
     Fs.copyFresh(base, stdLib.resolve("base"));
     Fs.copyFresh(rt, stdLib.resolve("rt"));
+    Fs.copyFresh(packaging.resolve("linux").resolve("icon.png"), app.resolve("icon.png"));
     return app;
   }
 }
