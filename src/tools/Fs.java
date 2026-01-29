@@ -60,6 +60,10 @@ public final class Fs{
     ensureDir(file.getParent());
     IoErr.ofV(()->Files.writeString(file, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
   }
+  public static String readUtf8(Path file){
+    ensureDir(file.getParent());
+    return IoErr.of(()->Files.readString(file,StandardCharsets.UTF_8));
+  }
   public static void copyTree(Path from, Path to){
     IoErr.walkV(from,s->s.forEach(src->IoErr.ofV(()->copyOne(from, to, src))));
   }

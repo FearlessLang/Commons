@@ -1,11 +1,8 @@
 package metaParser;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -14,6 +11,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
+
+import tools.Fs;
+
 import static offensiveUtils.Require.*;
 
 public abstract class MetaTokenizer<
@@ -89,8 +89,7 @@ public abstract class MetaTokenizer<
   public Tokenizer input(Path path){ return input(path,StandardCharsets.UTF_8); }
   public Tokenizer input(Path path, Charset charset){
     Objects.requireNonNull(path, "path");
-    String raw; try{raw= Files.readString(path, charset); }
-    catch (IOException ex){ throw new UncheckedIOException(ex); }
+    String raw= Fs.readUtf8(path);
     return input(path.toUri(), normalizeSource(raw));
   }
   public Tokenizer input(URI fileName, String input){

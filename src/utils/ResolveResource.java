@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import tools.Fs;
+
 /**
 This file will have a compile time error on the first git checkout.
 This project needs to know how to locate some resources on your machine.
@@ -98,11 +100,7 @@ public record ResolveResource(Path assetRoot, Path artefactRoot, Optional<Path> 
   }
 
   static public String getAndReadAsset(String path) {
-    return read(asset(path));
-  }
-
-  static public String read(Path path) {
-    return IoErr.of(()->Files.readString(path, StandardCharsets.UTF_8));
+    return Fs.readUtf8(asset(path));
   }
   static public Path freshTmpPath(){
     var res = ResolveResource.artefact("/.tmp")
