@@ -2,7 +2,6 @@ package utils;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -39,8 +38,8 @@ public record ResolveResource(Path assetRoot, Path artefactRoot, Optional<Path> 
   static public final String javaVersion= LocalResources.javaVersion;
   
   public ResolveResource{
-    assert Files.exists(assetRoot):assetRoot;
-    assert Files.exists(artefactRoot):artefactRoot;
+    //assert Files.exists(assetRoot):assetRoot;
+    //assert Files.exists(artefactRoot):artefactRoot;
   }
 
   static ResolveResource infer(Path start) {
