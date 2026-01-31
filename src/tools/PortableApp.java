@@ -19,6 +19,7 @@ public record PortableApp(
   private void build0(Path tmp, Path modsDir){
     Fs.cleanDir(modsDir);
     compileAllMods(modsDir, tmp);
+    Fs.copyFresh(modsDir.resolve("Commons.jar"),commonsSrc.getParent().resolve("Commons.jar"));
     var stdLib= prepareAppContent(tmp);
     JavacTool.jpackage(out, packaging, moduleMain, stdLib);
   }
