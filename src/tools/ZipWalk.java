@@ -9,7 +9,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-import utils.IoErr;
 //TODO: probably there is no need to ever use this one.
 public final class ZipWalk{
   private final Function<String,RuntimeException> badNameErr;
@@ -45,12 +44,12 @@ public final class ZipWalk{
       boolean open= false;
       void closeAny(){
         if(!open){ return; }
-        IoErr.ofV(zin::closeEntry);
+        Fs.ofV(zin::closeEntry);
         open= false;
       }
       @Override public boolean tryAdvance(Consumer<? super ZipEntry> action){
         closeAny();
-        var e= IoErr.of(zin::getNextEntry);
+        var e= Fs.of(zin::getNextEntry);
         if(e==null){ return false; }
         open= true;
         action.accept(e);

@@ -6,7 +6,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.zip.ZipInputStream;
-import utils.IoErr;
 
 public record ReadZip(
     Function<String,RuntimeException> badNameErr,
@@ -14,12 +13,12 @@ public record ReadZip(
     Function<String,RuntimeException> tooLargeName){
   public interface IoSupplier{ ZipInputStream get() throws IOException; }
   public Map<String,byte[]> readAll(IoSupplier szin){
-    return cleanUp(IoErr.of(()->{try(var zin=szin.get()){ return _readAll(zin); }}));
+    return cleanUp(Fs.of(()->{try(var zin=szin.get()){ return _readAll(zin); }}));
   }
   private LinkedHashMap<String,byte[]> _readAll(ZipInputStream zin){
     var out= new LinkedHashMap<String,byte[]>();
     while (true){
-      var e= IoErr.of(zin::getNextEntry);
+      var e= Fs.of(zin::getNextEntry);
       if (e == null){ return out; }
       try {
         var n= e.getName();
@@ -29,7 +28,7 @@ public record ReadZip(
         if(n.endsWith("/")){ out.put(key, null); }
         else{ out.put(key, readEntryBytes(key,zin)); }
       }
-      finally{ IoErr.ofV(zin::closeEntry); }
+      finally{ Fs.ofV(zin::closeEntry); }
     }
   }
   private static String keyOf(String n){ return n.endsWith("/") ? n.substring(0, n.length()-1) : n; }
@@ -42,7 +41,7 @@ public record ReadZip(
     }
   }
   private byte[] readEntryBytes(String name, ZipInputStream zin){
-    try{ return IoErr.of(zin::readAllBytes); }
+    try{ return Fs.of(zin::readAllBytes); }
     catch(OutOfMemoryError oom){ throw tooLargeName.apply(name); }
   }
   private Map<String,byte[]> cleanUp(LinkedHashMap<String,byte[]> map){

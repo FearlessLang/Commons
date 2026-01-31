@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import utils.Bug;
-import utils.IoErr;
 
 public final class JavaTool{
   public static String runMain(Path classesDir, String mainClass){
@@ -44,7 +43,7 @@ public final class JavaTool{
     return out;
   }
   static String jarsCp(Path jarDir) throws IOException{
-    return IoErr.<String>walk(jarDir,s->s
+    return Fs.walk(jarDir,s->s
       .filter(p->p.toString().endsWith(".jar"))
       .sorted(Comparator.comparing(p->p.getFileName().toString()))
       .map(Path::toString)

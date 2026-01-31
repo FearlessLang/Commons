@@ -9,12 +9,10 @@ import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import utils.IoErr;
-
 public final class Zips{
   public static void zipDir(Path dir, Path zip){
     if (!Files.isDirectory(dir)){ throw new AssertionError("Not a dir: "+dir); }
-    IoErr.of(()->Files.deleteIfExists(zip));
+    Fs.of(()->Files.deleteIfExists(zip));
     try(var out= new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(zip)))){
       out.setLevel(Deflater.BEST_COMPRESSION);
       var files= Files.walk(dir)

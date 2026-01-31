@@ -1,6 +1,7 @@
 package tools;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
@@ -19,8 +20,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.spi.ToolProvider;
+import java.util.stream.Stream;
+
 import static offensiveUtils.Require.*;
-import utils.IoErr;
+import utils.ThrowingConsumer;
 
 public final class Fs{
   // ASCII whitelist
@@ -31,15 +34,15 @@ public final class Fs{
     "+-*/=<>,.;:()[]{}" +
     "`'\"!?@#$%^&_|~\\" +
     " \n";
-  public static void ensureDir(Path p){ IoErr.of(()->Files.createDirectories(p)); }
+  public static void ensureDir(Path p){ of(()->Files.createDirectories(p)); }
   public static void cleanDirContents(Path p){
     check(Files.isDirectory(p), "Expected directory: "+p);
-    var xs= IoErr.walk(p, s-> s
+    var xs= walk(p, s-> s
       .filter(x->!x.equals(p))
       .sorted(Comparator.reverseOrder())
       .toList()
     );
-    xs.forEach(x->IoErr.ofV(()->forceDelete(x)));
+    xs.forEach(x->ofV(()->forceDelete(x)));
   }
   private static void forceDelete(Path p) throws IOException{
     try{ makeWritableIfPossible(p); } catch(Throwable _){}
@@ -58,14 +61,14 @@ public final class Fs{
   }  
   public static void writeUtf8(Path file, String content){
     ensureDir(file.getParent());
-    IoErr.ofV(()->Files.writeString(file, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
+    ofV(()->Files.writeString(file, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
   }
   public static String readUtf8(Path file){
     ensureDir(file.getParent());
-    return IoErr.of(()->Files.readString(file,StandardCharsets.UTF_8));
+    return of(()->Files.readString(file,StandardCharsets.UTF_8));
   }
   public static void copyTree(Path from, Path to){
-    IoErr.walkV(from,s->s.forEach(src->IoErr.ofV(()->copyOne(from, to, src))));
+    walkV(from,s->s.forEach(src->ofV(()->copyOne(from, to, src))));
   }
   private static void copyOne(Path fromRoot, Path toRoot, Path src) throws IOException{
     var rel= fromRoot.relativize(src);
@@ -83,7 +86,7 @@ public final class Fs{
   public static long writeUtf8(Path file, String content, long minExclusiveMillis){
     ensureDir(file.getParent());
     for(;;){
-      IoErr.ofV(()->Files.writeString(file, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
+      ofV(()->Files.writeString(file, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
       var m= lastModified(file);
       if (m > minExclusiveMillis){ return m; }
       try{ Thread.sleep(10); }
@@ -98,9 +101,9 @@ public final class Fs{
   }
   public static void rmTree(Path p){
     if (!Files.exists(p)){ return; }
-    if (!Files.isDirectory(p)){ IoErr.ofV(()->Files.deleteIfExists(p)); return; }
+    if (!Files.isDirectory(p)){ ofV(()->Files.deleteIfExists(p)); return; }
     cleanDirContents(p);
-    IoErr.ofV(()->Files.deleteIfExists(p));
+    ofV(()->Files.deleteIfExists(p));
   }
   public static void copyFresh(Path from, Path to){
     rmTree(to);
@@ -160,5 +163,31 @@ public final class Fs{
   }
   public static boolean isLinux(){
     return System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("linux");
+  }
+    public interface RunVoid{void run() throws IOException;}
+  public interface Run<T>{T run() throws IOException;}
+  public interface WalkVoid{void walk(Stream<Path> p) throws IOException;}
+  public interface Walk<T>{T walk(Stream<Path> p) throws IOException;}
+  public static void ofV(RunVoid f) {
+    try { f.run(); }
+    catch(IOException io){ throw new UncheckedIOException(io); }
+  }
+  public static <T> T of(Run<T> f) {
+    try { return f.run(); }
+    catch(IOException io){ throw new UncheckedIOException(io); }
+  }
+  public static void walkV(Path p, WalkVoid f){
+    try (Stream<Path> s= Files.walk(p)){ f.walk(s); }
+    catch(IOException io){ throw new UncheckedIOException(io); }
+  }
+  public static <T> T walk(Path p, Walk<T> f){
+    try (Stream<Path> s= Files.walk(p)){ return f.walk(s); }
+    catch(IOException io){ throw new UncheckedIOException(io); }
+  }
+  public static void deleteOnExit(Path dir) {
+    Runtime.getRuntime().addShutdownHook(new Thread(()->{
+      try(var tree= of(()->Files.walk(dir))) {
+        tree.map(Path::toFile).forEach(ThrowingConsumer.of(File::deleteOnExit));
+    }}));
   }
 }

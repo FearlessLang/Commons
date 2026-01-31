@@ -11,13 +11,12 @@ import java.util.stream.Collectors;
 import static offensiveUtils.Require.*;
 
 import utils.Bug;
-import utils.IoErr;
 import utils.Join;
 
 public final class JavacTool{
   public static String compileTree(Path srcRoot, Path classesDir, Path jarPath) throws IOException{
     var srcs= javaSourcesUnder(srcRoot);
-    IoErr.of(()->Files.deleteIfExists(jarPath));
+    Fs.of(()->Files.deleteIfExists(jarPath));
     check(!srcs.isEmpty(), "No .java files under "+srcRoot);
     var args= new ArrayList<String>(10+srcs.size());
     args.add("-encoding"); args.add("UTF-8");
@@ -30,7 +29,7 @@ public final class JavacTool{
     return javacOut;
   }
   static List<Path> javaSourcesUnder(Path root){
-    return IoErr.walk(root,pi->pi
+    return Fs.walk(root,pi->pi
       .filter(p->p.toString().endsWith(".java"))
       .sorted(Comparator.comparing(p->root.relativize(p).toString()))
       .toList());
@@ -42,7 +41,7 @@ public final class JavacTool{
       "-C",classesDir.toString(),"."));
   }
   static String jarsCp(Path jarFile){
-    return IoErr.<String>walk(jarFile.getParent(),s->s
+    return Fs.walk(jarFile.getParent(),s->s
       .filter(p->p.toString().endsWith(".jar"))
       .filter(p->!p.equals(jarFile))
       .sorted(Comparator.comparing(p->p.getFileName().toString()))
@@ -78,7 +77,7 @@ public final class JavacTool{
   }
   private static List<String> expected= List.of("windows","macos","linux");
   private static String getName(Path packaging){
-    List<String> extra= IoErr.of(()->{
+    List<String> extra= Fs.of(()->{
       try(var fs= Files.list(packaging)){
         return fs.map(pi->pi.getFileName().toString())
           .filter(pi->!expected.contains(pi)).toList();
@@ -144,7 +143,7 @@ public final class JavacTool{
     args.addAll(javacArgs);
     args.add("-d"); args.add(classesDir.toString());
     args.add("--module-path"); args.add(modsDir.toString());
-    srcs.forEach(src->IoErr.walkV(src,s->s
+    srcs.forEach(src->Fs.walkV(src,s->s
       .filter(p->p.toString().endsWith(".java"))
       .forEach(p->args.add(p.toString()))));
     Fs.runTool("javac", args);
