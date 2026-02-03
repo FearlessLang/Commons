@@ -14,7 +14,7 @@ import utils.Bug;
 import utils.Join;
 
 public final class JavacTool{
-  public static String compileTree(Path srcRoot, Path classesDir, Path jarPath) throws IOException{
+  public static String compileTree(Path srcRoot, Path classesDir, Runnable postProcess, Path jarPath) throws IOException{
     var srcs= javaSourcesUnder(srcRoot);
     Fs.of(()->Files.deleteIfExists(jarPath));
     check(!srcs.isEmpty(), "No .java files under "+srcRoot);
@@ -25,6 +25,7 @@ public final class JavacTool{
     if (!cp.isEmpty()){ args.add("-cp"); args.add(cp); }
     srcs.forEach(p->args.add(p.toString()));
     var javacOut= Fs.runTool("javac", args);
+    postProcess.run();
     jar(classesDir, jarPath);
     return javacOut;
   }
