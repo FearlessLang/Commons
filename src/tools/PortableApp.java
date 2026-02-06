@@ -22,6 +22,9 @@ public record PortableApp(
     Fs.copyFresh(modsDir.resolve("Commons.jar"),commonsSrc.getParent().resolve("Commons.jar"));
     var stdLib= prepareAppContent(tmp);
     JavacTool.jpackage(out, packaging, moduleMain, stdLib);
+    if(!Fs.isLinux()){ return; }
+    var mimeLoc= out.resolve("fearless").resolve("bin").resolve("fearless-mime.xml");
+    Fs.writeUtf8(mimeLoc, mime);
   }
   private void reqInputs(){
     Fs.reqDir(base, "base"); Fs.reqDir(rt, "rt");
@@ -50,4 +53,14 @@ public record PortableApp(
     Fs.copyFresh(packaging.resolve("linux").resolve("icon.png"), app.resolve("icon.png"));
     return app;
   }
+  //need to be saved in fearless-mime.xml near fearless and fearlessw
+  private static final String mime="""
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-fearless">
+    <comment>Fearless project</comment>
+    <glob pattern="*.fearless"/>
+  </mime-type>
+</mime-info>
+""";
 }
