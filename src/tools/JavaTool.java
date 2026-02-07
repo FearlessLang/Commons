@@ -27,7 +27,7 @@ public final class JavaTool{
   }
 
   private static String _runMain(String classPath, String mainClass) throws IOException, InterruptedException{
-    var cmd= List.of(javaExe().toString(), "-cp", classPath, mainClass);
+    var cmd= List.of(javaExe().toString(),"-ea", "-cp", classPath, mainClass);
     var p= new ProcessBuilder(cmd).redirectErrorStream(true).start();
     p.getOutputStream().close();
     var baos= new ByteArrayOutputStream();
