@@ -31,11 +31,12 @@ public final class JavaTool{
     cmd.add(javaExe().toString());
     cmd.add("-ea");
     cmd.addAll(jvmArgs);
+    cmd.add("-Dfearless.parentLifeline=stdin");
     cmd.add("-cp");
     cmd.add(classPath);
     cmd.add(mainClass);
     Process p= new ProcessBuilder(cmd).redirectErrorStream(true).start();
-    p.getOutputStream().close();
+    var lifeline= p.getOutputStream();
     var baos= new ByteArrayOutputStream();
     var pumpErr= new IOException[1];
     var pump= new Thread(() -> pumpOutput(p,baos,pumpErr),"FearlessJvmOut");
@@ -43,10 +44,13 @@ public final class JavaTool{
     pump.start();
     int ec; try{ ec= p.waitFor(); }
     catch(InterruptedException | RuntimeException | Error e){
-      killAndWait(p);
+      closeQuietly(lifeline);
+      waitForUninterruptibly(p,200);
+      if (p.isAlive()){ killAndWait(p); }
       joinUninterruptibly(pump);
       throw e;
     }
+    finally{ closeQuietly(lifeline); }
     joinUninterruptibly(pump);
     if (pumpErr[0] != null){ throw pumpErr[0]; }
     var out= baos.toString(StandardCharsets.UTF_8);
@@ -102,6 +106,10 @@ public final class JavaTool{
       }
     }
     finally{ if (interrupted){ Thread.currentThread().interrupt(); } }
+  }
+  private static void closeQuietly(java.io.Closeable c){
+    try{ c.close(); }
+    catch(IOException _){}
   }
   static String jarsCp(Path jarDir) throws IOException{
     return Fs.walk(jarDir,s->s
