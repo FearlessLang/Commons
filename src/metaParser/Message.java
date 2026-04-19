@@ -258,26 +258,73 @@ public record Message(String msg, int priority){
     char[] sur= Character.toChars(cp);
     return String.format(java.util.Locale.ROOT, "\\u%04X\\u%04X", (int)sur[0], (int)sur[1]);
   }
-  /*private static String extra(int cp){//Messy and out of my control
-    String charName="";
-    try { charName= Character.getName(cp); }
-    catch (RuntimeException ignored){}
-    String hex= String.format(Locale.ROOT,"U+%04X",cp);
-    return charName.isEmpty() ? "("+hex+")" : "("+charName+" "+hex+")";
-  }*/
+  private static String uPlus(int cp){
+    return "U+"+String.format(Locale.ROOT, cp <= 0xFFFF ? "%04X" : "%06X", cp);
+  }
+
   public static String displayChar(int cp){
     if (cp < 0 || cp > Character.MAX_CODE_POINT){
-      return "[Out of character range: 0x"+Integer.toHexString(cp).toUpperCase(Locale.ROOT)+"]";
+      return "[Out of character range: "+uPlus(cp)+"]";
     }
     if (cp >= 0xD800 && cp <= 0xDFFF){
-      String kind= (cp <= 0xDBFF ? "HIGH" : "LOW");
-      return "["+kind+" SURROGATE "+String.format(Locale.ROOT,"\\u%04X",cp)+"]";
+      return "["+(cp <= 0xDBFF ? "HIGH" : "LOW")+" SURROGATE "+uPlus(cp)+"]";
     }
     String named= Named.get(cp);
     if (named != null){ return "["+named+"]"; }
-    if (cp >= 0x21 && cp <= 0x7E){ return "\""+String.valueOf((char)cp)+"\""; }
-    return "\""+toJavaUnicodeEscape(cp)+"\"";
+    if (literalChar(cp)){ return quoteLiteral(Character.toString(cp)); }
+    return "["+uPlus(cp)+"]";
   }
+  public static String displayString(String s){
+    if (s.isEmpty()){ return "\"\""; }
+    if (s.codePointCount(0, s.length()) == 1){ return displayChar(s.codePointAt(0)); }
+
+    ArrayList<String> out= new ArrayList<>();
+    StringBuilder lit= new StringBuilder();
+
+    for (int i= 0; i < s.length(); ){
+      int cp= s.codePointAt(i);
+      i += Character.charCount(cp);
+
+      if (cp == '\n'){
+        flushLiteral(out, lit);
+        out.add("|");
+        continue;
+      }
+      if (literalChar(cp)){
+        char c= (char)cp;
+        if ((c == '"' && lit.indexOf("`") >= 0) || (c == '`' && lit.indexOf("\"") >= 0)){
+          flushLiteral(out, lit);
+          out.add(displayChar(cp));
+        } else {
+          lit.append(c);
+        }
+        continue;
+      }
+
+      flushLiteral(out, lit);
+      out.add(displayChar(cp));
+    }
+
+    flushLiteral(out, lit);
+    return String.join(" ", out);
+  }
+
+  private static boolean literalChar(int cp){
+    return cp >= 0x20 && cp <= 0x7E;
+  }
+
+  private static void flushLiteral(List<String> out, StringBuilder lit){
+    if (lit.isEmpty()){ return; }
+    out.add(quoteLiteral(lit.toString()));
+    lit.setLength(0);
+  }
+
+  private static String quoteLiteral(String s){
+    if (s.indexOf('"') < 0){ return "\""+s+"\""; }
+    if (s.indexOf('`') < 0){ return "`"+s+"`"; }
+    throw new Error("Unsplit literal containing both delimiters: "+s);
+  }
+  
   private static final class Named{
     private static final HashMap<Integer,String> M= new HashMap<>();
     static{
@@ -368,36 +415,6 @@ public record Message(String msg, int priority){
       M.put(0xFEFF,"Byte Order Mark 0xFEFF");
     }
     static String get(int cp){ return M.get(cp); }
-  }
-  //Format arbitrary token text safely for inline diagnostics.
-  public static String displayString(String s){
-    // If exactly one Unicode scalar, delegate to displayChar (already bracketed).
-    int n = s.codePointCount(0, s.length());
-    if (n == 1){ return displayChar(s.codePointAt(0));}
-
-    StringBuilder out = new StringBuilder(s.length() + 2);
-    out.append('\"');
-    for (int i = 0; i < s.length(); ){
-      int cp = s.codePointAt(i);
-      i += Character.charCount(cp);
-      switch (cp) {
-        case '\\': out.append("\\\\"); break;
-        case '"' : out.append("\\\""); break;
-        case '\n': out.append("\\n");  break;
-        case '\r': out.append("\\r");  break;
-        case '\t': out.append("\\t");  break;
-        case '\f': out.append("\\f");  break;
-        case '\b': out.append("\\b");  break;
-        default:
-         if (cp >= 0x20 && cp <= 0x7E) {
-             out.append((char)cp);          // printable ASCII
-          } else {
-            out.append(toJavaUnicodeEscape(cp)); // \ uXXXX (or surrogate pair)
-          }
-      }
-    }
-    out.append('\"');
-    return out.toString();
   }
 
 private static String makeCaretLine(String[] lines, Grouping g, int width){
