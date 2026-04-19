@@ -251,17 +251,9 @@ public record Message(String msg, int priority){
     return l > start.line || (l == start.line && c >= start.col);
   }
   private record Pos(int line, int col){}
-  private static String toJavaUnicodeEscape(int cp){
-    if (Character.isBmpCodePoint(cp)){
-      return String.format(java.util.Locale.ROOT, "\\u%04X", cp);
-    }
-    char[] sur= Character.toChars(cp);
-    return String.format(java.util.Locale.ROOT, "\\u%04X\\u%04X", (int)sur[0], (int)sur[1]);
-  }
   private static String uPlus(int cp){
     return "U+"+String.format(Locale.ROOT, cp <= 0xFFFF ? "%04X" : "%06X", cp);
   }
-
   public static String displayChar(int cp){
     if (cp < 0 || cp > Character.MAX_CODE_POINT){
       return "[Out of character range: "+uPlus(cp)+"]";
