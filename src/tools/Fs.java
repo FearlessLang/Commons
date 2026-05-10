@@ -20,6 +20,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.spi.ToolProvider;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static offensiveUtils.Require.*;
@@ -164,7 +165,7 @@ public final class Fs{
   public static boolean isLinux(){
     return System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("linux");
   }
-    public interface RunVoid{void run() throws IOException;}
+  public interface RunVoid{void run() throws IOException;}
   public interface Run<T>{T run() throws IOException;}
   public interface WalkVoid{void walk(Stream<Path> p) throws IOException;}
   public interface Walk<T>{T walk(Stream<Path> p) throws IOException;}
@@ -190,4 +191,23 @@ public final class Fs{
         tree.map(Path::toFile).forEach(ThrowingConsumer.of(File::deleteOnExit));
     }}));
   }
+  
+  public static void copyTreeFlat(Path from, Path to){
+    var files= walk(from,s->s
+      .filter(Files::isRegularFile)
+      .toList()
+    );
+    var duplicates= files.stream()
+      .collect(Collectors.groupingBy(p->p.getFileName().toString()))
+      .entrySet().stream()
+      .filter(e->e.getValue().size() > 1)
+      .toList();
+    check(duplicates.isEmpty(), "Duplicate file names while flattening copy:\n"+duplicates);
+    ensureDir(to);
+    files.forEach(src->ofV(()->copyFlat(to, src)));
+  }
+  private static void copyFlat(Path toRoot, Path src) throws IOException{
+    Files.copy(src, toRoot.resolve(src.getFileName()), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
+  }
+  
 }
