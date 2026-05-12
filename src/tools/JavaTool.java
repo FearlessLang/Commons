@@ -35,7 +35,9 @@ public final class JavaTool{
     cmd.add("-cp");
     cmd.add(classPath);
     cmd.add(mainClass);
-    Process p= new ProcessBuilder(cmd).redirectErrorStream(true).start();
+    var pb= new ProcessBuilder(cmd);
+    pb.environment().remove("_JPACKAGE_LAUNCHER");
+    Process p= pb.redirectErrorStream(true).start();
     var lifeline= p.getOutputStream();
     var baos= new ByteArrayOutputStream();
     var pumpErr= new IOException[1];
