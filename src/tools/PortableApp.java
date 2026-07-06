@@ -19,7 +19,7 @@ public record PortableApp(
   }
   private void build0(Path tmp, Path modsDir){
     Fs.cleanDir(modsDir);
-    copyExternalMods(modsDir);
+    Fs.copyTreeFlat(depJar, modsDir);
     compileAllMods(modsDir, tmp);
     Fs.copyFresh(modsDir.resolve("Commons.jar"),commonsSrc.getParent().resolve("Commons.jar"));
     var stdLib= prepareAppContent(tmp);
@@ -28,7 +28,6 @@ public record PortableApp(
     var mimeLoc= out.resolve("fearless").resolve("bin").resolve("fearless-mime.xml");
     Fs.writeUtf8(mimeLoc, mime);
   }
-  private void copyExternalMods(Path modsDir){ Fs.copyTreeFlat(depJar, modsDir); }
   private void reqInputs(){
     Fs.reqDir(base, "base"); Fs.reqDir(rt, "rt");
     Fs.reqDir(commonsSrc, "Commons/src");

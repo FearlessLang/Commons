@@ -14,9 +14,13 @@ import java.util.stream.Collectors;
 import utils.Bug;
 
 public final class JavaTool{
-  public static String runMain(List<String> jvmArgs, Path classesDir, String mainClass) throws InterruptedException{
-    try{ return _runMain(jvmArgs,classesDir.toString(),mainClass); }
+  public static String runMain(List<String> jvmArgs, Path classesDir, Path libs, String mainClass) throws InterruptedException{
+    try{ return _runMain(jvmArgs, cp(classesDir.toString(),libs), mainClass); }
     catch(IOException e){ throw Bug.of(e.toString()); }
+  }
+  private static String cp(String main, Path libs) throws IOException{
+    var l= jarsCp(libs);
+    return l.isEmpty() ? main : main+File.pathSeparator+l;
   }
   public static String runMainFromJars(List<String> jvmArgs, Path jarDir, String mainClass) throws InterruptedException{
     try{

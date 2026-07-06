@@ -116,9 +116,24 @@ public final class Fs{
     var ps= new PrintStream(baos, true, StandardCharsets.UTF_8);
     int rc= tp.run(ps, ps, args.toArray(String[]::new));
     var out= baos.toString(StandardCharsets.UTF_8);
-    check(rc == 0, "Tool error:\n"+out);
+    check(rc == 0,
+      "Tool error: "+tool+
+      "\nExit code: "+rc+
+      "\nArgs:\n"+String.join("\n",args)+
+      "\nOutput length: "+out.length()+
+      "\nOutput:\n<<<\n"+out+"\n>>>");
     return out;
   }
+  /*
+  public static String runTool(String tool, List<String> args){
+    var tp= ToolProvider.findFirst(tool).orElseThrow();
+    var baos= new ByteArrayOutputStream();
+    var ps= new PrintStream(baos, true, StandardCharsets.UTF_8);
+    int rc= tp.run(ps, ps, args.toArray(String[]::new));
+    var out= baos.toString(StandardCharsets.UTF_8);
+    check(rc == 0, "Tool error:\n"+out);
+    return out;
+  }*/
   ///Returns the filename with extension (the substring after the last '/').
   public static String fileNameWithExtension(URI s){ return fileNameWithExtension(s.toString()); } 
   public static String fileNameWithExtension(String s){
@@ -208,6 +223,5 @@ public final class Fs{
   }
   private static void copyFlat(Path toRoot, Path src) throws IOException{
     Files.copy(src, toRoot.resolve(src.getFileName()), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
-  }
-  
+  } 
 }
