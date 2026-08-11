@@ -91,6 +91,18 @@ public final class JavacTool{
   public static final String winKey= "w";
   public static final List<String> javaOptions= List.of("-ea","-D"+appDirKey+"=$APPDIR");
 
+  // Local build-time staging dir we hand to `jpackage --module-path`, holding
+  // the module jars (Commons/FearlessFrontend/Coordinator + external jars).
+  // It only exists for the duration of jpackage(...) below and is deleted right after.
+  public static final String buildModsDirName= "_mods";
+  // jpackage's own app-image convention: it copies the `--module-path` content
+  // into a dir named exactly this, inside the produced app (e.g. on Linux,
+  // <dest>/<name>/lib/app/mods). We don't choose this name, jpackage does —
+  // reqDeployedMods(...) below confirms it actually happened instead of
+  // Coordinator.modsPath() finding out at runtime. Keep in sync if a future
+  // JDK/jpackage version changes this layout.
+  public static final String deployedModsDirName= "mods";
+
   public static void jpackage(Path dest, Path packaging, String moduleMain, Path appContent){
     var slash= moduleMain.indexOf('/');
     check(slash > 0, "Bad moduleMain (need Mod/pkg.Main): "+moduleMain);
@@ -102,6 +114,16 @@ public final class JavacTool{
     Fs.cleanDir(tmp); Fs.ensureDir(tmp);
     try{ jpBody(dest, moduleMain, appContent, runtimeImage, tmp, packaging); }
     finally{ Fs.rmTree(tmp); }
+    reqDeployedMods(dest);
+  }
+  private static void reqDeployedMods(Path dest){
+    var found= Fs.walk(dest, s->s
+      .filter(Files::isDirectory)
+      .filter(p->p.getFileName().toString().equals(deployedModsDirName))
+      .toList());
+    check(found.size() == 1, "Expected exactly one '"+deployedModsDirName+"' dir under "+dest+" after jpackage, found: "+found);
+    var jars= Fs.walk(found.getFirst(), s->s.filter(p->p.toString().endsWith(".jar")).toList());
+    check(!jars.isEmpty(), "jpackage-produced '"+deployedModsDirName+"' dir has no jars: "+found.getFirst());
   }
 
   private static List<String> expected= List.of("windows","macos","linux");
@@ -122,7 +144,7 @@ public final class JavacTool{
     var icon= iconForCurrentOs(packaging);
     var wProps= tmp.resolve(wName+".properties");
     Fs.writeUtf8(wProps, launcherProps(moduleMain, jvmOpts(winKey), false)+"icon="+icon.toString().replace("\\","\\\\")+"\n");
-    var modsDir= dest.resolve("_mods");
+    var modsDir= dest.resolve(buildModsDirName);
     check(Files.isDirectory(modsDir), "Missing "+modsDir+" (put your module jars there)");
     var args= new ArrayList<String>(96);
     args.add("--type"); args.add("app-image");

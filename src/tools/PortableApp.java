@@ -13,7 +13,7 @@ public record PortableApp(
     reqInputs();
     Fs.cleanDir(out); Fs.ensureDir(out);
     var tmp= out.resolve("_tmp"); Fs.ensureDir(tmp);
-    var modsDir= out.resolve("_mods");
+    var modsDir= out.resolve(JavacTool.buildModsDirName);
     try{ build0(tmp, modsDir); }
     finally{ Fs.rmTree(tmp); Fs.rmTree(modsDir); }
   }
