@@ -89,22 +89,15 @@ public final class JavacTool{
   public static final String appDirKey= "app.dir";
   public static final String consoleKey= "console";
   public static final String winKey= "w";
-  //--enable-native-access is for the manager: it forces the process locale through the
-  //JDK's own foreign-function API (fileSupport.NativeLocaleForcer), and a restricted
-  //call from a module that was not granted access is reported, and is planned to fail,
-  //by the JVM. Granting it to the module that makes the call is the whole grant.
+  //--enable-native-access needed to coordinator (example, forcing english language)
   public static final List<String> javaOptions= List.of("-ea","--enable-native-access=Coordinator","-D"+appDirKey+"=$APPDIR");
 
   // Local build-time staging dir we hand to `jpackage --module-path`, holding
   // the module jars (Commons/FearlessFrontend/Coordinator + external jars).
-  // It only exists for the duration of jpackage(...) below and is deleted right after.
   public static final String buildModsDirName= "_mods";
   // jpackage's own app-image convention: it copies the `--module-path` content
   // into a dir named exactly this, inside the produced app (e.g. on Linux,
-  // <dest>/<name>/lib/app/mods). We don't choose this name, jpackage does —
-  // reqDeployedMods(...) below confirms it actually happened instead of
-  // Coordinator.modsPath() finding out at runtime. Keep in sync if a future
-  // JDK/jpackage version changes this layout.
+  // <dest>/<name>/lib/app/mods). We don't choose this name, jpackage does
   public static final String deployedModsDirName= "mods";
 
   public static void jpackage(Path dest, Path packaging, String name, String moduleMain, Path appContent){
@@ -132,9 +125,6 @@ public final class JavacTool{
 
   private static List<String> expected= List.of("windows","macos","linux");
 
-  //The app name carried by the packaging folder: the one directory next to the three
-  //per-OS ones. An app that does not take its name from there (the managed deploy names
-  //itself FearlessId.binFolder) passes its own name to jpackage instead.
   public static String getName(Path packaging){
     List<String> extra= Fs.of(()->{
       try(var fs= Files.list(packaging)){

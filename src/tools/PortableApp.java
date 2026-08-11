@@ -3,31 +3,11 @@ package tools;
 import java.nio.file.Path;
 import java.util.List;
 
-/// One self contained Fearless app image. The two deploys differ only in the name of
-/// the produced folder and in which main the launchers start:
-/// - portable: named after the packaging folder, launchers start the Coordinator, so a
-///   double click on a project runs it;
-/// - managed: named FearlessId.binFolder, launchers start the manager, which is then the
-///   single process every other Fearless process reports to.
-/// Everything else - the three modules, the external jars, the standard library, the
-/// icon, the runtime image - is the same app, so it is built here once.
 public record PortableApp(
   Path packaging, Path out, Path commonsSrc,Path frontendSrc,Path frontendSrcModule,
   Path coordinatorSrc,Path coordinatorSrcModule,Path base,Path rt,
   Path depJar, String appName, String moduleMain
 ){
-  public static final String coordinatorMain= "Coordinator/mainCoordinator.Main";
-  public static final String managerMain= "Coordinator/manager.ManagerMain";
-  //The portable app: the packaging folder names it and the Coordinator is its main.
-  public PortableApp(
-    Path packaging, Path out, Path commonsSrc,Path frontendSrc,Path frontendSrcModule,
-    Path coordinatorSrc,Path coordinatorSrcModule,Path base,Path rt,
-    Path depJar
-  ){
-    this(packaging,out,commonsSrc,frontendSrc,frontendSrcModule,
-      coordinatorSrc,coordinatorSrcModule,base,rt,depJar,
-      JavacTool.getName(packaging),coordinatorMain);
-  }
   public void build(){
     reqInputs();
     Fs.cleanDir(out); Fs.ensureDir(out);
