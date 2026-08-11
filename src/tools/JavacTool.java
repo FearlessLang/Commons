@@ -87,6 +87,7 @@ public final class JavacTool{
 
   public static final String launcherKey= "app.launcher";
   public static final String appDirKey= "app.dir";
+  public static final String versionIdKey= "app.versionId";
   public static final String consoleKey= "console";
   public static final String winKey= "w";
   //--enable-native-access needed to coordinator (example, forcing english language)
@@ -100,7 +101,10 @@ public final class JavacTool{
   // <dest>/<name>/lib/app/mods). We don't choose this name, jpackage does
   public static final String deployedModsDirName= "mods";
 
-  public static void jpackage(Path dest, Path packaging, String name, String moduleMain, Path appContent){
+  public static String appNameFor(String versionId){ return "fearlessBin"+versionId; }
+  public static String dataDirNameFor(String versionId){ return "fearless"+versionId; }
+
+  public static void jpackage(Path dest, Path packaging, String versionId, String moduleMain, Path appContent){
     var slash= moduleMain.indexOf('/');
     check(slash > 0, "Bad moduleMain (need Mod/pkg.Main): "+moduleMain);
     check(Files.isDirectory(packaging), "Not a directory: "+packaging);
@@ -109,7 +113,7 @@ public final class JavacTool{
     check(Files.isDirectory(runtimeImage), "No runtime image dir at "+runtimeImage);
     var tmp= dest.resolve("_tmp_jpackage");
     Fs.cleanDir(tmp); Fs.ensureDir(tmp);
-    try{ jpBody(dest, name, moduleMain, appContent, runtimeImage, tmp, packaging); }
+    try{ jpBody(dest, appNameFor(versionId), versionId, moduleMain, appContent, runtimeImage, tmp, packaging); }
     finally{ Fs.rmTree(tmp); }
     reqDeployedMods(dest);
   }
@@ -123,23 +127,11 @@ public final class JavacTool{
     check(!jars.isEmpty(), "jpackage-produced '"+deployedModsDirName+"' dir has no jars: "+found.getFirst());
   }
 
-  private static List<String> expected= List.of("windows","macos","linux");
-
-  public static String getName(Path packaging){
-    List<String> extra= Fs.of(()->{
-      try(var fs= Files.list(packaging)){
-        return fs.map(pi->pi.getFileName().toString())
-          .filter(pi->!expected.contains(pi)).toList();
-      }});
-    check(extra.size() == 1,"Not exactly one candidate name for the deployed app: "+extra);
-    return extra.getFirst();
-  }
-
-  private static void jpBody(Path dest, String name, String moduleMain, Path appContent, Path runtimeImage, Path tmp, Path packaging){
+  private static void jpBody(Path dest, String name, String versionId, String moduleMain, Path appContent, Path runtimeImage, Path tmp, Path packaging){
     String wName= name + "w";
     var icon= iconForCurrentOs(packaging);
     var wProps= tmp.resolve(wName+".properties");
-    Fs.writeUtf8(wProps, launcherProps(moduleMain, jvmOpts(winKey), false)+"icon="+icon.toString().replace("\\","\\\\")+"\n");
+    Fs.writeUtf8(wProps, launcherProps(moduleMain, jvmOpts(winKey, versionId), false)+"icon="+icon.toString().replace("\\","\\\\")+"\n");
     var modsDir= dest.resolve(buildModsDirName);
     check(Files.isDirectory(modsDir), "Missing "+modsDir+" (put your module jars there)");
     var args= new ArrayList<String>(96);
@@ -150,7 +142,7 @@ public final class JavacTool{
     args.add("--module-path"); args.add(modsDir.toString());
     args.add("--module"); args.add(moduleMain);
     args.add("--runtime-image"); args.add(runtimeImage.toString());
-    var consoleOpts= joinJvmOpts(jvmOpts(consoleKey));
+    var consoleOpts= joinJvmOpts(jvmOpts(consoleKey, versionId));
     if (!consoleOpts.isEmpty()){ args.add("--java-options"); args.add(consoleOpts); }
     if (Fs.isWindows()){ args.add("--win-console"); }
     args.add("--add-launcher"); args.add(wName+"="+wProps);
@@ -175,10 +167,11 @@ public final class JavacTool{
     throw Bug.unreachable();
   }
 
-  private static List<String> jvmOpts(String launcherValue){
-    var xs= new ArrayList<String>(javaOptions.size()+1);
+  private static List<String> jvmOpts(String launcherValue, String versionId){
+    var xs= new ArrayList<String>(javaOptions.size()+2);
     xs.addAll(javaOptions);
     xs.add("-D"+launcherKey+"="+launcherValue);
+    xs.add("-D"+versionIdKey+"="+versionId);
     return xs;
   }
 
