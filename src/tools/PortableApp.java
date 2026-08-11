@@ -3,12 +3,31 @@ package tools;
 import java.nio.file.Path;
 import java.util.List;
 
+/// One self contained Fearless app image. The two deploys differ only in the name of
+/// the produced folder and in which main the launchers start:
+/// - portable: named after the packaging folder, launchers start the Coordinator, so a
+///   double click on a project runs it;
+/// - managed: named FearlessId.binFolder, launchers start the manager, which is then the
+///   single process every other Fearless process reports to.
+/// Everything else - the three modules, the external jars, the standard library, the
+/// icon, the runtime image - is the same app, so it is built here once.
 public record PortableApp(
   Path packaging, Path out, Path commonsSrc,Path frontendSrc,Path frontendSrcModule,
   Path coordinatorSrc,Path coordinatorSrcModule,Path base,Path rt,
-  Path depJar
+  Path depJar, String appName, String moduleMain
 ){
-  private static final String moduleMain= "Coordinator/mainCoordinator.Main";
+  public static final String coordinatorMain= "Coordinator/mainCoordinator.Main";
+  public static final String managerMain= "Coordinator/manager.ManagerMain";
+  //The portable app: the packaging folder names it and the Coordinator is its main.
+  public PortableApp(
+    Path packaging, Path out, Path commonsSrc,Path frontendSrc,Path frontendSrcModule,
+    Path coordinatorSrc,Path coordinatorSrcModule,Path base,Path rt,
+    Path depJar
+  ){
+    this(packaging,out,commonsSrc,frontendSrc,frontendSrcModule,
+      coordinatorSrc,coordinatorSrcModule,base,rt,depJar,
+      JavacTool.getName(packaging),coordinatorMain);
+  }
   public void build(){
     reqInputs();
     Fs.cleanDir(out); Fs.ensureDir(out);
@@ -23,9 +42,9 @@ public record PortableApp(
     compileAllMods(modsDir, tmp);
     Fs.copyFresh(modsDir.resolve("Commons.jar"),commonsSrc.getParent().resolve("Commons.jar"));
     var stdLib= prepareAppContent(tmp);
-    JavacTool.jpackage(out, packaging, moduleMain, stdLib);
+    JavacTool.jpackage(out, packaging, appName, moduleMain, stdLib);
     if(!Fs.isLinux()){ return; }
-    var mimeLoc= out.resolve("fearless").resolve("bin").resolve("fearless-mime.xml");
+    var mimeLoc= out.resolve(appName).resolve("bin").resolve("fearless-mime.xml");
     Fs.writeUtf8(mimeLoc, mime);
   }
   private void reqInputs(){

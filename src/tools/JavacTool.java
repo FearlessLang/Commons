@@ -89,7 +89,11 @@ public final class JavacTool{
   public static final String appDirKey= "app.dir";
   public static final String consoleKey= "console";
   public static final String winKey= "w";
-  public static final List<String> javaOptions= List.of("-ea","-D"+appDirKey+"=$APPDIR");
+  //--enable-native-access is for the manager: it forces the process locale through the
+  //JDK's own foreign-function API (fileSupport.NativeLocaleForcer), and a restricted
+  //call from a module that was not granted access is reported, and is planned to fail,
+  //by the JVM. Granting it to the module that makes the call is the whole grant.
+  public static final List<String> javaOptions= List.of("-ea","--enable-native-access=Coordinator","-D"+appDirKey+"=$APPDIR");
 
   // Local build-time staging dir we hand to `jpackage --module-path`, holding
   // the module jars (Commons/FearlessFrontend/Coordinator + external jars).
@@ -103,7 +107,7 @@ public final class JavacTool{
   // JDK/jpackage version changes this layout.
   public static final String deployedModsDirName= "mods";
 
-  public static void jpackage(Path dest, Path packaging, String moduleMain, Path appContent){
+  public static void jpackage(Path dest, Path packaging, String name, String moduleMain, Path appContent){
     var slash= moduleMain.indexOf('/');
     check(slash > 0, "Bad moduleMain (need Mod/pkg.Main): "+moduleMain);
     check(Files.isDirectory(packaging), "Not a directory: "+packaging);
@@ -112,7 +116,7 @@ public final class JavacTool{
     check(Files.isDirectory(runtimeImage), "No runtime image dir at "+runtimeImage);
     var tmp= dest.resolve("_tmp_jpackage");
     Fs.cleanDir(tmp); Fs.ensureDir(tmp);
-    try{ jpBody(dest, moduleMain, appContent, runtimeImage, tmp, packaging); }
+    try{ jpBody(dest, name, moduleMain, appContent, runtimeImage, tmp, packaging); }
     finally{ Fs.rmTree(tmp); }
     reqDeployedMods(dest);
   }
@@ -128,7 +132,10 @@ public final class JavacTool{
 
   private static List<String> expected= List.of("windows","macos","linux");
 
-  private static String getName(Path packaging){
+  //The app name carried by the packaging folder: the one directory next to the three
+  //per-OS ones. An app that does not take its name from there (the managed deploy names
+  //itself FearlessId.binFolder) passes its own name to jpackage instead.
+  public static String getName(Path packaging){
     List<String> extra= Fs.of(()->{
       try(var fs= Files.list(packaging)){
         return fs.map(pi->pi.getFileName().toString())
@@ -138,8 +145,7 @@ public final class JavacTool{
     return extra.getFirst();
   }
 
-  private static void jpBody(Path dest, String moduleMain, Path appContent, Path runtimeImage, Path tmp, Path packaging){
-    String name= getName(packaging);
+  private static void jpBody(Path dest, String name, String moduleMain, Path appContent, Path runtimeImage, Path tmp, Path packaging){
     String wName= name + "w";
     var icon= iconForCurrentOs(packaging);
     var wProps= tmp.resolve(wName+".properties");
