@@ -6,7 +6,7 @@ import java.util.List;
 public record PortableApp(
   Path packaging, Path out, Path commonsSrc,Path frontendSrc,Path frontendSrcModule,
   Path coordinatorSrc,Path coordinatorSrcModule,Path base,Path rt,
-  Path depJar, String appName, String moduleMain
+  Path depJar, String versionId, String moduleMain
 ){
   public void build(){
     reqInputs();
@@ -22,9 +22,9 @@ public record PortableApp(
     compileAllMods(modsDir, tmp);
     Fs.copyFresh(modsDir.resolve("Commons.jar"),commonsSrc.getParent().resolve("Commons.jar"));
     var stdLib= prepareAppContent(tmp);
-    JavacTool.jpackage(out, packaging, appName, moduleMain, stdLib);
+    JavacTool.jpackage(out, packaging, versionId, moduleMain, stdLib);
     if(!Fs.isLinux()){ return; }
-    var mimeLoc= out.resolve(appName).resolve("bin").resolve("fearless-mime.xml");
+    var mimeLoc= out.resolve(JavacTool.appNameFor(versionId)).resolve("bin").resolve("fearless-mime.xml");
     Fs.writeUtf8(mimeLoc, mime);
   }
   private void reqInputs(){
