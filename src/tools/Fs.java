@@ -7,6 +7,7 @@ import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
@@ -47,7 +48,17 @@ public final class Fs{
   }
   private static void forceDelete(Path p) throws IOException{
     try{ makeWritableIfPossible(p); } catch(Throwable _){}
-    Files.deleteIfExists(p);
+    for(int attempt= 0; ; attempt++){
+      try{ Files.deleteIfExists(p); return; }
+      catch(AccessDeniedException e){
+        if (!isWindows() || attempt >= 9){ throw e; }
+        if (attempt == 0){ System.gc(); }
+        sleepBriefly();
+      }
+    }
+  }
+  private static void sleepBriefly(){
+    try{ Thread.sleep(25); } catch(InterruptedException e){ Thread.currentThread().interrupt(); }
   }
   private static void makeWritableIfPossible(Path p) throws IOException{
     var dos= Files.getFileAttributeView(p, DosFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
