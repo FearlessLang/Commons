@@ -4,8 +4,10 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.zip.ZipInputStream;
 import java.nio.charset.Charset;
@@ -16,7 +18,15 @@ public record ReadZip(
     Function<String,RuntimeException> tooLargeName){
   public interface IoSupplier{ ZipInputStream get() throws IOException; }
   public Map<String,byte[]> readAll(IoSupplier szin){
-    return cleanUp(Fs.of(()->{try(var zin=szin.get()){ return _readAll(zin); }}));
+    return cleanUp(rawEntries(szin));
+  }
+  public Set<String> dirNames(IoSupplier szin){
+    var out= new LinkedHashSet<String>();
+    rawEntries(szin).forEach((k,v)->{ if (v == null){ out.add(k); } });
+    return Collections.unmodifiableSet(out);
+  }
+  private LinkedHashMap<String,byte[]> rawEntries(IoSupplier szin){
+    return Fs.of(()->{try(var zin=szin.get()){ return _readAll(zin); }});
   }
   private LinkedHashMap<String,byte[]> _readAll(ZipInputStream zin){
     var out= new LinkedHashMap<String,byte[]>();
