@@ -13,7 +13,8 @@ import java.nio.charset.Charset;
 public record ReadZip(
     Function<String,RuntimeException> badNameErr,
     Function<String,RuntimeException> dupNameErr,
-    Function<String,RuntimeException> tooLargeName){
+    Function<String,RuntimeException> tooLargeName,
+    Function<String,RuntimeException> emptyDirErr){
   public interface IoSupplier{ ZipInputStream get() throws IOException; }
   public Map<String,byte[]> readAll(IoSupplier szin){
     return cleanUp(Fs.of(()->{try(var zin=szin.get()){ return _readAll(zin); }}));
@@ -48,6 +49,11 @@ public record ReadZip(
     catch(OutOfMemoryError oom){ throw tooLargeName.apply(name); }
   }
   private Map<String,byte[]> cleanUp(LinkedHashMap<String,byte[]> map){
+    for (var e: map.entrySet()){
+      if (e.getValue() == null && map.keySet().stream().noneMatch(k -> k.startsWith(e.getKey()+"/"))){
+        throw emptyDirErr.apply(e.getKey());
+      }
+    }
     map.values().removeIf(v -> v == null);
     return Collections.unmodifiableMap(map);//to keep the order instead of Map.copyOf undocumented behaviour exactly here
   }
