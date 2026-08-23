@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import static offensiveUtils.Require.*;
 
@@ -90,6 +91,20 @@ public final class JavacTool{
   public static final String versionIdKey= "app.versionId";
   public static final String consoleKey= "console";
   public static final String winKey= "w";
+
+  public static Path reqAppDir(Supplier<? extends RuntimeException> onMissing){
+    var launcher= System.getProperty(launcherKey);
+    var appDir= System.getProperty(appDirKey);
+    if (launcher == null || appDir == null){ throw onMissing.get(); }
+    var res= Path.of(appDir);
+    if (!res.isAbsolute()){ throw onMissing.get(); }
+    return res;
+  }
+  public static String reqVersionId(Supplier<? extends RuntimeException> onMissing){
+    var versionId= System.getProperty(versionIdKey);
+    if (versionId == null){ throw onMissing.get(); }
+    return versionId;
+  }
   //--enable-native-access needed to coordinator (example, forcing english language)
   public static final List<String> javaOptions= List.of("-ea","--enable-native-access=Coordinator","-D"+appDirKey+"=$APPDIR");
 
