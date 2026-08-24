@@ -2,6 +2,8 @@ package tools;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.module.ModuleDescriptor.Requires;
+import java.lang.module.ModuleFinder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -124,13 +126,37 @@ public final class JavacTool{
     check(slash > 0, "Bad moduleMain (need Mod/pkg.Main): "+moduleMain);
     check(Files.isDirectory(packaging), "Not a directory: "+packaging);
     check(Files.isDirectory(appContent), "Not a directory: "+appContent);
-    var runtimeImage= Path.of(System.getProperty("java.home"));
-    check(Files.isDirectory(runtimeImage), "No runtime image dir at "+runtimeImage);
+    var modsDir= dest.resolve(buildModsDirName);
+    check(Files.isDirectory(modsDir), "Missing "+modsDir+" (put your module jars there)");
     var tmp= dest.resolve("_tmp_jpackage");
     Fs.cleanDir(tmp); Fs.ensureDir(tmp);
-    try{ jpBody(dest, appNameFor(versionId), versionId, moduleMain, appContent, runtimeImage, tmp, packaging); }
+    var runtimeImage= jlinkRuntimeImage(modsDir, tmp);
+    try{ jpBody(dest, appNameFor(versionId), versionId, moduleMain, modsDir, appContent, runtimeImage, tmp, packaging); }
     finally{ Fs.rmTree(tmp); }
     reqDeployedMods(dest);
+  }
+  private static Path jlinkRuntimeImage(Path modsDir, Path tmp){
+    var javaHome= Path.of(System.getProperty("java.home"));
+    var jmods= javaHome.resolve("jmods");
+    check(Files.isDirectory(jmods), "No jmods dir at "+jmods+" (need a full JDK, not a JRE, to jlink a trimmed runtime)");
+    var appModules= ModuleFinder.of(modsDir).findAll();
+    var appModuleNames= appModules.stream().map(m->m.descriptor().name()).collect(Collectors.toSet());
+    var platformModules= appModules.stream()
+      .flatMap(m->m.descriptor().requires().stream())
+      .filter(r->!r.modifiers().contains(Requires.Modifier.STATIC))
+      .map(Requires::name)
+      .filter(n->!appModuleNames.contains(n))
+      .distinct().sorted()
+      .collect(Collectors.joining(","));
+    var runtimeImage= tmp.resolve("_runtime");
+    Fs.runTool("jlink", List.of(
+      "--module-path", jmods.toString(),
+      "--add-modules", platformModules,
+      "--output", runtimeImage.toString(),
+      "--no-header-files", "--no-man-pages", "--strip-debug",
+      "--compress", "zip-0"
+    ));
+    return runtimeImage;
   }
   private static void reqDeployedMods(Path dest){
     var found= Fs.walk(dest, s->s
@@ -142,13 +168,11 @@ public final class JavacTool{
     check(!jars.isEmpty(), "jpackage-produced '"+deployedModsDirName+"' dir has no jars: "+found.getFirst());
   }
 
-  private static void jpBody(Path dest, String name, String versionId, String moduleMain, Path appContent, Path runtimeImage, Path tmp, Path packaging){
+  private static void jpBody(Path dest, String name, String versionId, String moduleMain, Path modsDir, Path appContent, Path runtimeImage, Path tmp, Path packaging){
     String wName= name + "w";
     var icon= iconForCurrentOs(packaging);
     var wProps= tmp.resolve(wName+".properties");
     Fs.writeUtf8(wProps, launcherProps(moduleMain, jvmOpts(winKey, versionId), false)+"icon="+icon.toString().replace("\\","\\\\")+"\n");
-    var modsDir= dest.resolve(buildModsDirName);
-    check(Files.isDirectory(modsDir), "Missing "+modsDir+" (put your module jars there)");
     var args= new ArrayList<String>(96);
     args.add("--type"); args.add("app-image");
     args.add("--dest"); args.add(dest.toString());

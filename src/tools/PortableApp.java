@@ -1,5 +1,6 @@
 package tools;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -19,6 +20,7 @@ public record PortableApp(
   private void build0(Path tmp, Path modsDir){
     Fs.cleanDir(modsDir);
     Fs.copyTreeFlat(depJar, modsDir);
+    removeOtherPlatformSkijaJars(modsDir);
     compileAllMods(modsDir, tmp);
     Fs.copyFresh(modsDir.resolve("Commons.jar"),commonsSrc.getParent().resolve("Commons.jar"));
     var stdLib= prepareAppContent(tmp);
@@ -26,6 +28,18 @@ public record PortableApp(
     if(!Fs.isLinux()){ return; }
     var mimeLoc= out.resolve(JavacTool.appNameFor(versionId)).resolve("bin").resolve("fearless-mime.xml");
     Fs.writeUtf8(mimeLoc, mime);
+  }
+  private static void removeOtherPlatformSkijaJars(Path modsDir){
+    var currentTag= (Fs.isLinux()? "linux" : Fs.isMac()? "macos" : "windows")
+      +"-"+(System.getProperty("os.arch").contains("aarch64")? "arm64" : "x64");
+    Fs.walk(modsDir, s->s
+      .filter(Files::isRegularFile)
+      .filter(p->{
+        var name= p.getFileName().toString();
+        return name.startsWith("skija-") && !name.startsWith("skija-shared-") && !name.startsWith("skija-"+currentTag+"-");
+      })
+      .toList()
+    ).forEach(Fs::rmTree);
   }
   private void reqInputs(){
     Fs.reqDir(base, "base"); Fs.reqDir(rt, "rt");
