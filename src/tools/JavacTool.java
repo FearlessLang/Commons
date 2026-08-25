@@ -118,10 +118,9 @@ public final class JavacTool{
   // <dest>/<name>/lib/app/mods). We don't choose this name, jpackage does
   public static final String deployedModsDirName= "mods";
 
-  public static String appNameFor(String versionId){ return "fearlessBin"+versionId; }
   public static String dataDirNameFor(String versionId){ return "fearless"+versionId; }
 
-  public static void jpackage(Path dest, Path packaging, String versionId, String moduleMain, Path appContent){
+  public static void jpackage(Path dest, Path packaging, String appName, String versionId, String moduleMain, Path appContent){
     var slash= moduleMain.indexOf('/');
     check(slash > 0, "Bad moduleMain (need Mod/pkg.Main): "+moduleMain);
     check(Files.isDirectory(packaging), "Not a directory: "+packaging);
@@ -131,7 +130,7 @@ public final class JavacTool{
     var tmp= dest.resolve("_tmp_jpackage");
     Fs.cleanDir(tmp); Fs.ensureDir(tmp);
     var runtimeImage= jlinkRuntimeImage(modsDir, tmp);
-    try{ jpBody(dest, appNameFor(versionId), versionId, moduleMain, modsDir, appContent, runtimeImage, tmp, packaging); }
+    try{ jpBody(dest, appName, versionId, moduleMain, modsDir, appContent, runtimeImage, tmp, packaging); }
     finally{ Fs.rmTree(tmp); }
     reqDeployedMods(dest);
   }
