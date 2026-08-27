@@ -108,7 +108,7 @@ public final class JavacTool{
     return versionId;
   }
   //--enable-native-access needed to coordinator (example, forcing english language)
-  public static final List<String> javaOptions= List.of("-ea","--enable-native-access=Coordinator","-D"+appDirKey+"=$APPDIR");
+  public static final List<String> javaOptions= List.of("-ea","--enable-native-access=Commons,Coordinator","-D"+appDirKey+"=$APPDIR");
 
   // Local build-time staging dir we hand to `jpackage --module-path`, holding
   // the module jars (Commons/FearlessFrontend/Coordinator + external jars).
