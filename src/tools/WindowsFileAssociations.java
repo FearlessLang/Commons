@@ -70,8 +70,8 @@ public final class WindowsFileAssociations implements FileAssociations{
   //A program's own picture is compiled into the program, so the most that can be said here is
   //the one Settings shows on the page where this app is picked; jpackage put in the rest.
   public void setProgramIcon(Path ico, Path png){
-    Shell.req(importReg("Windows Registry Editor Version 5.00\r\n"
-      +regEntry(capabilities(name), "ApplicationIcon", ico+",0")), stepFailed);
+    write("Windows Registry Editor Version 5.00\r\n"
+      +regEntry(capabilities(name), "ApplicationIcon", ico+",0"));
   }
   private void put(Icon i){
     assert icons.containsKey(i.extension());
@@ -88,7 +88,21 @@ public final class WindowsFileAssociations implements FileAssociations{
     Shell.exec(List.of("reg","delete",hkcu(fileAssociations(name)),"/v",ext,"/f"));
   }
   private static void kill(String key){ Shell.exec(List.of("reg","delete",key,"/f")); }
-  private void write(){ Shell.req(importReg(regFile(name, command, icons)), stepFailed); }
+  private void write(){ write(regFile(name, command, icons)); }
+  private void write(String content){
+    Shell.req(importReg(content), stepFailed);
+    notifyShellOfChange();
+  }
+  private static void notifyShellOfChange(){
+    try(var arena= Arena.ofConfined()){
+      var linker= Linker.nativeLinker();
+      var lib= SymbolLookup.libraryLookup("shell32.dll", arena);
+      var notify= handle(linker, lib, "SHChangeNotify", FunctionDescriptor.ofVoid(
+        ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+      call(notify, assocChanged, 0, MemorySegment.NULL, MemorySegment.NULL);
+    }
+  }
+  private static final int assocChanged= 0x08000000;
   //The answer the desktop remembers is the user's own, given by hand, and only
   //another answer given by hand takes its place: no program writes it, and no
   //program removes it. The most we can do is open the window where it is
