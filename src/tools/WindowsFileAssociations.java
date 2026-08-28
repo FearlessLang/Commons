@@ -40,7 +40,7 @@ public final class WindowsFileAssociations implements FileAssociations{
     if (listed != regValue(hkcu(capabilities(name)), "ApplicationName").isPresent()){
       throw halfThere.apply(registeredApplications+"\n"+capabilities(name));
     }
-    if (!listed){ write(); return; }
+    if (!listed){ write(); notifyShellOfChange(); return; }
     icons.putAll(declared());
     var lost= icons.keySet().stream().filter(e->!progId(name, e).equals(effective(e).orElse(""))).toList();
     if (!lost.isEmpty()){ acquire(lost); }
@@ -53,6 +53,7 @@ public final class WindowsFileAssociations implements FileAssociations{
     try { write(); }
     catch(RuntimeException e){ back(was, undo); throw e; }
     for (var ext: exts){ settle(ext, was, undo); }
+    notifyShellOfChange();
   }
   public void release(List<String> exts){ edit(()->drop(exts)); }
   public void setIcon(List<Icon> wanted){ edit(()->wanted.forEach(this::put)); }
@@ -62,6 +63,7 @@ public final class WindowsFileAssociations implements FileAssociations{
     var undo= new WinUndo(name, List.copyOf(icons.keySet()));
     try { body.run(); write(); }
     catch(RuntimeException e){ back(was, undo); throw e; }
+    notifyShellOfChange();
   }
   private void drop(List<String> exts){
     exts.forEach(icons::remove);
@@ -72,6 +74,7 @@ public final class WindowsFileAssociations implements FileAssociations{
   public void setProgramIcon(Path ico, Path png){
     write("Windows Registry Editor Version 5.00\r\n"
       +regEntry(capabilities(name), "ApplicationIcon", ico+",0"));
+    notifyShellOfChange();
   }
   private void put(Icon i){
     assert icons.containsKey(i.extension());
@@ -89,10 +92,7 @@ public final class WindowsFileAssociations implements FileAssociations{
   }
   private static void kill(String key){ Shell.exec(List.of("reg","delete",key,"/f")); }
   private void write(){ write(regFile(name, command, icons)); }
-  private void write(String content){
-    Shell.req(importReg(content), stepFailed);
-    notifyShellOfChange();
-  }
+  private void write(String content){ Shell.req(importReg(content), stepFailed); }
   private static void notifyShellOfChange(){
     try(var arena= Arena.ofConfined()){
       var linker= Linker.nativeLinker();
