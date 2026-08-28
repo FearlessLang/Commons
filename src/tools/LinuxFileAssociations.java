@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public final class LinuxFileAssociations implements FileAssociations{
   private final String name;
@@ -44,17 +45,19 @@ public final class LinuxFileAssociations implements FileAssociations{
     var fresh= exts.stream().filter(e->!icons.containsKey(e)).toList();
     fresh.forEach(e->reqFree(globs, e));
     var types= new LinkedHashSet<>(exts.stream().map(LinuxFileAssociations::typeOf).toList());
-    var doomed= doomed(types);
+    var rivals= rivals(types);
     var lists= choiceFilesNaming(types);
     var was= new LinkedHashMap<>(icons);
     var undo= new Undo();
     try {
-      doomed.forEach(undo::keep);
+      rivals.gone().forEach(undo::keep);
+      rivals.trim().forEach(undo::keep);
       lists.forEach(undo::keep);
       undo.keep(ourPackage());
       undo.keep(ourDesktop());
       fresh.forEach(e->icons.put(e, install(png)));
-      doomed.forEach(f->Fs.ofV(()->Files.deleteIfExists(f)));
+      rivals.gone().forEach(f->Fs.ofV(()->Files.deleteIfExists(f)));
+      rivals.trim().forEach(f->Fs.writeUtf8(f, givingUp(f, types)));
       lists.forEach(f->Fs.writeUtf8(f, withoutLinesFor(f, types)));
       write();
     }
@@ -205,21 +208,32 @@ public final class LinuxFileAssociations implements FileAssociations{
     Xdg.dataDirs().forEach(d->res.add(d.resolve("mime")));
     return res;
   }
-  ///Every program offering one of these kinds must go, or we are not the one the desktop picks.
-  ///A program offering anything else as well is not ours to delete.
-  private List<Path> doomed(Set<String> types){
-    var res= new ArrayList<Path>();
+  ///No program may go on offering one of these kinds, or we are not the one the desktop
+  ///picks. One offering nothing else goes; one offering more than ours keeps what is its
+  ///own and gives up only the kinds we are taking.
+  private Rivals rivals(Set<String> types){
+    var gone= new ArrayList<Path>();
+    var trim= new ArrayList<Path>();
     for (var dir: Xdg.appDirs()){
       for (var file: desktopFiles(dir)){
         var claimed= claimedTypes(file);
         if (claimed.stream().noneMatch(types::contains)){ continue; }
         if (file.getFileName().toString().equals(mine())){ continue; }
-        if (!types.containsAll(claimed)){ throw notOurs.apply(alsoOpens(file, claimed, types)); }
-        if (!Files.isWritable(file.getParent())){ throw notOurs.apply(cannotChange(file)); }
-        res.add(file);
+        var whole= types.containsAll(claimed);
+        if (!Files.isWritable(whole ? file.getParent() : file)){ throw notOurs.apply(cannotChange(file)); }
+        (whole ? gone : trim).add(file);
       }
     }
-    return res;
+    return new Rivals(gone, trim);
+  }
+  private record Rivals(List<Path> gone, List<Path> trim){}
+  private static String givingUp(Path file, Set<String> types){
+    return lines(file).stream().map(l->l.startsWith("MimeType=") ? keeping(l, types) : l)
+      .collect(Collectors.joining("\n"))+"\n";
+  }
+  public static String keeping(String line, Set<String> types){
+    var kept= splitTypes(line.substring("MimeType=".length())).stream().filter(t->!types.contains(t)).toList();
+    return "MimeType="+String.join(";", kept)+";";
   }
   private List<Path> choiceFilesNaming(Set<String> types){
     var res= new ArrayList<Path>();
@@ -282,10 +296,12 @@ public final class LinuxFileAssociations implements FileAssociations{
   static List<String> claimedTypes(Path desktopFile){
     for (var line: lines(desktopFile)){
       if (!line.startsWith("MimeType=")){ continue; }
-      return List.of(line.substring("MimeType=".length()).split(";")).stream()
-        .map(String::strip).filter(s->!s.isEmpty()).toList();
+      return splitTypes(line.substring("MimeType=".length()));
     }
     return List.of();
+  }
+  private static List<String> splitTypes(String types){
+    return List.of(types.split(";")).stream().map(String::strip).filter(s->!s.isEmpty()).toList();
   }
   private static List<Path> desktopFiles(Path dir){
     if (!Files.isDirectory(dir)){ return List.of(); }
@@ -298,10 +314,6 @@ public final class LinuxFileAssociations implements FileAssociations{
   }
   private Path ourPackage(){ return Xdg.dataHome().resolve("mime").resolve("packages").resolve(name+".xml"); }
   private Path ourDesktop(){ return Xdg.dataHome().resolve("applications").resolve(mine()); }
-  private static String alsoOpens(Path file, List<String> claimed, Set<String> types){
-    var others= claimed.stream().filter(t->!types.contains(t)).toList();
-    return file+"\nIt also opens: "+String.join(", ", others);
-  }
   private static String cannotChange(Path file){ return file+"\nThis file is not yours to change."; }
   private static String missingIcons(List<String> orphan){
     return "These pictures are named but not there: "+String.join(", ", orphan);
