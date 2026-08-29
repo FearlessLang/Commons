@@ -48,6 +48,12 @@ public final class LinuxAssociations{
     if (!extensions.isEmpty()){ create(identity, command, extensions, programPng); }
     rebuild(halfDone);
   }
+  static void eradicateAll(Predicate<String> belongsToFamily, Function<String,RuntimeException> halfDone){
+    var existing= existingIdentities(belongsToFamily);
+    if (existing.isEmpty()){ return; }
+    existing.forEach(LinuxAssociations::eradicate);
+    rebuild(halfDone);
+  }
 
   private static List<String> existingIdentities(Predicate<String> belongsToFamily){
     var res= new LinkedHashSet<String>();

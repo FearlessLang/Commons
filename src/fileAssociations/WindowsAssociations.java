@@ -57,6 +57,12 @@ public final class WindowsAssociations{
     if (!extensions.isEmpty()){ create(identity, command, extensions, programIco, halfDone); }
     notifyShellOfChange();
   }
+  static void eradicateAll(Predicate<String> belongsToFamily){
+    var existing= existingIdentities(belongsToFamily);
+    if (existing.isEmpty()){ return; }
+    existing.forEach(WindowsAssociations::eradicate);
+    notifyShellOfChange();
+  }
 
   private static List<String> existingIdentities(Predicate<String> belongsToFamily){
     var res= new LinkedHashSet<String>();
