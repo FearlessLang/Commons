@@ -1,4 +1,4 @@
-package tools;
+package fileAssociations;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
+import tools.Fs;
 import utils.Bug;
 
 final class Shell{
