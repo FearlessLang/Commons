@@ -86,6 +86,11 @@ import utils.Bug;
  * state.
  * - A successful return means identity declares exactly, and only, the extensions in
  * extensions - or, when extensions is empty, that identity is not registered at all.
+ *
+ * eradicateAll(belongsToFamily) performs none of the checks above: every existing
+ * on-system identity for which belongsToFamily holds, however many there are, is
+ * deleted in full, and nothing is created. One shell or database refresh is issued
+ * for the whole operation, or none at all if no identity matched.
  */
 public interface FileAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
@@ -105,6 +110,11 @@ public interface FileAssociations{
         ambiguous, notOurs, notWritable, halfDone);
       return;
     }
+    throw Bug.unreachable();
+  }
+  static void eradicateAll(Predicate<String> belongsToFamily, Function<String,RuntimeException> halfDone){
+    if (Fs.isWindows()){ WindowsAssociations.eradicateAll(belongsToFamily); return; }
+    if (Fs.isLinux()){ LinuxAssociations.eradicateAll(belongsToFamily, halfDone); return; }
     throw Bug.unreachable();
   }
 }
