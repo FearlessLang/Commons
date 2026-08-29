@@ -1,4 +1,4 @@
-package tools;
+package fileAssociations;
 
 import java.nio.file.Path;
 import java.util.ArrayList;

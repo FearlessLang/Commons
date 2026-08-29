@@ -3,6 +3,7 @@ module Commons {
   exports offensiveUtils;
   exports utils;
   exports tools;
+  exports fileAssociations;
   requires jdk.compiler;
   requires jdk.jartool;
 }
