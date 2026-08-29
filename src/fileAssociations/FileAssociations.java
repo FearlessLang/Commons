@@ -42,6 +42,9 @@ import utils.Bug;
  * the ProgId named by Classes\(extension) (default value), plus every ProgId named
  * under Classes\(extension)\OpenWithProgids; Linux: every .desktop file whose MimeType=
  * line names that extension's MIME type, plus every choice-file entry naming that type.
+ * [Windows only] A registry value reg.exe itself reports as never having been set (the
+ * literal text "(value not set)") is deleted on the spot and counted as no claimant at
+ * all, rather than as a claimant named "(value not set)".
  * Each claimant is classified by whether its owning identity satisfies belongsToFamily.
  * A claimant whose owning identity does not satisfy belongsToFamily causes the operation
  * to refuse, naming the extension and the claimant, and changes nothing. A claimant
@@ -63,7 +66,10 @@ import utils.Bug;
  *
  * 6. Otherwise, every identity marked for removal in steps 1 and 3 is deleted in full -
  * every registry key or file it created, for every extension it declared, including
- * extensions absent from the current extensions list.
+ * extensions absent from the current extensions list. [Windows only] For each such
+ * extension, a now-empty OpenWithProgids key, and a now-empty Classes\(extension) key
+ * left with no default value and no remaining subkeys, are removed too, rather than
+ * left behind as an empty container.
  *
  * 7. If extensions is not empty, identity is created declaring exactly the extensions in
  * extensions. For each: its own file icon; command followed by the operating system's
@@ -79,7 +85,8 @@ import utils.Bug;
  *
  * What is guaranteed, and what is not:
  *
- * - If any check in steps 1-4 fails, no registry key or file has been touched.
+ * - If any check in steps 1-4 fails, no registry key or file has been touched, except
+ * for a never-set value deleted in step 3 as described above.
  * - If step 6 or 7 fails partway through because the underlying OS write itself fails,
  * the system may be left with neither the old identity nor the complete new one
  * present; the resulting error reports this rather than asserting a specific residual

@@ -101,13 +101,23 @@ public final class WindowsAssociations{
     var declared= regValues(hkcu(fileAssociations(identityName)));
     declared.forEach((ext,progId)->{
       Shell.exec(List.of("reg","delete",hkcu(classes)+progId,"/f"));
-      Shell.exec(List.of("reg","delete",hkcu(classes)+ext+"\\OpenWithProgids","/v",progId,"/f"));
-      if (regValue(hkcu(classes)+ext, "").equals(Optional.of(progId))){
-        Shell.exec(List.of("reg","delete",hkcu(classes)+ext,"/ve","/f"));
-      }
+      dropClaim(ext, progId);
     });
     Shell.exec(List.of("reg","delete",hkcu(softwareRoot)+"\\"+identityName,"/f"));
     Shell.exec(List.of("reg","delete",hkcu(registeredApplications),"/v",identityName,"/f"));
+  }
+  private static void dropClaim(String ext, String progId){
+    var extKey= hkcu(classes)+ext;
+    Shell.exec(List.of("reg","delete",extKey+"\\OpenWithProgids","/v",progId,"/f"));
+    if (regValues(extKey+"\\OpenWithProgids").isEmpty()){
+      Shell.exec(List.of("reg","delete",extKey+"\\OpenWithProgids","/f"));
+    }
+    if (regValue(extKey, "").equals(Optional.of(progId))){
+      Shell.exec(List.of("reg","delete",extKey,"/ve","/f"));
+    }
+    if (listSubkeys(extKey).isEmpty() && regValues(extKey).isEmpty()){
+      Shell.exec(List.of("reg","delete",extKey,"/f"));
+    }
   }
   private static void create(String identity, Path command, List<Icon> extensions, Path programIco,
       Function<String,RuntimeException> halfDone){
@@ -141,13 +151,18 @@ public final class WindowsAssociations{
     return "\r\n["+key+"]\r\n"+shown+"=\""+regData(data)+"\"\r\n";
   }
   private static String regData(String data){ return data.replace("\\","\\\\").replace("\"","\\\""); }
+  private static final String valueNotSet= "(value not set)";
   private static Optional<String> regValue(String key, String name){
     var cmd= name.isEmpty()
       ? List.of("reg","query",key,"/ve")
       : List.of("reg","query",key,"/v",name);
-    return Shell.exec(cmd).filter(ran->ran.code() == 0)
+    var raw= Shell.exec(cmd).filter(ran->ran.code() == 0)
       .flatMap(ran->ran.out().lines().map(String::strip).filter(l->l.contains("REG_")).findFirst())
       .map(WindowsAssociations::regQueried);
+    if (!raw.filter(v->v.equals(valueNotSet)).isPresent()){ return raw; }
+    var del= name.isEmpty() ? List.of("reg","delete",key,"/ve","/f") : List.of("reg","delete",key,"/v",name,"/f");
+    Shell.exec(del);
+    return Optional.empty();
   }
   private static Map<String,String> regValues(String key){
     var res= new LinkedHashMap<String,String>();
