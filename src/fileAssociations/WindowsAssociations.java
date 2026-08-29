@@ -101,13 +101,23 @@ public final class WindowsAssociations{
     var declared= regValues(hkcu(fileAssociations(identityName)));
     declared.forEach((ext,progId)->{
       Shell.exec(List.of("reg","delete",hkcu(classes)+progId,"/f"));
-      Shell.exec(List.of("reg","delete",hkcu(classes)+ext+"\\OpenWithProgids","/v",progId,"/f"));
-      if (regValue(hkcu(classes)+ext, "").equals(Optional.of(progId))){
-        Shell.exec(List.of("reg","delete",hkcu(classes)+ext,"/ve","/f"));
-      }
+      dropClaim(ext, progId);
     });
     Shell.exec(List.of("reg","delete",hkcu(softwareRoot)+"\\"+identityName,"/f"));
     Shell.exec(List.of("reg","delete",hkcu(registeredApplications),"/v",identityName,"/f"));
+  }
+  private static void dropClaim(String ext, String progId){
+    var extKey= hkcu(classes)+ext;
+    Shell.exec(List.of("reg","delete",extKey+"\\OpenWithProgids","/v",progId,"/f"));
+    if (regValues(extKey+"\\OpenWithProgids").isEmpty()){
+      Shell.exec(List.of("reg","delete",extKey+"\\OpenWithProgids","/f"));
+    }
+    if (regValue(extKey, "").equals(Optional.of(progId))){
+      Shell.exec(List.of("reg","delete",extKey,"/ve","/f"));
+    }
+    if (listSubkeys(extKey).isEmpty() && regValues(extKey).isEmpty()){
+      Shell.exec(List.of("reg","delete",extKey,"/f"));
+    }
   }
   private static void create(String identity, Path command, List<Icon> extensions, Path programIco,
       Function<String,RuntimeException> halfDone){

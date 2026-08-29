@@ -66,7 +66,10 @@ import utils.Bug;
  *
  * 6. Otherwise, every identity marked for removal in steps 1 and 3 is deleted in full -
  * every registry key or file it created, for every extension it declared, including
- * extensions absent from the current extensions list.
+ * extensions absent from the current extensions list. [Windows only] For each such
+ * extension, a now-empty OpenWithProgids key, and a now-empty Classes\(extension) key
+ * left with no default value and no remaining subkeys, are removed too, rather than
+ * left behind as an empty container.
  *
  * 7. If extensions is not empty, identity is created declaring exactly the extensions in
  * extensions. For each: its own file icon; command followed by the operating system's
