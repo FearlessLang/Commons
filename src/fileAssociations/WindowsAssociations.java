@@ -141,13 +141,15 @@ public final class WindowsAssociations{
     return "\r\n["+key+"]\r\n"+shown+"=\""+regData(data)+"\"\r\n";
   }
   private static String regData(String data){ return data.replace("\\","\\\\").replace("\"","\\\""); }
+  private static final String valueNotSet= "(value not set)";
   private static Optional<String> regValue(String key, String name){
     var cmd= name.isEmpty()
       ? List.of("reg","query",key,"/ve")
       : List.of("reg","query",key,"/v",name);
     return Shell.exec(cmd).filter(ran->ran.code() == 0)
       .flatMap(ran->ran.out().lines().map(String::strip).filter(l->l.contains("REG_")).findFirst())
-      .map(WindowsAssociations::regQueried);
+      .map(WindowsAssociations::regQueried)
+      .filter(v->!v.equals(valueNotSet));
   }
   private static Map<String,String> regValues(String key){
     var res= new LinkedHashMap<String,String>();
