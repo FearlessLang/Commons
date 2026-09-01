@@ -86,8 +86,6 @@ public final class JavacTool{
 
   private static String joinJvmOpts(List<String> opts){ return Join.of(opts,""," ","",""); }
 
-  public static void javac(List<Path> srcs, Path classesDir){}
-
   public static final String launcherKey= "app.launcher";
   public static final String appDirKey= "app.dir";
   public static final String versionIdKey= "app.versionId";
