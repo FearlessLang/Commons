@@ -124,7 +124,6 @@ public record Message(String msg, int priority){
     URI file= spans.getLast().fileName();
     ArrayList<Span> leadingSingles= new ArrayList<>();
     for (Span s : spans){ if (s.isSingleLine()) leadingSingles.add(s); else break; }
-    //TODO: GPT file reviewed up to here, review the rest
     if (!leadingSingles.isEmpty()){
       int targetLine = leadingSingles.getLast().startLine();
       leadingSingles.removeIf(s -> s.startLine() != targetLine || !s.isSingleLine());
@@ -209,39 +208,34 @@ public record Message(String msg, int priority){
     return out.toString();
   }
 
+  private static int tabAwareWidth(String rawLine, int fromIdxIncl, int toIdxExcl, int baseVis, int tabWidth){
+    int vis= baseVis;
+    for (int i= fromIdxIncl; i < toIdxExcl; i++){
+      char ch= rawLine.charAt(i);
+      if (ch == '\t'){
+        int spaces= tabWidth - (vis % tabWidth);
+        vis += spaces;
+      }else{
+        vis += 1;
+      }
+    }
+    return vis;
+  }
+
   /** Visual column (1-based) at a logical column (expands tabs). */
   private static int visualCol(String rawLine, int logicalCol, int tabWidth){
     if (logicalCol <= 1 || tabWidth <= 0) return Math.max(1, logicalCol);
-    int vis = 1;
-    int uptoExclusive = Math.max(0, logicalCol - 1);
-    int limit = Math.min(uptoExclusive, rawLine.length());
-    for (int i = 0; i < limit; i++){
-      char ch = rawLine.charAt(i);
-      if (ch == '\t'){
-        int spaces = tabWidth - ((vis - 1) % tabWidth);
-        vis += spaces;
-      }else{
-        vis += 1;
-      }
-    }
-    return Math.max(1, vis);
+    int limit= Math.min(Math.max(0, logicalCol - 1), rawLine.length());
+    return Math.max(1, tabAwareWidth(rawLine, 0, limit, 1, tabWidth));
   }
 
   private static int visualDelta(String rawLine, int startCol, int endCol, int tabWidth){
-    int aIdx = Math.max(0, startCol - 1);
-    int bIdxInclusive = Math.max(aIdx, Math.min(endCol - 1, Math.max(0, rawLine.length() - 1)));
-    if (rawLine.isEmpty() || aIdx > bIdxInclusive) return 0;
-    int vis = 0;
-    for (int i = aIdx; i <= bIdxInclusive; i++){
-      char ch = rawLine.charAt(i);
-      if (ch == '\t'){
-        int spaces = tabWidth - ((vis) % tabWidth); // vis is 0-based width so far
-        vis += spaces;
-      }else{
-        vis += 1;
-      }
-    }
-    return Math.max(0, vis);
+    if (rawLine.isEmpty()) return 0;
+    int aIdx= Math.max(0, startCol - 1);
+    // Clamped independent of aIdx -- the old Math.max(aIdx,...) form let this track aIdx past line end, defeating the guard below.
+    int bIdxInclusive= Math.min(endCol - 1, rawLine.length() - 1);
+    if (aIdx > bIdxInclusive) return 0;
+    return Math.max(0, tabAwareWidth(rawLine, aIdx, bIdxInclusive + 1, 0, tabWidth));
   }
 
   private static boolean beforeOrEqual(int l, int c, Pos limit){

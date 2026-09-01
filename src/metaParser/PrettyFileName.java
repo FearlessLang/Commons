@@ -3,7 +3,7 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class PrettyFileName{//This is all gpt unchecked heuristic
+public class PrettyFileName{
   public static String displayFileName(URI uri) {
     if (uri == null) return "(unknown)";
     try {
