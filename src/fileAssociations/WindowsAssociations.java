@@ -39,7 +39,8 @@ public final class WindowsAssociations{
     var existing= existingIdentities(belongsToFamily);
     if (existing.size() > 1){ throw ambiguous.apply(String.join("\n", existing)); }
 
-    var locked= extensions.stream().map(Icon::extension).filter(e->userChoice(e).isPresent()).toList();
+    var locked= extensions.stream().map(Icon::extension)
+      .filter(e->userChoice(e).isPresent() || userChoiceLatest(e).isPresent()).toList();
     if (!locked.isEmpty()){ throw userLocked.apply(String.join("\n", locked)); }
 
     var foreign= new ArrayList<String>();
@@ -77,6 +78,9 @@ public final class WindowsAssociations{
   }
   public static String userChoiceKey(String ext){ return hkcu(fileExts+ext+"\\UserChoice"); }
   private static Optional<String> userChoice(String ext){ return regValue(userChoiceKey(ext), "ProgId"); }
+  private static Optional<String> userChoiceLatest(String ext){
+    return regValue(hkcu(fileExts+ext+"\\UserChoiceLatest\\ProgId"), "ProgId");
+  }
   private static List<String> claimants(String ext){
     var res= new ArrayList<String>();
     regValue(hkcu(classes)+ext, "").ifPresent(res::add);
