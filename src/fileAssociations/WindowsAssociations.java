@@ -53,14 +53,17 @@ public final class WindowsAssociations{
     var stale= existing.isEmpty() ? Optional.<String>empty() : Optional.of(existing.getFirst());
     if (alreadyMatches(stale, identity, command, extensions, programIco)){ return; }
 
-    stale.ifPresent(WindowsAssociations::eradicate);
-    if (!extensions.isEmpty()){ create(identity, command, extensions, programIco, halfDone); }
+    stale.ifPresent(s->eradicate(s, belongsToFamily));
+    if (!extensions.isEmpty()){
+      extensions.forEach(icon->forgetOpenWithHistory(icon.extension(), belongsToFamily));
+      create(identity, command, extensions, programIco, halfDone);
+    }
     notifyShellOfChange();
   }
   static void eradicateAll(Predicate<String> belongsToFamily){
     var existing= existingIdentities(belongsToFamily);
     if (existing.isEmpty()){ return; }
-    existing.forEach(WindowsAssociations::eradicate);
+    existing.forEach(name->eradicate(name, belongsToFamily));
     notifyShellOfChange();
   }
 
@@ -97,11 +100,12 @@ public final class WindowsAssociations{
     }
     return regValue(hkcu(capabilities(identity)), "ApplicationIcon").equals(Optional.of(programIco+",0"));
   }
-  private static void eradicate(String identityName){
+  private static void eradicate(String identityName, Predicate<String> belongsToFamily){
     var declared= regValues(hkcu(fileAssociations(identityName)));
     declared.forEach((ext,progId)->{
       Shell.exec(List.of("reg","delete",hkcu(classes)+progId,"/f"));
       dropClaim(ext, progId);
+      forgetOpenWithHistory(ext, belongsToFamily);
     });
     Shell.exec(List.of("reg","delete",hkcu(softwareRoot)+"\\"+identityName,"/f"));
     Shell.exec(List.of("reg","delete",hkcu(registeredApplications),"/v",identityName,"/f"));
@@ -118,6 +122,21 @@ public final class WindowsAssociations{
     if (listSubkeys(extKey).isEmpty() && regValues(extKey).isEmpty()){
       Shell.exec(List.of("reg","delete",extKey,"/f"));
     }
+  }
+  private static void forgetOpenWithHistory(String ext, Predicate<String> belongsToFamily){
+    var listKey= hkcu(fileExts)+ext+"\\OpenWithList";
+    regValues(listKey).forEach((name,exe)->{
+      if (!name.equals("MRUList") && belongsToFamily.test(exe)){
+        Shell.exec(List.of("reg","delete",listKey,"/v",name,"/f"));
+      }
+    });
+    if (regValues(listKey).isEmpty()){ Shell.exec(List.of("reg","delete",listKey,"/f")); }
+
+    var progIdsKey= hkcu(fileExts)+ext+"\\OpenWithProgids";
+    regValues(progIdsKey).keySet().forEach(progId->{
+      if (belongsToFamily.test(owner(progId, ext))){ Shell.exec(List.of("reg","delete",progIdsKey,"/v",progId,"/f")); }
+    });
+    if (regValues(progIdsKey).isEmpty()){ Shell.exec(List.of("reg","delete",progIdsKey,"/f")); }
   }
   private static void create(String identity, Path command, List<Icon> extensions, Path programIco,
       Function<String,RuntimeException> halfDone){
