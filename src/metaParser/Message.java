@@ -208,7 +208,6 @@ public record Message(String msg, int priority){
     return out.toString();
   }
 
-  // Sum of visual widths (tab-expanded) of rawLine's characters in [fromIdxIncl, toIdxExcl), starting from baseVis.
   private static int tabAwareWidth(String rawLine, int fromIdxIncl, int toIdxExcl, int baseVis, int tabWidth){
     int vis= baseVis;
     for (int i= fromIdxIncl; i < toIdxExcl; i++){
@@ -233,11 +232,7 @@ public record Message(String msg, int priority){
   private static int visualDelta(String rawLine, int startCol, int endCol, int tabWidth){
     if (rawLine.isEmpty()) return 0;
     int aIdx= Math.max(0, startCol - 1);
-    // Clamped to the line's own bounds, independent of aIdx -- unlike the previous
-    // Math.max(aIdx, ...) form, which made this track aIdx whenever startCol pointed
-    // past the end of the line, defeating the aIdx > bIdxInclusive guard below (it
-    // could never fire) and either throwing StringIndexOutOfBoundsException or
-    // silently counting one character for an empty/inverted (endCol < startCol) range.
+    // Clamped independent of aIdx -- the old Math.max(aIdx,...) form let this track aIdx past line end, defeating the guard below.
     int bIdxInclusive= Math.min(endCol - 1, rawLine.length() - 1);
     if (aIdx > bIdxInclusive) return 0;
     return Math.max(0, tabAwareWidth(rawLine, aIdx, bIdxInclusive + 1, 0, tabWidth));
