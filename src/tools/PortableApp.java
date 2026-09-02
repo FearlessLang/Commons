@@ -3,11 +3,13 @@ package tools;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 public record PortableApp(
   Path packaging, Path out, Path commonsSrc,Path frontendSrc,Path frontendSrcModule,
   Path coordinatorSrc,Path coordinatorSrcModule,Path base,Path rt,
-  Path depJar, String appName, String versionId, String moduleMain
+  Path depJar, String appName, String versionId, String moduleMain,
+  BiConsumer<Path,Path> baseCacheBuilder
 ){
   public void build(){
     reqInputs();
@@ -23,8 +25,9 @@ public record PortableApp(
     removeOtherPlatformSkijaJars(modsDir);
     compileAllMods(modsDir, tmp);
     Fs.copyFresh(modsDir.resolve("Commons.jar"),commonsSrc.getParent().resolve("Commons.jar"));
-    var stdLib= prepareAppContent(tmp);
-    JavacTool.jpackage(out, packaging, appName, versionId, moduleMain, stdLib);
+    var appContent= prepareAppContent(tmp);
+    baseCacheBuilder.accept(modsDir, appContent.resolve("stdLib"));
+    JavacTool.jpackage(out, packaging, appName, versionId, moduleMain, appContent);
     if(!Fs.isLinux()){ return; }
     var mimeLoc= out.resolve(appName).resolve("bin").resolve("fearless-mime.xml");
     Fs.writeUtf8(mimeLoc, mime);
