@@ -15,18 +15,19 @@ import static offensiveUtils.Require.*;
 
 import utils.Bug;
 import utils.Join;
+import utils.Push;
 
 public final class JavacTool{
   private static final String javacArgFile="_javac.args";
 
-  public static String compileTree(Path srcRoot, Path classesDir, Runnable postProcess, Path jarPath) throws IOException{
+  public static String compileTree(Path srcRoot, Path classesDir, Runnable postProcess, Path jarPath, List<Path> extraClasspathDirs) throws IOException{
     var srcs= javaSourcesUnder(srcRoot);
     Fs.of(()->Files.deleteIfExists(jarPath));
     check(!srcs.isEmpty(), "No .java files under "+srcRoot);
     var args= new ArrayList<String>(10+srcs.size());
     args.add("-encoding"); args.add("UTF-8");
     args.add("-d"); args.add(slash(classesDir));
-    var cp= jarsCp(jarPath);
+    var cp= jarsCp(jarPath, extraClasspathDirs);
     if (!cp.isEmpty()){ args.add("-cp"); args.add(cp); }
     srcs.forEach(p->args.add(slash(p)));
     var javacOut= runJavacArgFile(jarPath.getParent(), args);
@@ -49,13 +50,12 @@ public final class JavacTool{
       "-C",classesDir.toString(),"."));
   }
 
-  static String jarsCp(Path jarFile){
-    return Fs.walk(jarFile.getParent(),s->s
-      .filter(p->p.toString().endsWith(".jar"))
-      .filter(p->!p.equals(jarFile))
+  static String jarsCp(Path jarFile, List<Path> extraDirs){
+    return Push.of(jarFile.getParent(), extraDirs).stream()
+      .flatMap(dir->Fs.walk(dir,s->s.filter(p->p.toString().endsWith(".jar")).filter(p->!p.equals(jarFile)).toList()).stream())
       .sorted(Comparator.comparing(p->p.getFileName().toString()))
       .map(JavacTool::slash)
-      .collect(Collectors.joining(File.pathSeparator)));
+      .collect(Collectors.joining(File.pathSeparator));
   }
 
   private static String runJavacArgFile(Path dir, List<String> args){

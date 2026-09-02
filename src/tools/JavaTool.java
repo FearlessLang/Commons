@@ -12,23 +12,23 @@ import utils.Bug;
 
 public final class JavaTool{
   public static String runMain(List<String> jvmArgs, Path classesDir, Path libs, String mainClass) throws InterruptedException{
-    try{ return _runMain(jvmArgs, cp(classesDir.toString(),libs), mainClass); }
+    try{ return _runMain(jvmArgs, cp(classesDir.toString(),List.of(libs)), mainClass); }
     catch(IOException e){ throw Bug.of(e.toString()); }
   }
-  private static String cp(String main, Path libs) throws IOException{
-    var l= jarsCp(libs);
+  private static String cp(String main, List<Path> libDirs) throws IOException{
+    var l= jarsCp(libDirs);
     return l.isEmpty() ? main : main+File.pathSeparator+l;
   }
-  public static String runMainFromJars(List<String> jvmArgs, Path jarDir, String mainClass, String... args) throws InterruptedException{
+  public static String runMainFromJars(List<String> jvmArgs, List<Path> jarDirs, String mainClass, String... args) throws InterruptedException{
     try{
-      String cp= jarsCp(jarDir);
-      assert !cp.isEmpty() : "No jars under "+jarDir;
+      String cp= jarsCp(jarDirs);
+      assert !cp.isEmpty() : "No jars under "+jarDirs;
       return _runMain(jvmArgs,cp,mainClass,args);
     }
     catch(IOException e){ throw Bug.of(e.toString()); }
   }
-  public static ChildJvm startMainFromJars(List<String> jvmArgs, Path jarDir, String mainClass, Consumer<String> out, String... mainArgs){
-    try{ return start(jvmArgs, jarsCp(jarDir), mainClass, out, mainArgs); }
+  public static ChildJvm startMainFromJars(List<String> jvmArgs, List<Path> jarDirs, String mainClass, Consumer<String> out, String... mainArgs){
+    try{ return start(jvmArgs, jarsCp(jarDirs), mainClass, out, mainArgs); }
     catch(IOException e){ throw Bug.of(e.toString()); }
   }
   private static ChildJvm start(List<String> jvmArgs,String classPath,String mainClass,Consumer<String> out,String... mainArgs){
@@ -45,11 +45,11 @@ public final class JavaTool{
     if (ec != 0){ throw Bug.of("java failed (ec="+ec+") cmd="+jvm.cmd()+"\n"+sb); }
     return sb.toString();
   }
-  static String jarsCp(Path jarDir) throws IOException{
-    return Fs.walk(jarDir,s->s
-      .filter(p->p.toString().endsWith(".jar"))
+  static String jarsCp(List<Path> jarDirs) throws IOException{
+    return jarDirs.stream()
+      .flatMap(dir->Fs.walk(dir,s->s.filter(p->p.toString().endsWith(".jar")).toList()).stream())
       .sorted(Comparator.comparing(p->p.getFileName().toString()))
       .map(Path::toString)
-      .collect(Collectors.joining(File.pathSeparator)));
+      .collect(Collectors.joining(File.pathSeparator));
   }
 }
