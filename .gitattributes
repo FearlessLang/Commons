@@ -1,0 +1,21 @@
+# Normalize all text files to LF line endings on checkin, regardless of
+# platform or the local core.autocrlf setting.
+* text=auto eol=lf
+
+# Known binary types: never touched for line endings.
+*.jar binary
+*.zip binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.bmp binary
+*.ico binary
+*.icns binary
+*.xcf binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.odp binary
