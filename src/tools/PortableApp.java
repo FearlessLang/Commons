@@ -22,7 +22,6 @@ public record PortableApp(
     Fs.copyTreeFlat(depJar, modsDir);
     removeOtherPlatformSkijaJars(modsDir);
     compileAllMods(modsDir, tmp);
-    Fs.copyFresh(modsDir.resolve("Commons.jar"),commonsSrc.getParent().resolve("Commons.jar"));
     var stdLib= prepareAppContent(tmp);
     JavacTool.jpackage(out, packaging, appName, versionId, moduleMain, stdLib);
     if(!Fs.isLinux()){ return; }

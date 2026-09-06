@@ -11,8 +11,8 @@ import java.util.stream.Collectors;
 import utils.Bug;
 
 public final class JavaTool{
-  public static String runMain(List<String> jvmArgs, Path classesDir, Path libs, String mainClass) throws InterruptedException{
-    try{ return _runMain(jvmArgs, cp(classesDir.toString(),List.of(libs)), mainClass); }
+  public static String runMain(List<String> jvmArgs, Path classesDir, Path libs, String mainClass, String... args) throws InterruptedException{
+    try{ return _runMain(jvmArgs, cp(classesDir.toString(),List.of(libs)), mainClass, args); }
     catch(IOException e){ throw Bug.of(e.toString()); }
   }
   private static String cp(String main, List<Path> libDirs) throws IOException{
