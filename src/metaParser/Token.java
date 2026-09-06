@@ -10,7 +10,7 @@ public interface Token<T extends Token<T,TK>, TK extends TokenKind> {
   int line();
   int column();
   List<T> tokens();
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked","varargs"})
   default boolean is(TK...kinds){
     assert kinds.length > 0;
     return Stream.of(kinds).anyMatch(this::is);

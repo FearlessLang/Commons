@@ -129,7 +129,7 @@ public record Message(String msg, int priority){
       leadingSingles.removeIf(s -> s.startLine() != targetLine || !s.isSingleLine());
     }
 
-    // If <=3, keep all; else keep first, a middle near avg size, and last — sort outer..inner by length.
+    // If <=3, keep all; else keep first, a middle near avg size, and last  -  sort outer..inner by length.
     List<Span> chosenSingles = pickUpToThree(leadingSingles);
 
     // First multiline after singles (if any)
@@ -460,8 +460,8 @@ private static String numberedCaret(String[] lines, int lineNum, int width){
 /**
 * Make the caret-bearing source line monospace-safe without external deps:
 *  - Keep printable ASCII (U+0020..U+007E) as-is
-*  - Convert Unicode spaces & zero-width (NBSP/ZW* etc.) to '·' (U+00B7)
-*  - Everything else (emoji, CJK, controls, surrogates) → '�' (U+FFFD)
+*  - Convert Unicode spaces & zero-width (NBSP/ZW* etc.) to '\u00B7' (U+00B7)
+*  - Everything else (emoji, CJK, controls, surrogates) -> '\uFFFD' (U+FFFD)
 * All replacements are single-column in typical monospace fonts.
 */
 private static String sanitizeForCaret(String s){
