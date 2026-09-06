@@ -211,7 +211,7 @@ public final class JavacTool{
     return xs;
   }
 
-  public static final List<String> javacArgs= List.of("-encoding","UTF-8");
+  public static final List<String> javacArgs= List.of("-encoding","UTF-8","-Xlint:all,-auxiliaryclass,-missing-explicit-ctor","-Werror");
 
   public static void javac(List<Path> srcs, Path classesDir, Path modsDir){
     srcs.forEach(src->check(Files.isDirectory(src), "Not a directory: "+src));
