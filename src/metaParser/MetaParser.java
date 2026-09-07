@@ -298,10 +298,10 @@ public abstract class MetaParser<
     ((MetaParser<T,TK,E,Tokenizer,Parser,Err>)splitterParser).checkProbeErrorFront(emptyAllowed,end, start, drop, frameName);
     //TODO: test if the errors make sense by just swapping start/end    
     if(splitterParser.end()){ return Optional.empty(); }//split not found
-    var lastS= splitterParser.spanAround(end + drop, limit - 1);
-    Parser firstParser= make(lastS,List.copyOf(slice.subList(end + drop, limit)));
+    var lastS= splitterParser.spanAround(end + drop, start - 1);
+    Parser firstParser= make(lastS,List.copyOf(slice.subList(end + drop, start)));
     var res= firstParser.parseAll(frameName, first);
-    this.limit += end;//mark the tokens as eaten
+    this.limit= index + end;//mark the tokens as eaten
     return Optional.of(res);
   }
   /** Runs a well-formedness check on the remaining tokens.
