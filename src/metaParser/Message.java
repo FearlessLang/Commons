@@ -460,8 +460,8 @@ private static String numberedCaret(String[] lines, int lineNum, int width){
 /**
 * Make the caret-bearing source line monospace-safe without external deps:
 *  - Keep printable ASCII (U+0020..U+007E) as-is
-*  - Convert Unicode spaces & zero-width (NBSP/ZW* etc.) to '\u00B7' (U+00B7)
-*  - Everything else (emoji, CJK, controls, surrogates) -> '\uFFFD' (U+FFFD)
+*  - Convert Unicode spaces & zero-width (NBSP/ZW* etc.) to '_'
+*  - Everything else (emoji, CJK, controls, surrogates) -> '?'
 * All replacements are single-column in typical monospace fonts.
 */
 private static String sanitizeForCaret(String s){
@@ -478,9 +478,9 @@ private static String sanitizeForCaret(String s){
        cp == 0x1680 || (cp >= 0x2000 && cp <= 0x200A) ||
        cp == 0x202F || cp == 0x205F || cp == 0x3000 ||
        cp == 0x200B /* ZWSP */ || cp == 0x200C /* ZWNJ */ || cp == 0x200D /* ZWJ */){
-     out.append('\u00B7'); // middle dot
+     out.append('_');
    } else {
-     out.append('\uFFFD'); // replacement char
+     out.append('?');
    }
  }
  return out.toString();
