@@ -47,7 +47,6 @@ record TreeDiagnostics<
   }
   private Optional<E> tryEatenBetween(T open, T stop, boolean onOpen){
     var expect= !onOpen?closersForOpener(open.kind()):openerForCloser(stop.kind());
-    //var expect= closersForOpener(open.kind());
     for (var e : expect){
       var eater= (onOpen?spec.openerEaters:spec.closerEaters).get(e);
       if (eater == null){ continue; }
