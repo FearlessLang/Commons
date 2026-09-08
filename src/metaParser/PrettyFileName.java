@@ -4,7 +4,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class PrettyFileName{
-  public static String displayFileName(URI uri) {
+  public static String displayFileName(URI uri) { return sanitizeAscii(displayFileNameRaw(uri)); }
+  private static String displayFileNameRaw(URI uri) {
     if (uri == null) return "(unknown)";
     try {
       uri = uri.normalize();
@@ -17,7 +18,7 @@ public class PrettyFileName{
         if (bang > 0) {
           URI inner = URI.create(ssp.substring(0, bang));
           String entry = ssp.substring(bang + 2);
-          String innerDisp = displayFileName(inner); // recurse
+          String innerDisp = displayFileNameRaw(inner); // recurse
           return shorten(innerDisp + "!" + entry, 80);
         }
         return shorten(uri.toString(), 80);
@@ -56,6 +57,12 @@ public class PrettyFileName{
 
   private static String toUnix(Path path) {
     return path.toString().replace('\\', '/');
+  }
+
+  public static String sanitizeAscii(String s){
+    var sb= new StringBuilder(s.length());
+    s.codePoints().forEach(cp-> sb.append(cp >= 0x20 && cp <= 0x7E ? (char)cp : '?'));
+    return sb.toString();
   }
 
   /** Elide the middle of long paths, preserving basename (maxLen includes ellipsis). */
