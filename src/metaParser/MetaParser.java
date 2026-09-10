@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
+import utils.Range;
 
 public abstract class MetaParser<
     T extends Token<T,TK>,
@@ -171,7 +172,7 @@ public abstract class MetaParser<
         break;
       }
     }
-    for (int i= high; i < ts.size(); i++){//starts with high in case low was the failure point
+    for (int i : Range.of(high,ts.size())){//starts with high in case low was the failure point
       var s= span(ts.get(i));
       if (s.isPresent()){ 
         endLine = s.get().startLine();
@@ -349,7 +350,7 @@ public abstract class MetaParser<
 
   private void appendRange(StringBuilder sb, int from, int to){
     sb.append('[');
-    for(int i=from;i<to;i++){
+    for(int i : Range.of(from,to)){
       if(i>from) sb.append(", ");
       sb.append(PrettyToken.show(ts.get(i)));
     }
