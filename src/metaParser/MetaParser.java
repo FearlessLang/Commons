@@ -25,7 +25,6 @@ public abstract class MetaParser<
   public abstract Parser make(Span span,List<T> tokens);
   public abstract Err errFactory();
   public MetaParser(Span span, List<T> ts){ this.span= span; this.ts= ts; this.limit= ts.size(); }
-  @SuppressWarnings("rawtypes")
   public static <R> R computeInFrame(String frameName, Span s, Supplier<R> r){
     try{ return r.get(); }
     catch(RuntimeException|Error t){ 
@@ -33,7 +32,6 @@ public abstract class MetaParser<
       throw t;
     }
   }  
-  @SuppressWarnings("rawtypes")
   public <R> R parseAll(String frameName, Rule<T,TK,E,Tokenizer,Parser,Err,R> r){
     R res; try{ res= r.parse(this.self()); }
     catch(RuntimeException|Error t){ 
@@ -62,7 +60,6 @@ public abstract class MetaParser<
   public Optional<T> peekLast(int la){ return peekAbs((limit-la)-1); }
   
   @SafeVarargs
-  @SuppressWarnings("varargs")
   public final boolean peek(TK... kinds){
     assert kinds.length > 0;
     var t= peek();
@@ -83,7 +80,6 @@ public abstract class MetaParser<
     return tt;
   }
   @SafeVarargs
-  @SuppressWarnings("varargs")
   public final T expect(String what,TK... kinds){
     var t= peek();
     if (t.isEmpty()){ throw errFactory()
@@ -96,7 +92,6 @@ public abstract class MetaParser<
     return tt;
   }
   @SafeVarargs
-  @SuppressWarnings("varargs")
   public final T expectLast(String what, TK... kinds){
     var last= peekLast();
     if (last.isEmpty()){ throw errFactory().missing(span(),what,List.of(kinds),self()); }
@@ -107,7 +102,6 @@ public abstract class MetaParser<
     return t;
   }
   @SafeVarargs
-  @SuppressWarnings("varargs")
   public final void expectEnd(String what,TK... kinds){
     if (end()){ return; }
     throw errFactory().extraContent(remainingSpan(),what,List.of(kinds),self());
@@ -116,7 +110,6 @@ public abstract class MetaParser<
     return peek().map(p::test).orElse(false);
   }
   @SafeVarargs
-  @SuppressWarnings("varargs")
   public final boolean peekOrder(Predicate<T>... ps){
     return IntStream.range(0, ps.length)
       .mapToObj(i->peek(i).filter(t->ps[i].test(t)))

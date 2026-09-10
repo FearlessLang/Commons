@@ -4,7 +4,6 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.tools.JavaCompiler;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 

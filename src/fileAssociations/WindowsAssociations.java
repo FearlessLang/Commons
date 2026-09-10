@@ -217,7 +217,6 @@ public final class WindowsAssociations{
     file.toFile().deleteOnExit();
     return List.of("reg","import",file.toString());
   }
-  @SuppressWarnings("restricted")
   private static void notifyShellOfChange(){
     try(var arena= Arena.ofConfined()){
       var linker= Linker.nativeLinker();
@@ -228,7 +227,6 @@ public final class WindowsAssociations{
     }
   }
   private static final int assocChanged= 0x08000000;
-  @SuppressWarnings("restricted")
   private static MethodHandle handle(Linker linker, SymbolLookup lib, String name, FunctionDescriptor fd){
     return linker.downcallHandle(lib.find(name).orElseThrow(), fd);
   }
