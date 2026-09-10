@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import utils.Range;
 
 public final class Require {
   private Require(){}
@@ -67,9 +68,9 @@ public final class Require {
     int n= xs.size();
     if (n <= 1){ return true; }
     if (n <= 32){
-      for (int i= 0; i < n; i++){
+      for (int i : Range.of(xs)){
         var xi= xs.get(i);
-        for (int j= i + 1; j < n; j++){
+        for (int j : Range.of(i+1,n)){
           assert xi != xs.get(j) : what+" must have distinct elements (==)";
         }
       }
