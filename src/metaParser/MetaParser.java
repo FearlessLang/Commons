@@ -28,14 +28,14 @@ public abstract class MetaParser<
   public static <R> R computeInFrame(String frameName, Span s, Supplier<R> r){
     try{ return r.get(); }
     catch(RuntimeException|Error t){ 
-      if (!frameName.isEmpty() && t instanceof HasFrames f){ f.addFrame(new Frame(frameName,s)); }
+      if (!frameName.isEmpty() && t instanceof HasFrames<?> f){ f.addFrame(new Frame(frameName,s)); }
       throw t;
     }
   }  
   public <R> R parseAll(String frameName, Rule<T,TK,E,Tokenizer,Parser,Err,R> r){
     R res; try{ res= r.parse(this.self()); }
     catch(RuntimeException|Error t){ 
-      if (!frameName.isEmpty() && t instanceof HasFrames f){ f.addFrame(new Frame(frameName,span())); }
+      if (!frameName.isEmpty() && t instanceof HasFrames<?> f){ f.addFrame(new Frame(frameName,span())); }
       throw t;
     }
     if(index != limit){ throw errFactory().extraContent(remainingSpan(), "", List.of(),self()); }
@@ -59,7 +59,7 @@ public abstract class MetaParser<
   public Optional<T> peekLast(){ return peekLast(0); }
   public Optional<T> peekLast(int la){ return peekAbs((limit-la)-1); }
   
-  @SafeVarargs
+  @SafeVarargs @SuppressWarnings("varargs")
   public final boolean peek(TK... kinds){
     assert kinds.length > 0;
     var t= peek();
@@ -79,7 +79,7 @@ public abstract class MetaParser<
     limit--;
     return tt;
   }
-  @SafeVarargs
+  @SafeVarargs @SuppressWarnings("varargs")
   public final T expect(String what,TK... kinds){
     var t= peek();
     if (t.isEmpty()){ throw errFactory()
@@ -91,7 +91,7 @@ public abstract class MetaParser<
     index++;
     return tt;
   }
-  @SafeVarargs
+  @SafeVarargs @SuppressWarnings("varargs")
   public final T expectLast(String what, TK... kinds){
     var last= peekLast();
     if (last.isEmpty()){ throw errFactory().missing(span(),what,List.of(kinds),self()); }
@@ -101,7 +101,7 @@ public abstract class MetaParser<
     limit--;
     return t;
   }
-  @SafeVarargs
+  @SafeVarargs @SuppressWarnings("varargs")
   public final void expectEnd(String what,TK... kinds){
     if (end()){ return; }
     throw errFactory().extraContent(remainingSpan(),what,List.of(kinds),self());

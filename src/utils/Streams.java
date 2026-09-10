@@ -11,9 +11,9 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class Streams {
-  @SafeVarargs
+  @SafeVarargs @SuppressWarnings("varargs")
   public static <T> Stream<T> of(Stream<T>...ss){ return Stream.of(ss).flatMap(s->s); }
-  @SafeVarargs
+  @SafeVarargs @SuppressWarnings("varargs")
   public static <T> Stream<T> ofWC(Stream<T>...ss){ return Stream.of(ss).flatMap(s->s); }
 
   public static <A,B> Zipper2<A,B> zip(List<A> as, List<B> bs){
