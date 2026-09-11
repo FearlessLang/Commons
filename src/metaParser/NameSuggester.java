@@ -2,6 +2,7 @@ package metaParser;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import utils.Range;
 
 public final class NameSuggester {
   private static final int maxScopeToList= 12;
@@ -119,7 +120,7 @@ public final class NameSuggester {
       double best= 0.0;
       for (int start= 0; start <= m - n; start++){
         double sum= 0.0;
-        for (int i= 0; i < n; i++){ sum += tokenScore(a.get(i), b.get(start + i)); }
+        for (int i : Range.of(0,n)){ sum += tokenScore(a.get(i), b.get(start + i)); }
         double avg= sum / n;
         double penalty= 0.04 * start + 0.02 * (m - (start + n));
         best= Math.max(best, avg - penalty);
@@ -130,7 +131,7 @@ public final class NameSuggester {
     double best= 0.0;
     for (int start= 0; start <= n - m; start++){
       double sum= 0.0;
-      for (int i= 0; i < m; i++){ sum += tokenScore(a.get(start + i), b.get(i)); }
+      for (int i : Range.of(0,m)){ sum += tokenScore(a.get(start + i), b.get(i)); }
       double avg= sum / m;
       double penalty= 0.10 * start + 0.08 * (n - (start + m)) + 0.12 * (n - m);
       best= Math.max(best, avg - penalty);
@@ -173,7 +174,7 @@ public final class NameSuggester {
     if (n == 0){ return List.of(); }
 
     boolean anyLetter= false;
-    for (int i= 0; i < n; i++){
+    for (int i : Range.of(0,n)){
       if (isAsciiLetter(s.charAt(i))){ anyLetter= true; break; }
     }
     if (!anyLetter){ return List.of(s); }
@@ -181,7 +182,7 @@ public final class NameSuggester {
     List<String> out= new ArrayList<>();
     int start= 0;
 
-    for (int i= 1; i < n; i++){
+    for (int i : Range.of(1,n)){
       char p= s.charAt(i - 1), c= s.charAt(i);
 
       if (!isAsciiLetter(p)){
@@ -301,7 +302,7 @@ public final class NameSuggester {
         if (toks.length < 2){ continue; }
 
         int first= tokenId(id, dsu, toks[0]);
-        for (int i= 1; i < toks.length; i++){
+        for (int i : Range.of(1,toks.length)){
           dsu.union(first, tokenId(id, dsu, toks[i]));
         }
       }

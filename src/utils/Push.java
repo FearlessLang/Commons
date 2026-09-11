@@ -7,9 +7,6 @@ public class Push {
   public static <T> List<T> of(List<T> ts1,List<T> ts2){
     return Stream.concat(ts1.stream(),ts2.stream()).toList();
   }
-  public static <T> List<? extends T> ofWC(List<? extends T> ts1,List<? extends T> ts2){
-    return Stream.concat(ts1.stream(),ts2.stream()).toList();
-  }
   public static <T> List<T> of(List<List<T>> ts){
     return _of(ts).toList();
   }

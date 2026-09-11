@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import utils.Range;
 
 public record Message(String msg, int priority){
 
@@ -55,7 +56,7 @@ public record Message(String msg, int priority){
   private static List<Frame> ensureContainment(List<Frame> fs){
     ArrayList<Frame> out = new ArrayList<>(fs);
     if (out.size() <= 1) return List.copyOf(out);
-    for (int i = 0; i < out.size() - 1; i++){
+    for (int i : Range.of(0,out.size() - 1)){
       Span inner = out.get(i).s();
       Span outer = out.get(i+1).s();      
       out.set(i+1, new Frame(out.get(i+1).name(), union(inner, outer)));
@@ -134,7 +135,7 @@ public record Message(String msg, int priority){
 
     // First multiline after singles (if any)
     Span firstMulti = null;
-    for (int i = leadingSingles.size(); i < spans.size(); i++){
+    for (int i : Range.of(leadingSingles.size(), spans.size())){
       if (!spans.get(i).isSingleLine()){ firstMulti = spans.get(i); break; }
     }
 
@@ -185,7 +186,7 @@ public record Message(String msg, int priority){
   private static String repeat(char c, int n){
     if (n <= 0) return "";
     StringBuilder sb = new StringBuilder(n);
-    for (int i=0;i<n;i++) sb.append(c);
+    for (int i : Range.of(0,n)) sb.append(c);
     return sb.toString();
   }
 
@@ -194,11 +195,11 @@ public record Message(String msg, int priority){
     if (tabWidth <= 0 || s.indexOf('\t') < 0) return s;
     StringBuilder out = new StringBuilder(s.length() + 8);
     int col = 1; // 1-based
-    for (int i=0;i<s.length();i++){
+    for (int i : Range.of(0,s.length())){
       char ch = s.charAt(i);
       if (ch == '\t'){
         int spaces = tabWidth - ((col - 1) % tabWidth);
-        for (int k=0;k<spaces;k++){ out.append(' '); }
+        for (int k : Range.of(0,spaces)){ out.append(' '); }
         col += spaces;
       }else{
         out.append(ch);
@@ -210,7 +211,7 @@ public record Message(String msg, int priority){
 
   private static int tabAwareWidth(String rawLine, int fromIdxIncl, int toIdxExcl, int baseVis, int tabWidth){
     int vis= baseVis;
-    for (int i= fromIdxIncl; i < toIdxExcl; i++){
+    for (int i : Range.of(fromIdxIncl,toIdxExcl)){
       char ch= rawLine.charAt(i);
       if (ch == '\t'){
         int spaces= tabWidth - (vis % tabWidth);
@@ -349,7 +350,7 @@ public record Message(String msg, int priority){
         "Record Separator",
         "Unit Separator"
       };
-      for (int i= 0; i < c0.length; i++) {
+      for (int i : Range.of(0,c0.length)) {
         M.put(i, c0[i] + " 0x" + String.format(java.util.Locale.ROOT, "%02X", i));
       }
       // DEL and a couple C1s commonly seen
@@ -421,7 +422,7 @@ private static String makeCaretLine(String[] lines, Grouping g, int width){
 
  // find rightmost visual column we will draw (1-based), clamp to caret-line length
  int rightMost = 0;
- for (int i = 0; i < n; i++){
+ for (int i : Range.of(0,n)){
    Span s = sps.get(i);
    int aVis = visualCol(raw, s.startCol(), tabWidth);
    int len  = visualDelta(raw, s.startCol(), s.endCol(), tabWidth);
@@ -433,13 +434,13 @@ private static String makeCaretLine(String[] lines, Grouping g, int width){
  char[] carr = new char[Math.max(0, rightMost)];
  for (int i=0;i<carr.length;i++) carr[i] = ' ';
 
- for (int i = 0; i < n; i++){
+ for (int i : Range.of(0,n)){
    Span s = sps.get(i);
    int aVis = visualCol(raw, s.startCol(), tabWidth);
    int len  = visualDelta(raw, s.startCol(), s.endCol(), tabWidth);
    int a = Math.max(1, aVis);
    int b = Math.max(a, Math.min(aVis + Math.max(1, len) - 1, rightMost));
-   for (int c = a; c <= b; c++){
+   for (int c : Range.of(a,b+1)){
      int idx = c - 1;
      if (idx < carr.length) carr[idx] = marks[i];
    }
