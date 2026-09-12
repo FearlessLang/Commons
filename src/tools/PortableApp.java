@@ -1,12 +1,13 @@
 package tools;
 
+import java.lang.module.ModuleFinder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import utils.OneOr;
 
 public record PortableApp(
-  Path packaging, Path out, Path commonsSrc,Path frontendSrc,Path frontendSrcModule,
-  Path coordinatorSrc,Path coordinatorSrcModule,Path base,Path rt,
+  Path packaging, Path out, List<List<Path>> modules, Path base, Path rt,
   Path depJar, String appName, String versionId, String moduleMain
 ){
   public void build(){
@@ -21,7 +22,7 @@ public record PortableApp(
     Fs.cleanDir(modsDir);
     Fs.copyTreeFlat(depJar, modsDir);
     removeOtherPlatformSkijaJars(modsDir);
-    compileAllMods(modsDir, tmp);
+    modules.forEach(m->compileMod(m, modsDir, tmp));
     var stdLib= prepareAppContent(tmp);
     JavacTool.jpackage(out, packaging, appName, versionId, moduleMain, stdLib);
     if(!Fs.isLinux()){ return; }
@@ -42,20 +43,12 @@ public record PortableApp(
   }
   private void reqInputs(){
     Fs.reqDir(base, "base"); Fs.reqDir(rt, "rt");
-    Fs.reqDir(commonsSrc, "Commons/src");
-    Fs.reqDir(frontendSrc, "FearlessFrontend/src");
-    Fs.reqDir(frontendSrcModule, "FearlessFrontend/srcModule");
-    Fs.reqDir(coordinatorSrc, "Coordinator/src");
-    Fs.reqDir(coordinatorSrcModule, "Coordinator/srcModule");
+    modules.stream().flatMap(List::stream).forEach(p->Fs.reqDir(p, "module source root"));
   }
-  private void compileAllMods(Path modsDir, Path tmp){
-    compileMod("Commons", List.of(commonsSrc), modsDir, tmp);
-    compileMod("FearlessFrontend", List.of(frontendSrc, frontendSrcModule), modsDir, tmp);
-    compileMod("Coordinator", List.of(coordinatorSrc, coordinatorSrcModule), modsDir, tmp);
-  }
-  private static void compileMod(String name, List<Path> srcRoots, Path modsDir, Path tmp){
-    var classes= tmp.resolve("classes").resolve(name);
+  private static void compileMod(List<Path> srcRoots, Path modsDir, Path tmp){
+    var classes= tmp.resolve("classes");
     JavacTool.javac(srcRoots, classes, modsDir);
+    var name= OneOr.of("Expected one module in "+classes, ModuleFinder.of(classes).findAll().stream()).descriptor().name();
     JavacTool.jar(classes, modsDir.resolve(name+".jar"));
   }
   private Path prepareAppContent(Path tmp){
