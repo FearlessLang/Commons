@@ -1,11 +1,10 @@
 package metaParser;
 
 import java.net.URI;
-import java.util.Objects;
 
 public record Span(URI fileName, int startLine, int startCol, int endLine, int endCol) implements Comparable<Span>{
   public Span{
-    Objects.requireNonNull(fileName);
+    assert fileName != null;
     assert startLine < endLine || ( startLine == endLine  && startCol <= endCol )
     :"startLine="+startLine+", endLine="+endLine+", startCol="+startCol+", endCol="+endCol; 
   }

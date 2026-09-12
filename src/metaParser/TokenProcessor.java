@@ -1,7 +1,6 @@
 package metaParser;
 
 import java.util.LinkedHashMap;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -38,9 +37,9 @@ public interface TokenProcessor<
 
     private final TokenProcessor<T,TK,E,Tokenizer,Parser,Err> identity= (_,t,_)->Stream.of(t);
     public Stream<T> process(int i, T t, Tokenizer tk){
-      return Objects.requireNonNull(
-          map.getOrDefault(t.kind(), identity).process(i, t, tk),
-          "TokenProcessors must not return null");
+      var res= map.getOrDefault(t.kind(), identity).process(i, t, tk);
+      assert res != null;
+      return res;
     }
     private final LinkedHashMap<TK,TokenProcessor<T,TK,E,Tokenizer,Parser,Err>> map= new LinkedHashMap<>();
   }

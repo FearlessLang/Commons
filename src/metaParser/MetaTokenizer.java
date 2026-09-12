@@ -7,7 +7,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
@@ -81,29 +80,33 @@ public abstract class MetaTokenizer<
     return input(fileName, StandardCharsets.UTF_8);
   }
   public Tokenizer input(URI fileName, Charset charset){
-    Objects.requireNonNull(fileName, "fileName");
-    Objects.requireNonNull(charset, "charset");
+    assert fileName != null;
+    assert charset != null;
     check("file".equalsIgnoreCase(fileName.getScheme()),"Only \"file: URIs\" are supported by input(URI,Charset): " + fileName);
-    return input(Path.of(fileName),charset);  
+    return input(Path.of(fileName),charset);
   }
   public Tokenizer input(Path path){ return input(path,StandardCharsets.UTF_8); }
   public Tokenizer input(Path path, Charset charset){
-    Objects.requireNonNull(path, "path");
+    assert path != null;
     String raw= Fs.readUtf8(path);
     return input(path.toUri(), normalizeSource(raw));
   }
   public Tokenizer input(URI fileName, String input){
     assert !frozen : "cannot call .input during .tokenize, .postTokenize, .buildTokenTree";
-    this.fileName= Objects.requireNonNull(fileName);
-    this.input= Objects.requireNonNull(normalizeSource(input));
+    assert fileName != null;
+    assert input != null;
+    this.fileName= fileName;
+    this.input= normalizeSource(input);
     return self();
   }
   public Tokenizer tokenKinds(List<TK> tks, TK sof, TK eof){
     assert !frozen : "cannot call .tokenKinds during .tokenize, .postTokenize, .buildTokenTree";
     assert tks != null && !tks.isEmpty() : "kinds list cannot be empty";
     assert !tks.contains(sof) && !tks.contains(eof) : "do not include SOF/EOF in kinds";
-    this.sof= Objects.requireNonNull(sof);
-    this.eof= Objects.requireNonNull(eof);
+    assert sof != null;
+    assert eof != null;
+    this.sof= sof;
+    this.eof= eof;
     this.kinds= List.copyOf(tks);
     return self();
   }
@@ -115,14 +118,16 @@ public abstract class MetaTokenizer<
   }
   public Tokenizer setErrFactory(Err errFactory){
     assert !frozen : "cannot call .setErrFactory during .tokenize, .postTokenize, .buildTokenTree";
-    this.errFactory= Objects.requireNonNull(errFactory);
+    assert errFactory != null;
+    this.errFactory= errFactory;
     return self();
-  }  
+  }
   public Tokenizer whiteList(String whiteList){
     assert !frozen : "cannot call .whiteList during .tokenize, .postTokenize, .buildTokenTree";
     assert errFactory!=null: "call method .errFactory before tokenize";
     assert input!=null:      "call method .input before tokenize";
-    new Validate(Objects.requireNonNull(whiteList)).of(input);
+    assert whiteList != null;
+    new Validate(whiteList).of(input);
     return self();
   }
   public Tokenizer tokenize(){

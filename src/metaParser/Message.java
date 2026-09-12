@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -32,7 +31,8 @@ public record Message(String msg, int priority){
     List<Frame> contained= ensureContainment(frames);
     List<Frame> visible= trimInvisible(loader, contained);
     Grouping g= group(visible);
-    String src= Objects.requireNonNull(loader.apply(g.file()));
+    String src= loader.apply(g.file());
+    assert src != null;
     String[] lines= splitLines(src);
     int width= lineNumberWidth(lines.length);
     Optional<String> caretLine= optCaretLine(lines, g, width);
@@ -83,7 +83,8 @@ public record Message(String msg, int priority){
     return List.copyOf(out);
   }
   private static Span shrinkToVisible(Function<URI,String> loader, Span s){
-    String src= Objects.requireNonNull(loader.apply(s.fileName()));
+    String src= loader.apply(s.fileName());
+    assert src != null;
     String[] lines= splitLines(src);
     Pos a= nextVisible(lines, new Pos(s.startLine(), s.startCol()), new Pos(s.endLine(), s.endCol()));
     Pos b= prevVisible(lines, a, new Pos(s.endLine(), s.endCol()));
