@@ -4,8 +4,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.SequencedMap;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import utils.Range;
 
@@ -32,15 +30,6 @@ public final class Require {
     assert isKnownJdkUnmodifiableList(xs): what+" must be unmodifiable. Name is: "+xs.getClass().getName();
     return true;
   }
-  public static <K,V> boolean unmodifiable(SequencedMap<K,V> m, String what){
-    Objects.requireNonNull(m);
-    //is there a trick like the above? Map.copyOf(m)==m? if now we can try with the code below
-    if (m == Collections.EMPTY_MAP){ return true; }
-    String cn = m.getClass().getName();
-    if (cn.startsWith("java.util.ImmutableCollections$")){ return true; }
-    assert cn.contains("Unmodifiable"): what+" must be an unmodifiable sequenced map";
-    return true;
-  }
   public static boolean nonNull(Object...os){
     for (var o:os){ Objects.requireNonNull(o); }
     return true;
@@ -56,11 +45,6 @@ public final class Require {
   public static <T> boolean unmodifiable(List<T> l, String what, Consumer<T> p){
     unmodifiable(l, what);
     l.forEach(p);//the consumer itself would throw the error
-    return true;
-  }
-  public static <K,E> boolean unmodifiable(SequencedMap<K,E> m, String what, BiConsumer<K,E> p){
-    unmodifiable(m, what);
-    m.forEach(p);//the consumer itself would throw the error
     return true;
   }
   public static <E> boolean unmodifiableDistinct(List<E> xs, String what){
