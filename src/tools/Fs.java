@@ -1,7 +1,6 @@
 package tools;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
@@ -25,7 +24,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static offensiveUtils.Require.*;
-import utils.ThrowingConsumer;
 
 public final class Fs{
   // ASCII whitelist
@@ -96,9 +94,8 @@ public final class Fs{
   }
   // Writes (overwriting if needed) and guarantees mtime > minExclusiveMillis. Returns the actual mtime.
   public static long writeUtf8(Path file, String content, long minExclusiveMillis){
-    ensureDir(file.getParent());
     for(;;){
-      ofV(()->Files.writeString(file, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
+      writeUtf8(file, content);
       var m= lastModified(file);
       if (m > minExclusiveMillis){ return m; }
       try{ Thread.sleep(10); }
@@ -201,13 +198,6 @@ public final class Fs{
     try (Stream<Path> s= Files.walk(p)){ return f.walk(s); }
     catch(IOException io){ throw new UncheckedIOException(io); }
   }
-  public static void deleteOnExit(Path dir) {
-    Runtime.getRuntime().addShutdownHook(new Thread(()->{
-      try(var tree= of(()->Files.walk(dir))) {
-        tree.map(Path::toFile).forEach(ThrowingConsumer.of(File::deleteOnExit));
-    }}));
-  }
-  
   public static void copyTreeFlat(Path from, Path to){
     var files= walk(from,s->s
       .filter(Files::isRegularFile)
