@@ -21,17 +21,7 @@ public class Err {
     Err.assertEquals= assertEquals;
     Err.assertTrue= assertTrue;
   }
-  public static <T> boolean ifMut(List<T> t){
-    try{ t.add(null); }
-    catch(UnsupportedOperationException uoe){ return true; }
-    return false;
-  }
   public static String hole="[###]";//not contains \.[]{}()<>*+-=!?^$|
-  public static boolean strCmpFormat(String expected,String actual){
-    expected=expected.replace("\n","").replace(" ","");
-    actual=actual.replace("\n","").replace(" ","");
-    return strCmp(expected,actual);
-  }
   public static boolean strCmp(String expected,String actual){
     if (expected == null || actual == null) {
       assertEquals.accept(expected,actual);
@@ -46,12 +36,6 @@ public class Err {
       throw Bug.of();
       }
     return true;
-    }
-  public static String trimExpression(String e){
-    if(e.length()<50){return e;}
-    String start=e.substring(0,24);
-    String end=e.substring(e.length()-24,e.length());
-    return start+"[...]"+end;
     }
   public static boolean strCmpAux(String cmp2, String cmp1, String stringHole) {
     if(cmp2.isEmpty()){ return cmp1.isEmpty(); }
