@@ -154,10 +154,8 @@ public abstract class MetaParser<
     if (low == ts.size()){ low -= 1; }
     if (high == ts.size() || high < 0){ high = ts.size() - 1; }
     if (low > high){ low = high; }
-    assert low >= 0 && low < ts.size():
-      "";
-    assert high >= 0 && high < ts.size():
-      "";
+    assert low >= 0 && low < ts.size();
+    assert high >= 0 && high < ts.size();
     var here = span(ts.get(low),ts.get(high));
     if (here.isPresent()) { return here.get(); }
     int startLine= this.span.startLine();

@@ -25,8 +25,7 @@ class TokenTrees<
     return spec.openClose.getOrDefault(open,Map.of()).get(close);
   }
   List<TK> closers(TK open){//null for not valid opener
-    assert spec.openClose.containsKey(open):
-      "";
+    assert spec.openClose.containsKey(open);
     return spec.openClose.get(open).keySet()
       .stream().sorted(Comparator.comparing(TK::priority)).toList();
   }
