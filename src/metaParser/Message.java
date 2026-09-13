@@ -9,6 +9,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
 import utils.Range;
 
 public record Message(String msg, int priority){
@@ -186,7 +188,7 @@ public record Message(String msg, int priority){
   private static String repeat(char c, int n){
     if (n <= 0) return "";
     StringBuilder sb = new StringBuilder(n);
-    for (int i : Range.of(0,n)) sb.append(c);
+    IntStream.range(0,n).forEach(_->sb.append(c));
     return sb.toString();
   }
 
@@ -199,7 +201,7 @@ public record Message(String msg, int priority){
       char ch = s.charAt(i);
       if (ch == '\t'){
         int spaces = tabWidth - ((col - 1) % tabWidth);
-        for (int k : Range.of(0,spaces)){ out.append(' '); }
+        IntStream.range(0,spaces).forEach(_->out.append(' '));
         col += spaces;
       }else{
         out.append(ch);
