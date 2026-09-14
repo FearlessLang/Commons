@@ -3,7 +3,7 @@ package utils;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public class OneOr{
+public final class OneOr{
   public static <T> Optional<T> opt(String err, Stream<T> ts){
     return ts.reduce((_,_)->{ throw new OneOrException(err); });
   }

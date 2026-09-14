@@ -10,7 +10,7 @@ import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public class Streams {
+public final class Streams {
   @SafeVarargs @SuppressWarnings("varargs")
   public static <T> Stream<T> of(Stream<T>...ss){ return Stream.of(ss).flatMap(s->s); }
   @SafeVarargs @SuppressWarnings("varargs")

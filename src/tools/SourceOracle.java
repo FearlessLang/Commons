@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import static offensiveUtils.Require.*;
+import utils.OneOr;
 import utils.Push;
 
 /** SourceOracle
@@ -61,8 +62,8 @@ public interface SourceOracle{
   }
   List<Ref> allFiles();
   default String loadString(URI uri){
-    return allFiles().stream().filter(f->f.fearURI().equals(uri)).findFirst().get().loadString();
-  }  
+    return OneOr.of("Expected one source for "+uri, allFiles().stream().filter(f->f.fearURI().equals(uri))).loadString();
+  }
   public static URI defaultDbgFearPath(int index){
     return URI.create("fear:/___DBG___/"+(index==0 ? "_rank_app999.fear" : "in_memory"+index+".fear"));
   }
