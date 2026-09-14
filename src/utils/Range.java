@@ -3,7 +3,7 @@ package utils;
 import java.util.List;
 import java.util.stream.IntStream;
 
-public class Range {
+public final class Range {
   public static Iterable<Integer> of(int from, int to){
     return IntStream.range(from,to)::iterator;
   }

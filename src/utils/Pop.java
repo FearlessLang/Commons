@@ -2,7 +2,7 @@ package utils;
 
 import java.util.List;
 
-public class Pop {
+public final class Pop {
   public static <T> List<T> left(List<T>ts){
     return ts.subList(1,ts.size());
   }
