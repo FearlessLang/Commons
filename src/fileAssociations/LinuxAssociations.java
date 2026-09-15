@@ -3,6 +3,7 @@ package fileAssociations;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -71,7 +72,7 @@ public final class LinuxAssociations{
     for (var file: Xdg.choiceFiles()){
       chosenFor(file, type).forEach(name->res.add(name.endsWith(".desktop") ? name.substring(0,name.length()-8) : name));
     }
-    return res;
+    return Collections.unmodifiableSet(res);//keep insertion order, unlike Set.copyOf
   }
   private static List<String> chosenFor(Path file, String type){
     var inDefaults= false;
@@ -179,7 +180,7 @@ public final class LinuxAssociations{
       var icon= between(line, "<icon name=\"");
       if (ext.isPresent() && icon.isPresent()){ res.put(ext.get(), icon.get()); }
     }
-    return res;
+    return Collections.unmodifiableMap(res);//keep insertion order, unlike Map.copyOf
   }
   private static Optional<String> between(String line, String open){
     var i= line.indexOf(open);

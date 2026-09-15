@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -192,7 +193,7 @@ public final class WindowsAssociations{
     Shell.exec(List.of("reg","query",key)).filter(ran->ran.code() == 0)
       .ifPresent(ran->ran.out().lines().map(String::strip)
         .filter(l->l.contains("REG_")).forEach(l->res.put(regName(l), regQueried(l))));
-    return res;
+    return Collections.unmodifiableMap(res);//keep insertion order, unlike Map.copyOf
   }
   private static List<String> listSubkeys(String key){
     return Shell.exec(List.of("reg","query",key)).filter(ran->ran.code() == 0)
