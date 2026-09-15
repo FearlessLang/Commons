@@ -3,6 +3,7 @@ package fileAssociations;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -71,7 +72,7 @@ public final class LinuxAssociations{
     for (var file: Xdg.choiceFiles()){
       chosenFor(file, type).forEach(name->res.add(name.endsWith(".desktop") ? name.substring(0,name.length()-8) : name));
     }
-    return res;
+    return Collections.unmodifiableSet(res);//keep insertion order, unlike Set.copyOf
   }
   private static List<String> chosenFor(Path file, String type){
     var inDefaults= false;
@@ -94,7 +95,7 @@ public final class LinuxAssociations{
       var f= dir.resolve("packages").resolve(identityName+".xml");
       if (Files.isRegularFile(f)){ res.add(f); }
     }
-    return res;
+    return List.copyOf(res);
   }
   private static List<Path> targetsNotWritable(){
     var res= new ArrayList<Path>();
@@ -102,7 +103,7 @@ public final class LinuxAssociations{
     if (!writableForCreation(desktopDir)){ res.add(desktopDir); }
     var mimeDir= Xdg.dataHome().resolve("mime").resolve("packages");
     if (!writableForCreation(mimeDir)){ res.add(mimeDir); }
-    return res;
+    return List.copyOf(res);
   }
   private static boolean writableForCreation(Path dir){
     var p= dir;
@@ -179,7 +180,7 @@ public final class LinuxAssociations{
       var icon= between(line, "<icon name=\"");
       if (ext.isPresent() && icon.isPresent()){ res.put(ext.get(), icon.get()); }
     }
-    return res;
+    return Collections.unmodifiableMap(res);//keep insertion order, unlike Map.copyOf
   }
   private static Optional<String> between(String line, String open){
     var i= line.indexOf(open);
@@ -217,7 +218,7 @@ public final class LinuxAssociations{
     var res= new ArrayList<Path>();
     res.add(Xdg.dataHome().resolve("mime"));
     Xdg.dataDirs().forEach(d->res.add(d.resolve("mime")));
-    return res;
+    return List.copyOf(res);
   }
   private static List<Path> mimePackages(Path mimeDir){
     var dir= mimeDir.resolve("packages");

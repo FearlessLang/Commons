@@ -17,7 +17,7 @@ final class Xdg{
     var res= new ArrayList<Path>();
     res.add(dataHome().resolve("applications"));
     dataDirs().forEach(d->res.add(d.resolve("applications")));
-    return res;
+    return List.copyOf(res);
   }
   //The desktop reads a prefixed list before the plain one, one prefix per name in XDG_CURRENT_DESKTOP.
   static List<String> listNames(){
@@ -26,7 +26,7 @@ final class Xdg{
       if (!de.isEmpty()){ res.add(de.toLowerCase(Locale.ROOT)+"-mimeapps.list"); }
     }
     res.add("mimeapps.list");
-    return res;
+    return List.copyOf(res);
   }
   //Every place a chosen answer can live, in the order the desktop consults them.
   static List<Path> choiceFiles(){
@@ -36,7 +36,7 @@ final class Xdg{
     roots.addAll(configDirs());
     appDirs().forEach(roots::add);
     for (var root: roots){ listNames().forEach(n->res.add(root.resolve(n))); }
-    return res;
+    return List.copyOf(res);
   }
   private static Path dir(String name, Path fallback){
     var v= System.getenv(name);
