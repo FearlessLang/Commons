@@ -94,7 +94,7 @@ public final class LinuxAssociations{
       var f= dir.resolve("packages").resolve(identityName+".xml");
       if (Files.isRegularFile(f)){ res.add(f); }
     }
-    return res;
+    return List.copyOf(res);
   }
   private static List<Path> targetsNotWritable(){
     var res= new ArrayList<Path>();
@@ -102,7 +102,7 @@ public final class LinuxAssociations{
     if (!writableForCreation(desktopDir)){ res.add(desktopDir); }
     var mimeDir= Xdg.dataHome().resolve("mime").resolve("packages");
     if (!writableForCreation(mimeDir)){ res.add(mimeDir); }
-    return res;
+    return List.copyOf(res);
   }
   private static boolean writableForCreation(Path dir){
     var p= dir;
@@ -217,7 +217,7 @@ public final class LinuxAssociations{
     var res= new ArrayList<Path>();
     res.add(Xdg.dataHome().resolve("mime"));
     Xdg.dataDirs().forEach(d->res.add(d.resolve("mime")));
-    return res;
+    return List.copyOf(res);
   }
   private static List<Path> mimePackages(Path mimeDir){
     var dir= mimeDir.resolve("packages");

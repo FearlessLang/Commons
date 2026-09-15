@@ -213,7 +213,7 @@ public final class NameSuggester {
       while (end > start && !isAsciiLetter(s.charAt(end - 1))){ end--; }
       if (start < end){ out.add(s.substring(start, end)); }
     }
-    return out;
+    return List.copyOf(out);
   }
 
   private static double normalizedLevenshtein(String a, String b){

@@ -208,7 +208,7 @@ public abstract class MetaParser<
       var si= splitterParser.spanAround(start,(end-1)-drop);
       parts.add(make(si,tsi));
     }
-    return parts;
+    return List.copyOf(parts);
   }
   public <R> List<R> parseGroupSep(String frameNameOut, String frameNameIn, Rule<T,TK,E,Tokenizer,Parser,Err,R> r,TK open, TK close, NextCut<T,TK,E,Tokenizer,Parser,Err> probe){
     String label= frameNameOut.isEmpty()?frameNameIn:frameNameOut;

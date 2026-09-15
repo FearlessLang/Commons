@@ -85,7 +85,7 @@ public final class WindowsAssociations{
     var res= new ArrayList<String>();
     regValue(hkcu(classes)+ext, "").ifPresent(res::add);
     res.addAll(regValues(hkcu(classes)+ext+"\\OpenWithProgids").keySet());
-    return res;
+    return List.copyOf(res);
   }
   private static String owner(String progId, String ext){
     var suffix= "."+ext.substring(1);
