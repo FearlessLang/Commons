@@ -15,7 +15,7 @@ public final class Streams {
   @SafeVarargs @SuppressWarnings("varargs")
   public static <T> Stream<T> of(Stream<T>...ss){ return Stream.of(ss).flatMap(s->s); }
   @SafeVarargs @SuppressWarnings("varargs")
-  public static <T> Stream<T> ofWC(Stream<T>...ss){ return Stream.of(ss).flatMap(s->s); }
+  public static <T> Stream<T> ofWC(Stream<T>...ss){ return of(ss); }
 
   public static <A,B> Zipper2<A,B> zip(List<A> as, List<B> bs){
     assert as.size()==bs.size();
@@ -77,9 +77,7 @@ public final class Streams {
     }
   }
   public static <T> Optional<Integer> firstPos(List<T> xs, Predicate<Integer> p) {
-    return IntStream.range(0, xs.size()).boxed()
-      .filter(p)
-      .findFirst();
+    return firstPos(0, xs, p);
   }
   public static <T> Optional<Integer> firstPos(int start, List<T> xs, Predicate<Integer> p) {
     assert start <= xs.size();
