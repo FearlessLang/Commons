@@ -192,10 +192,6 @@ public abstract class MetaTokenizer<
     assert tree!=null: "call method .tokenTree after .buildTokenTree";    
     return tree;
   }
-  public List<T> postTokens(){
-    assert postTokens!=null: "call method .postTokens after .postTokenize";    
-    return postTokens;
-  }
   public List<T> allTokens(){
     assert allTokens!=null: "call method .allTokens after .tokenize";    
     return allTokens; 
