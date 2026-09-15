@@ -214,6 +214,11 @@ public final class JavacTool{
   public static final List<String> javacArgs= List.of("-encoding","UTF-8","-Xlint:all,-auxiliaryclass,-missing-explicit-ctor","-Werror");
 
   public static void javac(List<Path> srcs, Path classesDir, Path modsDir){
+    javac(srcs, classesDir, modsDir, List.of());
+  }
+  //extraLintDisables: for modules that must `requires` an automatic module (no module-info in
+  //the jar, e.g. flexmark), since that is otherwise an unavoidable -Werror failure
+  public static void javac(List<Path> srcs, Path classesDir, Path modsDir, List<String> extraLintDisables){
     srcs.forEach(src->check(Files.isDirectory(src), "Not a directory: "+src));
     check(Files.isDirectory(modsDir), "Not a directory: "+modsDir);
     Fs.cleanDir(classesDir); Fs.ensureDir(classesDir);
@@ -223,7 +228,9 @@ public final class JavacTool{
       .toList();
     check(mi.size() == 1, "No module-info or ambiguous module-info");
     var args= new ArrayList<String>(64);
-    args.addAll(javacArgs);
+    args.add("-encoding"); args.add("UTF-8");
+    args.add("-Xlint:all,-auxiliaryclass,-missing-explicit-ctor"+extraLintDisables.stream().map(l->","+l).collect(Collectors.joining()));
+    args.add("-Werror");
     args.add("-d"); args.add(slash(classesDir));
     args.add("--module-path"); args.add(slash(modsDir));
     srcs.forEach(src->Fs.walkV(src,s->s
