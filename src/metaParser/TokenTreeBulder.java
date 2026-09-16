@@ -2,7 +2,7 @@ package metaParser;
 
 import java.util.List;
 
-class TokenTreeBulder{
+final class TokenTreeBulder{
   static <
     T extends Token<T,TK>,
     TK extends TokenKind,

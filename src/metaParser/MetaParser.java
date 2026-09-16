@@ -328,7 +328,7 @@ public abstract class MetaParser<
   private void appendRange(StringBuilder sb, int from, int to){
     sb.append('[');
     for(int i : Range.of(from,to)){
-      if(i>from) sb.append(", ");
+      if(i>from){ sb.append(", "); }
       sb.append(PrettyToken.show(ts.get(i)));
     }
     sb.append(']');
