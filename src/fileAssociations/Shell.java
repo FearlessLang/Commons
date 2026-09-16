@@ -10,7 +10,6 @@ import tools.Fs;
 import utils.Bug;
 
 final class Shell{
-  private Shell(){}
   record Ran(int code, String out){}
   static String req(List<String> cmd, Function<String,RuntimeException> stepFailed){
     var ran= exec(cmd);

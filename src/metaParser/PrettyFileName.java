@@ -3,7 +3,7 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class PrettyFileName{
+public final class PrettyFileName{
   public static String displayFileName(URI uri) { return sanitizeAscii(displayFileNameRaw(uri)); }
   private static String displayFileNameRaw(URI uri) {
     if (uri == null) return "(unknown)";

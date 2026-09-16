@@ -12,7 +12,6 @@ public final class NameSuggester {
   public interface Renderer<R>{
     R render(String target, List<String> candidates, Optional<String> best);
   }
-  private NameSuggester(){}
 
   public static Optional<String> bestName(String name, List<String> candidates){
     if (candidates.contains(name)){ return Optional.of(name); }

@@ -16,8 +16,6 @@ import java.util.function.Predicate;
 import tools.Fs;
 
 public final class LinuxAssociations{
-  private LinuxAssociations(){}
-
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programPng,
       Function<String,RuntimeException> ambiguous,
