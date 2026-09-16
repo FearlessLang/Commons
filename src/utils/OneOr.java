@@ -8,9 +8,7 @@ public final class OneOr{
     return ts.reduce((_,_)->{ throw new OneOrException(err); });
   }
   public static <T> T of(String err, Stream<T> ts){
-    return ts
-      .reduce((_,_)->{ throw new OneOrException(err); })
-      .orElseThrow(()-> new OneOrException(err));
+    return opt(err, ts).orElseThrow(()-> new OneOrException(err));
   }
   @SuppressWarnings("serial")
   public static class OneOrException extends RuntimeException {

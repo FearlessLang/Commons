@@ -169,15 +169,10 @@ public final class Fs{
     assert i >= 0 && i + 1 < s.length();
     return i;
   }
-  public static boolean isWindows(){
-    return System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win");
-  }
-  public static boolean isMac(){
-    return System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("mac");
-  }
-  public static boolean isLinux(){
-    return System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("linux");
-  }
+  public static boolean isWindows(){ return osName().contains("win"); }
+  public static boolean isMac(){ return osName().contains("mac"); }
+  public static boolean isLinux(){ return osName().contains("linux"); }
+  private static String osName(){ return System.getProperty("os.name").toLowerCase(Locale.ROOT); }
   public interface RunVoid{void run() throws IOException;}
   public interface Run<T>{T run() throws IOException;}
   public interface WalkVoid{void walk(Stream<Path> p) throws IOException;}

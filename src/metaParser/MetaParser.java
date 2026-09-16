@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import utils.Range;
 
@@ -26,13 +25,6 @@ public abstract class MetaParser<
   public abstract Parser make(Span span,List<T> tokens);
   public abstract Err errFactory();
   public MetaParser(Span span, List<T> ts){ this.span= span; this.ts= ts; this.limit= ts.size(); }
-  public static <R> R computeInFrame(String frameName, Span s, Supplier<R> r){
-    try{ return r.get(); }
-    catch(RuntimeException|Error t){ 
-      if (!frameName.isEmpty() && t instanceof HasFrames<?> f){ f.addFrame(new Frame(frameName,s)); }
-      throw t;
-    }
-  }  
   public <R> R parseAll(String frameName, Rule<T,TK,E,Tokenizer,Parser,Err,R> r){
     R res; try{ res= r.parse(this.self()); }
     catch(RuntimeException|Error t){ 
@@ -46,16 +38,12 @@ public abstract class MetaParser<
   public int remaining(){ return limit - index; }
   public int index(){ return index; }
   public int limit(){ return limit; }
-  public void setIndex(int index){ this.index = index; }
 
   public Optional<T> peek(){ return peek(0); }
   public Optional<T> peekAbs(int index){
     if (index < 0 || index >= limit){ return Optional.empty(); }
     return Optional.of(ts.get(index));
   }
-  private T currentT(){ return index<ts.size()? ts.get(index) : ts.get(index-1); }
-  public int currentLine(){ return currentT().line(); }
-  public int currentCol(){ return  currentT().column(); }
   public Optional<T> peek(int la){ return peekAbs(index + la); }
   public Optional<T> peekLast(){ return peekLast(0); }
   public Optional<T> peekLast(int la){ return peekAbs((limit-la)-1); }
@@ -129,17 +117,8 @@ public abstract class MetaParser<
   public boolean fwdIf(boolean v){
     if(v){ return fwd(true); }
     return false;
-  } 
-  public <R> R trim(R v){
-    if (index == limit){ throw new IllegalStateException("Can not go trim since already empty"); }
-    limit--;
-    return v;
   }
-  public boolean trimIf(boolean v){
-    if(v){ return trim(true); }
-    return false;
-  }
-  
+
   //ParseSplitters
   public <R> R parseGroup(String frameName, Rule<T,TK,E,Tokenizer,Parser,Err,R> r){
     var tsIn= ts.get(index).tokens();
@@ -229,7 +208,7 @@ public abstract class MetaParser<
       var si= splitterParser.spanAround(start,(end-1)-drop);
       parts.add(make(si,tsi));
     }
-    return parts;
+    return List.copyOf(parts);
   }
   public <R> List<R> parseGroupSep(String frameNameOut, String frameNameIn, Rule<T,TK,E,Tokenizer,Parser,Err,R> r,TK open, TK close, NextCut<T,TK,E,Tokenizer,Parser,Err> probe){
     String label= frameNameOut.isEmpty()?frameNameIn:frameNameOut;

@@ -2,7 +2,6 @@ package utils;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
@@ -15,6 +14,6 @@ public final class UriSort{
     res.sort(Comparator.comparing((X x)->Fs.removeFileNameAllowTop(toUri.apply(x)))
       .thenComparing(x->Fs.fileNameWithExtension(toUri.apply(x)))
       .thenComparing(x->toUri.apply(x).toString()));
-    return Collections.unmodifiableList(res);
+    return List.copyOf(res);
   }
 }
