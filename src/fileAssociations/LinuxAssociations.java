@@ -155,7 +155,7 @@ public final class LinuxAssociations{
     if (!Files.isDirectory(hicolor)){ return Optional.empty(); }
     return Fs.of(()->{ try(var s= Files.list(hicolor)){
       return s.map(d->d.resolve("apps").resolve(identity+".png")).filter(Files::isRegularFile)
-        .findFirst().map(LinuxAssociations::bytesOf); }});
+        .sorted().findFirst().map(LinuxAssociations::bytesOf); }});
   }
   private static byte[] bytesOf(Path file){ return Fs.of(()->Files.readAllBytes(file)); }
   public static int side(byte[] png){
