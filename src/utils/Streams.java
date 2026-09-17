@@ -31,17 +31,17 @@ public final class Streams {
       IntStream.range(0, as.size()).forEach(i->f.accept(as.get(i), bs.get(i)));
     }
     @Override public <R> Stream<R> map(BiFunction<A,B,R> f){
-      return IntStream.range(0, as.size()).mapToObj(i->f.apply(as.get(i),bs.get(i)));
+      return IntStream.range(0, as.size()).mapToObj(i->f.apply(as.get(i), bs.get(i)));
     }
     @Override public <R> Stream<R> parallelMap(BiFunction<A,B,R> f){
-      return IntStream.range(0, as.size()).parallel().mapToObj(i->f.apply(as.get(i),bs.get(i)));
+      return IntStream.range(0, as.size()).parallel().mapToObj(i->f.apply(as.get(i), bs.get(i)));
     }
     @Override public <R> Stream<R> flatMap(BiFunction<A,B,Stream<R>> f){
-      return IntStream.range(0, as.size()).boxed().flatMap(i->f.apply(as.get(i),bs.get(i)));
+      return IntStream.range(0, as.size()).boxed().flatMap(i->f.apply(as.get(i), bs.get(i)));
     }
     @Override public <R> Stream<R> filterMap(BiFunction<A,B,Optional<R>> f){
       return IntStream.range(0, as.size())
-        .mapToObj(i->f.apply(as.get(i),bs.get(i)))
+        .mapToObj(i->f.apply(as.get(i), bs.get(i)))
         .filter(Optional::isPresent)
         .map(Optional::get);
     }
@@ -49,7 +49,7 @@ public final class Streams {
       var asi= new ArrayList<A>();
       var bsi= new ArrayList<B>();
       IntStream.range(0, as.size())
-        .filter(i->f.test(as.get(i),bs.get(i)))
+        .filter(i->f.test(as.get(i), bs.get(i)))
         .forEachOrdered(i->{
           asi.add(as.get(i));
           bsi.add(bs.get(i));
@@ -64,16 +64,16 @@ public final class Streams {
     }
     @Override public boolean anyMatch(BiPredicate<A,B> test){
       return IntStream.range(0, as.size())
-        .anyMatch(i->test.test(as.get(i),bs.get(i)));
+        .anyMatch(i->test.test(as.get(i), bs.get(i)));
     }
     @Override public boolean allMatch(BiPredicate<A,B> test){
       return IntStream.range(0, as.size())
-        .allMatch(i->test.test(as.get(i),bs.get(i)));
+        .allMatch(i->test.test(as.get(i), bs.get(i)));
     }
     @Override public boolean allMatchParallel(BiPredicate<A,B> test){
       return IntStream.range(0, as.size())
         .parallel()
-        .allMatch(i->test.test(as.get(i),bs.get(i)));
+        .allMatch(i->test.test(as.get(i), bs.get(i)));
     }
   }
   public static <T> Optional<Integer> firstPos(List<T> xs, Predicate<Integer> p) {
