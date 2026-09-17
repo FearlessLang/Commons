@@ -19,11 +19,6 @@ public final class TokenTreeSpec<
     closers.add(closer);
     return this;
   }
-  public TokenTreeSpec<T, TK> addBarrier(TK opener, TK barrier){
-    Objects.requireNonNull(opener); Objects.requireNonNull(barrier);
-    barriers.computeIfAbsent(opener, _ -> new LinkedHashSet<>()).add(barrier);
-    return this;
-  }
   public TokenTreeSpec<T, TK> addBarriers(TK opener, Set<TK> bs){
     Objects.requireNonNull(opener); Objects.requireNonNull(bs);
     if (bs.isEmpty()){ return this; }

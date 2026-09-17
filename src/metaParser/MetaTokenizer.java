@@ -1,9 +1,6 @@
 package metaParser;
 
 import java.net.URI;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -11,10 +8,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
-
-import tools.Fs;
-
-import static offensiveUtils.Require.*;
 
 public abstract class MetaTokenizer<
     T extends Token<T,TK>,
@@ -76,21 +69,6 @@ public abstract class MetaTokenizer<
     s = s.replace("\r\n", "\n").replace('\r', '\n'); // Normalize common newline variants to '\n' CRLF -> LF, lone CR -> LF
     s = s.replace('\u2028', '\n').replace('\u2029', '\n').replace('\u0085', '\n'); // Unicode separators to LF (LS, PS, NEL)
     return s;
-  }
-  public Tokenizer input(URI fileName){
-    return input(fileName, StandardCharsets.UTF_8);
-  }
-  public Tokenizer input(URI fileName, Charset charset){
-    Objects.requireNonNull(fileName, "fileName");
-    Objects.requireNonNull(charset, "charset");
-    check("file".equalsIgnoreCase(fileName.getScheme()),"Only \"file: URIs\" are supported by input(URI,Charset): " + fileName);
-    return input(Path.of(fileName),charset);  
-  }
-  public Tokenizer input(Path path){ return input(path,StandardCharsets.UTF_8); }
-  public Tokenizer input(Path path, Charset charset){
-    Objects.requireNonNull(path, "path");
-    String raw= Fs.readUtf8(path);
-    return input(path.toUri(), normalizeSource(raw));
   }
   public Tokenizer input(URI fileName, String input){
     assert !frozen : "cannot call .input during .tokenize, .postTokenize, .buildTokenTree";
