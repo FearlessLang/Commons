@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 ///Note: call this with
 ///   @BeforeAll static void setUp(){ Err.setUp(AssertionFailedError.class,Assertions::assertEquals,Assertions::assertTrue);}
 /// We need to wire this later so we do not need Commons to depend from JUnit
-public class Err {
+public final class Err {
   private static Class<? extends AssertionError> err;
   private static BiConsumer<String,String> assertEquals;
   private static Consumer<Boolean> assertTrue;
@@ -40,7 +40,7 @@ public class Err {
   public static boolean strCmpAux(String cmp2, String cmp1, String stringHole) {
     if(cmp2.isEmpty()){ return cmp1.isEmpty(); }
     List<String> split = new ArrayList<String>(List.of(cmp2.split(Pattern.quote(stringHole))));
-    for(int i = 0; i < split.size(); i++){ if(split.get(i).length() == 0) split.remove(i--); }
+    for(int i = 0; i < split.size(); i++){ if(split.get(i).length() == 0){ split.remove(i--); } }
     boolean beginswith = cmp2.startsWith(stringHole);
     boolean endswith = cmp2.endsWith(stringHole);    
     int holes = (beginswith ? 1 : 0) + (endswith ? 1 : 0) + split.size() - 1;    

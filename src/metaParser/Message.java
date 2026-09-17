@@ -30,7 +30,7 @@ public record Message(String msg, int priority){
     }
   }
   private static String _of(Function<URI,String> loader, List<Frame> frames, String msg){
-    if (frames == null || frames.isEmpty()) return msg;
+    if (frames == null || frames.isEmpty()){ return msg; }
     List<Frame> contained= ensureContainment(frames);
     List<Frame> visible= trimInvisible(loader, contained);
     Grouping g= group(visible);
@@ -57,7 +57,7 @@ public record Message(String msg, int priority){
   }
   private static List<Frame> ensureContainment(List<Frame> fs){
     ArrayList<Frame> out = new ArrayList<>(fs);
-    if (out.size() <= 1) return List.copyOf(out);
+    if (out.size() <= 1){ return List.copyOf(out); }
     for (int i : Range.of(0,out.size() - 1)){
       Span inner = out.get(i).s();
       Span outer = out.get(i+1).s();      
@@ -126,7 +126,7 @@ public record Message(String msg, int priority){
     List<Span> spans= fs.stream().map(Frame::s).toList();
     URI file= spans.getLast().fileName();
     ArrayList<Span> leadingSingles= new ArrayList<>();
-    for (Span s : spans){ if (s.isSingleLine()) leadingSingles.add(s); else break; }
+    for (Span s : spans){ if (s.isSingleLine()){ leadingSingles.add(s); } else { break; } }
     if (!leadingSingles.isEmpty()){
       int targetLine = leadingSingles.getLast().startLine();
       leadingSingles.removeIf(s -> s.startLine() != targetLine || !s.isSingleLine());
@@ -171,7 +171,7 @@ public record Message(String msg, int priority){
 
   private static String[] splitLines(String s){ return s.split("\\R", -1); }
   private static String get(String[] lines, int oneBased){
-    if (oneBased < 1 || oneBased > lines.length) return "";
+    if (oneBased < 1 || oneBased > lines.length){ return ""; }
     return lines[oneBased-1];
   }
   private static int clamp(int v, int lo, int hi){ return Math.max(lo, Math.min(hi, v)); }
@@ -186,7 +186,7 @@ public record Message(String msg, int priority){
     return repeat('0', k) + s;
   }
   private static String repeat(char c, int n){
-    if (n <= 0) return "";
+    if (n <= 0){ return ""; }
     StringBuilder sb = new StringBuilder(n);
     IntStream.range(0,n).forEach(_->sb.append(c));
     return sb.toString();
@@ -194,7 +194,7 @@ public record Message(String msg, int priority){
 
   /** Expand tabs into spaces (tab stops every TAB_WIDTH columns). */
   private static String expandTabs(String s, int tabWidth){
-    if (tabWidth <= 0 || s.indexOf('\t') < 0) return s;
+    if (tabWidth <= 0 || s.indexOf('\t') < 0){ return s; }
     StringBuilder out = new StringBuilder(s.length() + 8);
     int col = 1; // 1-based
     for (int i : Range.of(0,s.length())){
@@ -227,17 +227,17 @@ public record Message(String msg, int priority){
 
   /** Visual column (1-based) at a logical column (expands tabs). */
   private static int visualCol(String rawLine, int logicalCol, int tabWidth){
-    if (logicalCol <= 1 || tabWidth <= 0) return Math.max(1, logicalCol);
+    if (logicalCol <= 1 || tabWidth <= 0){ return Math.max(1, logicalCol); }
     int limit= Math.min(Math.max(0, logicalCol - 1), rawLine.length());
     return Math.max(1, tabAwareWidth(rawLine, 0, limit, 1, tabWidth));
   }
 
   private static int visualDelta(String rawLine, int startCol, int endCol, int tabWidth){
-    if (rawLine.isEmpty()) return 0;
+    if (rawLine.isEmpty()){ return 0; }
     int aIdx= Math.max(0, startCol - 1);
     // Clamped independent of aIdx -- the old Math.max(aIdx,...) form let this track aIdx past line end, defeating the guard below.
     int bIdxInclusive= Math.min(endCol - 1, rawLine.length() - 1);
-    if (aIdx > bIdxInclusive) return 0;
+    if (aIdx > bIdxInclusive){ return 0; }
     return Math.max(0, tabAwareWidth(rawLine, aIdx, bIdxInclusive + 1, 0, tabWidth));
   }
 
@@ -406,134 +406,120 @@ public record Message(String msg, int priority){
     static String get(int cp){ return M.get(cp); }
   }
 
-private static String makeCaretLine(String[] lines, Grouping g, int width){
- String raw = get(lines, g.caretLine());
- // Only the caret-bearing line is sanitized for display;
- // geometry (columns/lengths) is computed from RAW with tab math.
- String safeDisplay = sanitizeForCaret(expandTabs(raw, tabWidth));
-
- // decide marks so a single span uses '^'
- List<Span> sps = g.singles();
- int n = Math.min(3, sps.size());
- char[] marks = switch(n){
-   case 0 -> new char[0];
-   case 1 -> new char[]{'^'};
-   case 2 -> new char[]{'-','^'};
-   default -> new char[]{'-','~','^'};
- };
-
- // find rightmost visual column we will draw (1-based), clamp to caret-line length
- int rightMost = 0;
- for (int i : Range.of(0,n)){
-   Span s = sps.get(i);
-   int aVis = visualCol(raw, s.startCol(), tabWidth);
-   int len  = visualDelta(raw, s.startCol(), s.endCol(), tabWidth);
-   int bVis = aVis + Math.max(1, len) - 1; // ensure at least 1 column
-   rightMost = Math.max(rightMost, bVis);
- }
- rightMost = Math.min(rightMost, Math.max(0, safeDisplay.length())); // belt-and-braces
-
- char[] carr = new char[Math.max(0, rightMost)];
- for (int i=0;i<carr.length;i++) carr[i] = ' ';
-
- for (int i : Range.of(0,n)){
-   Span s = sps.get(i);
-   int aVis = visualCol(raw, s.startCol(), tabWidth);
-   int len  = visualDelta(raw, s.startCol(), s.endCol(), tabWidth);
-   int a = Math.max(1, aVis);
-   int b = Math.max(a, Math.min(aVis + Math.max(1, len) - 1, rightMost));
-   for (int c : Range.of(a,b+1)){
-     int idx = c - 1;
-     if (idx < carr.length) carr[idx] = marks[i];
-   }
- }
-
- String carets = carr.length == 0 ? "" : new String(carr);
- return repeat(' ', width) + '|' + ' ' + carets;
-}
-
-//Numbered line used specifically for the caret-bearing line:
-//identical to numbered(), except we sanitize the display to be monospace-safe.
-private static String numberedCaret(String[] lines, int lineNum, int width){
- String raw = get(lines, lineNum);
- String display = sanitizeForCaret(expandTabs(raw, tabWidth));
- return padLineNum(lineNum, width) + '|' + ' ' + display;
-}
-
-/**
-* Make the caret-bearing source line monospace-safe without external deps:
-*  - Keep printable ASCII (U+0020..U+007E) as-is
-*  - Convert Unicode spaces & zero-width (NBSP/ZW* etc.) to '_'
-*  - Everything else (emoji, CJK, controls, surrogates) -> '?'
-* All replacements are single-column in typical monospace fonts.
-*/
-private static String sanitizeForCaret(String s){
- StringBuilder out = new StringBuilder(s.length());
- for (int i = 0; i < s.length(); ){
-   int cp = s.codePointAt(i);
-   i += Character.charCount(cp);
-   if (cp >= 0x20 && cp <= 0x7E){ // printable ASCII
-     out.append((char)cp);
-     continue;
-   }
-   // Unicode spaces (a small explicit set) and zero-widths
-   if (cp == 0x00A0 /* NBSP */ ||
-       cp == 0x1680 || (cp >= 0x2000 && cp <= 0x200A) ||
-       cp == 0x202F || cp == 0x205F || cp == 0x3000 ||
-       cp == 0x200B /* ZWSP */ || cp == 0x200C /* ZWNJ */ || cp == 0x200D /* ZWJ */){
-     out.append('_');
-   } else {
-     out.append('?');
-   }
- }
- return out.toString();
-}
-
-
-//helper: push either an elision counter or the single in-between line
-private static void addElision(List<String> out, String[] lines, int width, int count, int oneLineNum){
-if (count == 1){
- out.add(numbered(lines, oneLineNum, width));
-} else if (count > 1){
- out.add(elided(width, count));
-}
-}
-
-private static String renderMulti(String[] lines, Grouping g, int width, Optional<String> caretLine){
-Span group = g.multiLine();
-int start = group.startLine();
-int end   = group.endLine();
-int caret = g.caretLine();
-
-int beforeCount = caret - start - 1;  // lines strictly between start..caret
-int afterCount  = end   - caret - 1;  // lines strictly between caret..end
-
-boolean caretAtStart = caret == start;
-boolean caretAtEnd   = caret == end;
-
-ArrayList<String> out = new ArrayList<>();
-
-if (caretAtStart){
- // 4 or 3 lines (if afterCount == 0)
- out.add(numberedCaret(lines, caret, width));
- caretLine.ifPresent(out::add);
- addElision(out, lines, width, afterCount, caret + 1);
- out.add(numbered(lines, end, width));
-} else if (caretAtEnd){
- // 4 or 3 lines (if beforeCount == 0)
- out.add(numbered(lines, start, width));
- addElision(out, lines, width, beforeCount, caret - 1);
- out.add(numberedCaret(lines, caret, width));
- caretLine.ifPresent(out::add);
-} else {
- // caret strictly inside -> up to 6 lines (drops sides with 0 omitted)
- out.add(numbered(lines, start, width));
- addElision(out, lines, width, beforeCount, caret - 1);
- out.add(numberedCaret(lines, caret, width));
- caretLine.ifPresent(out::add);
- addElision(out, lines, width, afterCount, caret + 1);
- out.add(numbered(lines, end, width));
-}
-return String.join("\n", out);
-}
+  private static String makeCaretLine(String[] lines, Grouping g, int width){
+    String raw = get(lines, g.caretLine());
+    // Only the caret-bearing line is sanitized for display;
+    // geometry (columns/lengths) is computed from RAW with tab math.
+    String safeDisplay = sanitizeForCaret(expandTabs(raw, tabWidth));
+    // decide marks so a single span uses '^'
+    List<Span> sps = g.singles();
+    int n = Math.min(3, sps.size());
+    char[] marks = switch(n){
+      case 0 -> new char[0];
+      case 1 -> new char[]{'^'};
+      case 2 -> new char[]{'-','^'};
+      default -> new char[]{'-','~','^'};
+    };
+    // find rightmost visual column we will draw (1-based), clamp to caret-line length
+    int rightMost = 0;
+    for (int i : Range.of(0,n)){
+      Span s = sps.get(i);
+      int aVis = visualCol(raw, s.startCol(), tabWidth);
+      int len  = visualDelta(raw, s.startCol(), s.endCol(), tabWidth);
+      int bVis = aVis + Math.max(1, len) - 1; // ensure at least 1 column
+      rightMost = Math.max(rightMost, bVis);
+    }
+    rightMost = Math.min(rightMost, Math.max(0, safeDisplay.length())); // belt-and-braces
+    char[] carr = new char[Math.max(0, rightMost)];
+    for (int i=0;i<carr.length;i++){ carr[i] = ' '; }
+    for (int i : Range.of(0,n)){
+      Span s = sps.get(i);
+      int aVis = visualCol(raw, s.startCol(), tabWidth);
+      int len  = visualDelta(raw, s.startCol(), s.endCol(), tabWidth);
+      int a = Math.max(1, aVis);
+      int b = Math.max(a, Math.min(aVis + Math.max(1, len) - 1, rightMost));
+      for (int c : Range.of(a,b+1)){
+        int idx = c - 1;
+        if (idx < carr.length){ carr[idx] = marks[i]; }
+      }
+    }
+    String carets = carr.length == 0 ? "" : new String(carr);
+    return repeat(' ', width) + '|' + ' ' + carets;
+  }
+  //Numbered line used specifically for the caret-bearing line:
+  //identical to numbered(), except we sanitize the display to be monospace-safe.
+  private static String numberedCaret(String[] lines, int lineNum, int width){
+    String raw = get(lines, lineNum);
+    String display = sanitizeForCaret(expandTabs(raw, tabWidth));
+    return padLineNum(lineNum, width) + '|' + ' ' + display;
+  }
+  /**
+   * Make the caret-bearing source line monospace-safe without external deps:
+   *  - Keep printable ASCII (U+0020..U+007E) as-is
+   *  - Convert Unicode spaces & zero-width (NBSP/ZW* etc.) to '_'
+   *  - Everything else (emoji, CJK, controls, surrogates) -> '?'
+   * All replacements are single-column in typical monospace fonts.
+   */
+  private static String sanitizeForCaret(String s){
+    StringBuilder out = new StringBuilder(s.length());
+    for (int i = 0; i < s.length(); ){
+      int cp = s.codePointAt(i);
+      i += Character.charCount(cp);
+      if (cp >= 0x20 && cp <= 0x7E){ // printable ASCII
+        out.append((char)cp);
+        continue;
+      }
+      // Unicode spaces (a small explicit set) and zero-widths
+      if (cp == 0x00A0 /* NBSP */ ||
+          cp == 0x1680 || (cp >= 0x2000 && cp <= 0x200A) ||
+          cp == 0x202F || cp == 0x205F || cp == 0x3000 ||
+          cp == 0x200B /* ZWSP */ || cp == 0x200C /* ZWNJ */ || cp == 0x200D /* ZWJ */){
+        out.append('_');
+      } else {
+        out.append('?');
+      }
+    }
+    return out.toString();
+  }
+  //helper: push either an elision counter or the single in-between line
+  private static void addElision(List<String> out, String[] lines, int width, int count, int oneLineNum){
+    if (count == 1){
+      out.add(numbered(lines, oneLineNum, width));
+    } else if (count > 1){
+      out.add(elided(width, count));
+    }
+  }
+  private static String renderMulti(String[] lines, Grouping g, int width, Optional<String> caretLine){
+    Span group = g.multiLine();
+    int start = group.startLine();
+    int end   = group.endLine();
+    int caret = g.caretLine();
+    int beforeCount = caret - start - 1;  // lines strictly between start..caret
+    int afterCount  = end   - caret - 1;  // lines strictly between caret..end
+    boolean caretAtStart = caret == start;
+    boolean caretAtEnd   = caret == end;
+    ArrayList<String> out = new ArrayList<>();
+    if (caretAtStart){
+      // 4 or 3 lines (if afterCount == 0)
+      out.add(numberedCaret(lines, caret, width));
+      caretLine.ifPresent(out::add);
+      addElision(out, lines, width, afterCount, caret + 1);
+      out.add(numbered(lines, end, width));
+    } else if (caretAtEnd){
+      // 4 or 3 lines (if beforeCount == 0)
+      out.add(numbered(lines, start, width));
+      addElision(out, lines, width, beforeCount, caret - 1);
+      out.add(numberedCaret(lines, caret, width));
+      caretLine.ifPresent(out::add);
+    } else {
+      // caret strictly inside -> up to 6 lines (drops sides with 0 omitted)
+      out.add(numbered(lines, start, width));
+      addElision(out, lines, width, beforeCount, caret - 1);
+      out.add(numberedCaret(lines, caret, width));
+      caretLine.ifPresent(out::add);
+      addElision(out, lines, width, afterCount, caret + 1);
+      out.add(numbered(lines, end, width));
+    }
+    return String.join("\n", out);
+  }
 }

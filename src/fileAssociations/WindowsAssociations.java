@@ -24,7 +24,6 @@ import tools.Fs;
 import utils.Bug;
 
 public final class WindowsAssociations{
-  private WindowsAssociations(){}
   private static final String classes= "HKEY_CURRENT_USER\\Software\\Classes\\";
   private static final String registeredApplications= "HKEY_CURRENT_USER\\Software\\RegisteredApplications";
   private static final String softwareRoot= "HKEY_CURRENT_USER\\Software";

@@ -17,10 +17,10 @@ class TokenTrees<
     Parser extends MetaParser<T,TK,E,Tokenizer,Parser,Err>,
     Err extends ErrFactory<T,TK,E,Tokenizer,Parser,Err>
   >{
-    TokenTreeSpec<T,TK> spec; Tokenizer tokenizer;
-    TokenTrees(TokenTreeSpec<T,TK> spec, Tokenizer tokenizer){
-      this.spec= spec; this.tokenizer= tokenizer;
-    }
+  TokenTreeSpec<T,TK> spec; Tokenizer tokenizer;
+  TokenTrees(TokenTreeSpec<T,TK> spec, Tokenizer tokenizer){
+    this.spec= spec; this.tokenizer= tokenizer;
+  }
   TK closesMe(TK open,TK close){//null for not valid closing
     return spec.openClose.getOrDefault(open,Map.of()).get(close);
   }

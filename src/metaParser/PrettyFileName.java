@@ -3,10 +3,10 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class PrettyFileName{
+public final class PrettyFileName{
   public static String displayFileName(URI uri) { return sanitizeAscii(displayFileNameRaw(uri)); }
   private static String displayFileNameRaw(URI uri) {
-    if (uri == null) return "(unknown)";
+    if (uri == null){ return "(unknown)"; }
     try {
       uri = uri.normalize();
       String scheme = uri.getScheme();
@@ -67,8 +67,8 @@ public class PrettyFileName{
 
   /** Elide the middle of long paths, preserving basename (maxLen includes ellipsis). */
   private static String shorten(String s, int maxLen) {
-    if (s == null) return "(unknown)";
-    if (s.length() <= maxLen) return s;
+    if (s == null){ return "(unknown)"; }
+    if (s.length() <= maxLen){ return s; }
 
     // Split on '/', keep leading '/' if present
     boolean abs = s.startsWith("/");
@@ -76,23 +76,23 @@ public class PrettyFileName{
     int n = parts.length;
 
     // Handle edge-y cases
-    if (n <= 2) return "..." + tail(s, maxLen - 1);
+    if (n <= 2){ return "..." + tail(s, maxLen - 1); }
 
     String first = parts[abs ? 1 : 0];      // skip empty segment for absolute paths
     String last = parts[n - 1];
     String penult = parts[n - 2];
 
     String candidate = (abs ? "/" : "") + first + "/.../" + penult + "/" + last;
-    if (candidate.length() <= maxLen) return candidate;
+    if (candidate.length() <= maxLen){ return candidate; }
 
     // Try keeping just the tail
     String tail2 = penult + "/" + last;
     String t2 = (abs ? "/.../" : ".../") + tail2;
-    if (t2.length() <= maxLen) return t2;
+    if (t2.length() <= maxLen){ return t2; }
 
     // Last resort: ensure basename is visible
     String onlyLast = (abs ? "/.../" : ".../") + last;
-    if (onlyLast.length() <= maxLen) return onlyLast;
+    if (onlyLast.length() <= maxLen){ return onlyLast; }
     // Trim basename from the left if still too long
     String base = last;
     if (base.length() > maxLen - 1) {
@@ -102,7 +102,7 @@ public class PrettyFileName{
   }
 
   private static String tail(String s, int maxLen) {
-    if (s.length() <= maxLen) return s;
+    if (s.length() <= maxLen){ return s; }
     return s.substring(s.length() - maxLen);
   }
 }

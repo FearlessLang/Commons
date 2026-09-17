@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Locale;
 
 final class Xdg{
-  private Xdg(){}
   static Path home(){ return Path.of(System.getProperty("user.home")); }
   static Path dataHome(){ return dir("XDG_DATA_HOME", home().resolve(".local").resolve("share")); }
   static Path configHome(){ return dir("XDG_CONFIG_HOME", home().resolve(".config")); }

@@ -20,10 +20,10 @@ public final class Require {
     "java.util.Collections$UnmodifiableList",
     "java.util.Collections$UnmodifiableRandomAccessList"
   );
-  static boolean isKnownJdkUnmodifiableList(List<?> xs) {
-      Module m= xs.getClass().getModule();
-      if (m != null && !"java.base".equals(m.getName())){ return false; }
-      return jdkUmodLists.contains(xs.getClass().getName());
+  static boolean isKnownJdkUnmodifiableList(List<?> xs){
+    Module m= xs.getClass().getModule();
+    if (m != null && !"java.base".equals(m.getName())){ return false; }
+    return jdkUmodLists.contains(xs.getClass().getName());
   }
   public static <E> boolean unmodifiable(List<E> xs, String what){
     assert isKnownJdkUnmodifiableList(xs): what+" must be unmodifiable. Name is: "+xs.getClass().getName();
@@ -66,7 +66,6 @@ public final class Require {
     return true;
   }
   public static void check(boolean ok, String msg){
-    if(!ok){ 
-    throw new IllegalArgumentException(msg); }
+    if(!ok){ throw new IllegalArgumentException(msg); }
   }
 }
