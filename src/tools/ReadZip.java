@@ -1,14 +1,11 @@
 package tools;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.zip.ZipInputStream;
-import java.nio.charset.Charset;
 
 public record ReadZip(
     Function<String,RuntimeException> badNameErr,
@@ -56,18 +53,5 @@ public record ReadZip(
     }
     map.values().removeIf(v -> v == null);
     return Collections.unmodifiableMap(map);//to keep the order instead of Map.copyOf undocumented behaviour exactly here
-  }
-  public byte[] readEntry(IoSupplier szin, List<String> steps, String entryName, Charset encoding){
-    byte[] bytes= null;
-    for (var step: steps){
-      bytes= readAll(supplier(szin, bytes, encoding)).get(step);
-      if (bytes == null){ return null; }
-    }
-    return readAll(supplier(szin, bytes, encoding)).get(entryName);
-  }
-  private static IoSupplier supplier(IoSupplier szin, byte[] bytes, Charset encoding){
-    return bytes == null
-      ? szin
-      : ()->new ZipInputStream(new ByteArrayInputStream(bytes), encoding);
   }
 }
