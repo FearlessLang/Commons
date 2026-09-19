@@ -1,7 +1,6 @@
 package tools;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.module.ModuleDescriptor.Requires;
 import java.lang.module.ModuleFinder;
 import java.nio.file.Files;
@@ -20,7 +19,7 @@ import utils.Push;
 public final class JavacTool{
   private static final String javacArgFile="_javac.args";
 
-  public static String compileTree(Path srcRoot, Path classesDir, Runnable postProcess, Path jarPath, List<Path> extraClasspathDirs) throws IOException{
+  public static String compileTree(Path srcRoot, Path classesDir, Runnable postProcess, Path jarPath, List<Path> extraClasspathDirs){
     var srcs= javaSourcesUnder(srcRoot);
     Fs.of(()->Files.deleteIfExists(jarPath));
     check(!srcs.isEmpty(), "No .java files under "+srcRoot);
