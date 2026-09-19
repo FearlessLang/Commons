@@ -11,6 +11,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import utils.Bug;
 import utils.Range;
 
 public record Message(String msg, int priority){
@@ -311,7 +312,7 @@ public record Message(String msg, int priority){
   private static String quoteLiteral(String s){
     if (s.indexOf('"') < 0){ return "\""+s+"\""; }
     if (s.indexOf('`') < 0){ return "`"+s+"`"; }
-    throw new Error("Unsplit literal containing both delimiters: "+s);
+    throw Bug.of("Unsplit literal containing both delimiters: "+s);
   }
   
   private static final class Named{
