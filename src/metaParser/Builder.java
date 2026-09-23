@@ -19,7 +19,6 @@ record Builder<
   ArrayList<T> output,
   ListIterator<T> i
   ){
-  Token<T,TK> myOpen(){ return output.getFirst(); } 
   boolean commit(T open, T t){
     TK end= ctx.closesMe(open.kind(),t.kind());
     if (end != null){ return output.add(t); }//the group must contain the opener and the closer
@@ -34,16 +33,15 @@ record Builder<
     throw ctx.diagOnBadCloser(open,t);
   }
   T build(T open){
-    T current= open;
     while (i.hasNext()){
-      current= i.next();
+      T current= i.next();
       var barrier= ctx.spec.isBarrierFor(current, open);
       if (barrier){ throw ctx.diagOnBadBarrier(open, current); }
       if (!commit(open,current)){ continue; }
       TK groupKind= ctx.closesMe(open.kind(), current.kind());
       return ctx.tokenizer.make(groupKind,"",
-        myOpen().line(),
-        myOpen().column(),
+        open.line(),
+        open.column(),
         Collections.unmodifiableList(output));
       }
     throw Bug.unreachable();

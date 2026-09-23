@@ -9,7 +9,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import utils.Bug;
 import utils.Range;
@@ -53,12 +52,11 @@ public record Message(String msg, int priority){
   }
   private static String numbered(String[] lines, int lineNum, int width){
     String raw = get(lines, lineNum);
-    String display = expandTabs(raw, tabWidth);
+    String display = expandTabs(raw);
     return padLineNum(lineNum, width) + '|' + ' ' + display;
   }
   private static List<Frame> ensureContainment(List<Frame> fs){
     ArrayList<Frame> out = new ArrayList<>(fs);
-    if (out.size() <= 1){ return List.copyOf(out); }
     for (int i : Range.of(0,out.size() - 1)){
       Span inner = out.get(i).s();
       Span outer = out.get(i+1).s();      
@@ -78,12 +76,7 @@ public record Message(String msg, int priority){
     return new Span(a.fileName(), startLine, startCol, endLine, endCol);
   }
   private static List<Frame> trimInvisible(Function<URI,String> loader, List<Frame> fs){
-    ArrayList<Frame> out = new ArrayList<>(fs.size());
-    for (Frame f : fs){
-      Span v = shrinkToVisible(loader, f.s());
-      out.add(new Frame(f.name(), v));
-    }
-    return List.copyOf(out);
+    return fs.stream().map(f->new Frame(f.name(), shrinkToVisible(loader, f.s()))).toList();
   }
   private static Span shrinkToVisible(Function<URI,String> loader, Span s){
     String src= Objects.requireNonNull(loader.apply(s.fileName()));
@@ -108,7 +101,6 @@ public record Message(String msg, int priority){
     int col= Math.max(1, p.col);
     while (afterOrEqual(line, col, start)){
       String ln= get(lines, line);
-      if (col < 1){ continue; }
       var visible= col <= ln.length() && isVisible(ln.charAt(col - 1)); 
       if (visible){ return new Pos(line, col); }
       col--;
@@ -130,11 +122,11 @@ public record Message(String msg, int priority){
     for (Span s : spans){ if (s.isSingleLine()){ leadingSingles.add(s); } else { break; } }
     if (!leadingSingles.isEmpty()){
       int targetLine = leadingSingles.getLast().startLine();
-      leadingSingles.removeIf(s -> s.startLine() != targetLine || !s.isSingleLine());
+      leadingSingles.removeIf(s -> s.startLine() != targetLine);
     }
 
     // If <=3, keep all; else keep first, a middle near avg size, and last  -  sort outer..inner by length.
-    List<Span> chosenSingles = pickUpToThree(leadingSingles);
+    List<Span> chosenSingles = leadingSingles.stream().distinct().limit(3).toList().reversed();
 
     // First multiline after singles (if any)
     Span firstMulti = null;
@@ -146,10 +138,6 @@ public record Message(String msg, int priority){
                    : (firstMulti != null ? firstMulti.startLine() : spans.getLast().startLine());
 
     return new Grouping(file, chosenSingles, firstMulti, caretLine);
-  }
-  private static List<Span> pickUpToThree(List<Span> singles){
-    var distinct = singles.stream().distinct().limit(3).toList();
-    return List.copyOf(distinct.reversed());
   }
   // ===== Phase 4: caret line construction =======================================
   
@@ -164,7 +152,7 @@ public record Message(String msg, int priority){
   // ----- numbered code line helpers ---------------------------------------------
 
   private static String elided(int width, int count){
-    return repeat(' ', width) + '|' + ' ' + "... " + Math.max(0, count) + " line" + (count==1 ? " ..." : "s ...");
+    return " ".repeat(width) + '|' + ' ' + "... " + count + " lines ...";
   }
 
 
@@ -184,25 +172,19 @@ public record Message(String msg, int priority){
   private static String padLineNum(int n, int w){
     String s = Integer.toString(Math.max(0, n));
     int k = Math.max(0, w - s.length());
-    return repeat('0', k) + s;
-  }
-  private static String repeat(char c, int n){
-    if (n <= 0){ return ""; }
-    StringBuilder sb = new StringBuilder(n);
-    IntStream.range(0,n).forEach(_->sb.append(c));
-    return sb.toString();
+    return "0".repeat(k) + s;
   }
 
   /** Expand tabs into spaces (tab stops every TAB_WIDTH columns). */
-  private static String expandTabs(String s, int tabWidth){
-    if (tabWidth <= 0 || s.indexOf('\t') < 0){ return s; }
+  private static String expandTabs(String s){
+    if (s.indexOf('\t') < 0){ return s; }
     StringBuilder out = new StringBuilder(s.length() + 8);
     int col = 1; // 1-based
     for (int i : Range.of(0,s.length())){
       char ch = s.charAt(i);
       if (ch == '\t'){
         int spaces = tabWidth - ((col - 1) % tabWidth);
-        IntStream.range(0,spaces).forEach(_->out.append(' '));
+        out.append(" ".repeat(spaces));
         col += spaces;
       }else{
         out.append(ch);
@@ -212,7 +194,7 @@ public record Message(String msg, int priority){
     return out.toString();
   }
 
-  private static int tabAwareWidth(String rawLine, int fromIdxIncl, int toIdxExcl, int baseVis, int tabWidth){
+  private static int tabAwareWidth(String rawLine, int fromIdxIncl, int toIdxExcl, int baseVis){
     int vis= baseVis;
     for (int i : Range.of(fromIdxIncl,toIdxExcl)){
       char ch= rawLine.charAt(i);
@@ -227,19 +209,19 @@ public record Message(String msg, int priority){
   }
 
   /** Visual column (1-based) at a logical column (expands tabs). */
-  private static int visualCol(String rawLine, int logicalCol, int tabWidth){
-    if (logicalCol <= 1 || tabWidth <= 0){ return Math.max(1, logicalCol); }
-    int limit= Math.min(Math.max(0, logicalCol - 1), rawLine.length());
-    return Math.max(1, tabAwareWidth(rawLine, 0, limit, 1, tabWidth));
+  private static int visualCol(String rawLine, int logicalCol){
+    if (logicalCol <= 1){ return 1; }
+    int limit= Math.min(logicalCol - 1, rawLine.length());
+    return tabAwareWidth(rawLine, 0, limit, 1);
   }
 
-  private static int visualDelta(String rawLine, int startCol, int endCol, int tabWidth){
+  private static int visualDelta(String rawLine, int startCol, int endCol){
     if (rawLine.isEmpty()){ return 0; }
     int aIdx= Math.max(0, startCol - 1);
     // Clamped independent of aIdx -- the old Math.max(aIdx,...) form let this track aIdx past line end, defeating the guard below.
     int bIdxInclusive= Math.min(endCol - 1, rawLine.length() - 1);
     if (aIdx > bIdxInclusive){ return 0; }
-    return Math.max(0, tabAwareWidth(rawLine, aIdx, bIdxInclusive + 1, 0, tabWidth));
+    return tabAwareWidth(rawLine, aIdx, bIdxInclusive + 1, 0);
   }
 
   private static boolean beforeOrEqual(int l, int c, Pos limit){
@@ -259,8 +241,8 @@ public record Message(String msg, int priority){
     if (cp >= 0xD800 && cp <= 0xDFFF){
       return "["+(cp <= 0xDBFF ? "HIGH" : "LOW")+" SURROGATE "+uPlus(cp)+"]";
     }
-    String named= Named.get(cp);
-    if (named != null){ return "["+named+"]"; }
+    String name= named.get(cp);
+    if (name != null){ return "["+name+"]"; }
     if (literalChar(cp)){ return quoteLiteral(Character.toString(cp)); }
     return "["+uPlus(cp)+"]";
   }
@@ -315,103 +297,100 @@ public record Message(String msg, int priority){
     throw Bug.of("Unsplit literal containing both delimiters: "+s);
   }
   
-  private static final class Named{
-    private static final HashMap<Integer,String> M= new HashMap<>();
-    static{
-      // C0 controls
-      String[] c0= {
-        "Null",
-        "Start Of Heading",
-        "Start Of Text",
-        "End Of Text",
-        "End Of Transmission",
-        "Enquiry",
-        "Acknowledge",
-        "Bell",
-        "Backspace",
-        "Tab",
-        "Line Feed",
-        "Vertical Tab",
-        "Form Feed",
-        "Carriage Return",
-        "Shift Out",
-        "Shift In",
-        "Data Link Escape",
-        "Device Control 1",
-        "Device Control 2",
-        "Device Control 3",
-        "Device Control 4",
-        "Negative Acknowledge",
-        "Synchronous Idle",
-        "End Of Transmission Block",
-        "Cancel",
-        "End Of Medium",
-        "Substitute",
-        "Escape",
-        "File Separator",
-        "Group Separator",
-        "Record Separator",
-        "Unit Separator"
-      };
-      for (int i : Range.of(0,c0.length)) {
-        M.put(i, c0[i] + " 0x" + String.format(java.util.Locale.ROOT, "%02X", i));
-      }
-      // DEL and a couple C1s commonly seen
-      M.put(0x7F,"Delete 0x7F");
-      M.put(0x85,"Next Line 0x85");
-      M.put(0x9B,"Control Sequence Introducer 0x9B");
-      // Spaces and separators
-      M.put(0x22, "Double Quote (\") 0x22");
-      M.put(0x27, "Single Quote (') 0x27");
-      M.put(0x5C, "Backslash (\\) 0x5C");
-      M.put(0x60, "Backtick (`) 0x60");
-      M.put(0x20, "Space ( ) 0x20");
-      M.put(0x00A0,"No-Break Space 0x00A0");
-      M.put(0x1680,"Ogham Space Mark 0x1680");
-      M.put(0x2000,"En Quad 0x2000");
-      M.put(0x2001,"Em Quad 0x2001");
-      M.put(0x2002,"En Space 0x2002");
-      M.put(0x2003,"Em Space 0x2003");
-      M.put(0x2004,"Three-Per-Em Space 0x2004");
-      M.put(0x2005,"Four-Per-Em Space 0x2005");
-      M.put(0x2006,"Six-Per-Em Space 0x2006");
-      M.put(0x2007,"Figure Space 0x2007");
-      M.put(0x2008,"Punctuation Space 0x2008");
-      M.put(0x2009,"Thin Space 0x2009");
-      M.put(0x200A,"Hair Space 0x200A");
-      M.put(0x2028,"Line Separator 0x2028");
-      M.put(0x2029,"Paragraph Separator 0x2029");
-      M.put(0x202F,"Narrow No-Break Space 0x202F");
-      M.put(0x205F,"Medium Mathematical Space 0x205F");
-      M.put(0x3000,"Ideographic Space 0x3000");
-      // Format and bidi controls
-      M.put(0x00AD,"Soft Hyphen 0x00AD");
-      M.put(0x061C,"Arabic Letter Mark 0x061C");
-      M.put(0x200B,"Zero Width Space 0x200B");
-      M.put(0x200C,"Zero Width Non-Joiner 0x200C");
-      M.put(0x200D,"Zero Width Joiner 0x200D");
-      M.put(0x200E,"Left-To-Right Mark 0x200E");
-      M.put(0x200F,"Right-To-Left Mark 0x200F");
-      M.put(0x202A,"Left-To-Right Embedding 0x202A");
-      M.put(0x202B,"Right-To-Left Embedding 0x202B");
-      M.put(0x202C,"Pop Directional Formatting 0x202C");
-      M.put(0x202D,"Left-To-Right Override 0x202D");
-      M.put(0x202E,"Right-To-Left Override 0x202E");
-      M.put(0x2060,"Word Joiner 0x2060");
-      M.put(0x2066,"Left-To-Right Isolate 0x2066");
-      M.put(0x2067,"Right-To-Left Isolate 0x2067");
-      M.put(0x2068,"First Strong Isolate 0x2068");
-      M.put(0x2069,"Pop Directional Isolate 0x2069");
-      M.put(0xFEFF,"Byte Order Mark 0xFEFF");
+  private static final HashMap<Integer,String> named= new HashMap<>();
+  static{
+    // C0 controls
+    String[] c0= {
+      "Null",
+      "Start Of Heading",
+      "Start Of Text",
+      "End Of Text",
+      "End Of Transmission",
+      "Enquiry",
+      "Acknowledge",
+      "Bell",
+      "Backspace",
+      "Tab",
+      "Line Feed",
+      "Vertical Tab",
+      "Form Feed",
+      "Carriage Return",
+      "Shift Out",
+      "Shift In",
+      "Data Link Escape",
+      "Device Control 1",
+      "Device Control 2",
+      "Device Control 3",
+      "Device Control 4",
+      "Negative Acknowledge",
+      "Synchronous Idle",
+      "End Of Transmission Block",
+      "Cancel",
+      "End Of Medium",
+      "Substitute",
+      "Escape",
+      "File Separator",
+      "Group Separator",
+      "Record Separator",
+      "Unit Separator"
+    };
+    for (int i : Range.of(0,c0.length)) {
+      named.put(i, c0[i] + " 0x" + String.format(java.util.Locale.ROOT, "%02X", i));
     }
-    static String get(int cp){ return M.get(cp); }
+    // DEL and a couple C1s commonly seen
+    named.put(0x7F,"Delete 0x7F");
+    named.put(0x85,"Next Line 0x85");
+    named.put(0x9B,"Control Sequence Introducer 0x9B");
+    // Spaces and separators
+    named.put(0x22, "Double Quote (\") 0x22");
+    named.put(0x27, "Single Quote (') 0x27");
+    named.put(0x5C, "Backslash (\\) 0x5C");
+    named.put(0x60, "Backtick (`) 0x60");
+    named.put(0x20, "Space ( ) 0x20");
+    named.put(0x00A0,"No-Break Space 0x00A0");
+    named.put(0x1680,"Ogham Space Mark 0x1680");
+    named.put(0x2000,"En Quad 0x2000");
+    named.put(0x2001,"Em Quad 0x2001");
+    named.put(0x2002,"En Space 0x2002");
+    named.put(0x2003,"Em Space 0x2003");
+    named.put(0x2004,"Three-Per-Em Space 0x2004");
+    named.put(0x2005,"Four-Per-Em Space 0x2005");
+    named.put(0x2006,"Six-Per-Em Space 0x2006");
+    named.put(0x2007,"Figure Space 0x2007");
+    named.put(0x2008,"Punctuation Space 0x2008");
+    named.put(0x2009,"Thin Space 0x2009");
+    named.put(0x200A,"Hair Space 0x200A");
+    named.put(0x2028,"Line Separator 0x2028");
+    named.put(0x2029,"Paragraph Separator 0x2029");
+    named.put(0x202F,"Narrow No-Break Space 0x202F");
+    named.put(0x205F,"Medium Mathematical Space 0x205F");
+    named.put(0x3000,"Ideographic Space 0x3000");
+    // Format and bidi controls
+    named.put(0x00AD,"Soft Hyphen 0x00AD");
+    named.put(0x061C,"Arabic Letter Mark 0x061C");
+    named.put(0x200B,"Zero Width Space 0x200B");
+    named.put(0x200C,"Zero Width Non-Joiner 0x200C");
+    named.put(0x200D,"Zero Width Joiner 0x200D");
+    named.put(0x200E,"Left-To-Right Mark 0x200E");
+    named.put(0x200F,"Right-To-Left Mark 0x200F");
+    named.put(0x202A,"Left-To-Right Embedding 0x202A");
+    named.put(0x202B,"Right-To-Left Embedding 0x202B");
+    named.put(0x202C,"Pop Directional Formatting 0x202C");
+    named.put(0x202D,"Left-To-Right Override 0x202D");
+    named.put(0x202E,"Right-To-Left Override 0x202E");
+    named.put(0x2060,"Word Joiner 0x2060");
+    named.put(0x2066,"Left-To-Right Isolate 0x2066");
+    named.put(0x2067,"Right-To-Left Isolate 0x2067");
+    named.put(0x2068,"First Strong Isolate 0x2068");
+    named.put(0x2069,"Pop Directional Isolate 0x2069");
+    named.put(0xFEFF,"Byte Order Mark 0xFEFF");
   }
 
   private static String makeCaretLine(String[] lines, Grouping g, int width){
     String raw = get(lines, g.caretLine());
     // Only the caret-bearing line is sanitized for display;
     // geometry (columns/lengths) is computed from RAW with tab math.
-    String safeDisplay = sanitizeForCaret(expandTabs(raw, tabWidth));
+    String safeDisplay = sanitizeForCaret(expandTabs(raw));
     // decide marks so a single span uses '^'
     List<Span> sps = g.singles();
     int n = Math.min(3, sps.size());
@@ -425,33 +404,30 @@ public record Message(String msg, int priority){
     int rightMost = 0;
     for (int i : Range.of(0,n)){
       Span s = sps.get(i);
-      int aVis = visualCol(raw, s.startCol(), tabWidth);
-      int len  = visualDelta(raw, s.startCol(), s.endCol(), tabWidth);
+      int aVis = visualCol(raw, s.startCol());
+      int len  = visualDelta(raw, s.startCol(), s.endCol());
       int bVis = aVis + Math.max(1, len) - 1; // ensure at least 1 column
       rightMost = Math.max(rightMost, bVis);
     }
-    rightMost = Math.min(rightMost, Math.max(0, safeDisplay.length())); // belt-and-braces
-    char[] carr = new char[Math.max(0, rightMost)];
-    for (int i=0;i<carr.length;i++){ carr[i] = ' '; }
+    rightMost = Math.min(rightMost, safeDisplay.length()); // belt-and-braces
+    char[] carr = " ".repeat(rightMost).toCharArray();
     for (int i : Range.of(0,n)){
       Span s = sps.get(i);
-      int aVis = visualCol(raw, s.startCol(), tabWidth);
-      int len  = visualDelta(raw, s.startCol(), s.endCol(), tabWidth);
-      int a = Math.max(1, aVis);
-      int b = Math.max(a, Math.min(aVis + Math.max(1, len) - 1, rightMost));
-      for (int c : Range.of(a,b+1)){
+      int aVis = visualCol(raw, s.startCol());
+      int len  = visualDelta(raw, s.startCol(), s.endCol());
+      int b = Math.max(aVis, Math.min(aVis + Math.max(1, len) - 1, rightMost));
+      for (int c : Range.of(aVis,b+1)){
         int idx = c - 1;
         if (idx < carr.length){ carr[idx] = marks[i]; }
       }
     }
-    String carets = carr.length == 0 ? "" : new String(carr);
-    return repeat(' ', width) + '|' + ' ' + carets;
+    return " ".repeat(width) + '|' + ' ' + new String(carr);
   }
   //Numbered line used specifically for the caret-bearing line:
   //identical to numbered(), except we sanitize the display to be monospace-safe.
   private static String numberedCaret(String[] lines, int lineNum, int width){
     String raw = get(lines, lineNum);
-    String display = sanitizeForCaret(expandTabs(raw, tabWidth));
+    String display = sanitizeForCaret(expandTabs(raw));
     return padLineNum(lineNum, width) + '|' + ' ' + display;
   }
   /**
@@ -497,27 +473,14 @@ public record Message(String msg, int priority){
     int caret = g.caretLine();
     int beforeCount = caret - start - 1;  // lines strictly between start..caret
     int afterCount  = end   - caret - 1;  // lines strictly between caret..end
-    boolean caretAtStart = caret == start;
-    boolean caretAtEnd   = caret == end;
     ArrayList<String> out = new ArrayList<>();
-    if (caretAtStart){
-      // 4 or 3 lines (if afterCount == 0)
-      out.add(numberedCaret(lines, caret, width));
-      caretLine.ifPresent(out::add);
-      addElision(out, lines, width, afterCount, caret + 1);
-      out.add(numbered(lines, end, width));
-    } else if (caretAtEnd){
-      // 4 or 3 lines (if beforeCount == 0)
+    if (caret != start){
       out.add(numbered(lines, start, width));
       addElision(out, lines, width, beforeCount, caret - 1);
-      out.add(numberedCaret(lines, caret, width));
-      caretLine.ifPresent(out::add);
-    } else {
-      // caret strictly inside -> up to 6 lines (drops sides with 0 omitted)
-      out.add(numbered(lines, start, width));
-      addElision(out, lines, width, beforeCount, caret - 1);
-      out.add(numberedCaret(lines, caret, width));
-      caretLine.ifPresent(out::add);
+    }
+    out.add(numberedCaret(lines, caret, width));
+    caretLine.ifPresent(out::add);
+    if (caret != end){
       addElision(out, lines, width, afterCount, caret + 1);
       out.add(numbered(lines, end, width));
     }

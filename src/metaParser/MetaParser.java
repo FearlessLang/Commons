@@ -58,16 +58,14 @@ public abstract class MetaParser<
   public final T expectAny(String what){
     var t= peek();
     if (t.isEmpty()){ throw errFactory().missing(spanLast(), what, List.of(),self()); }
-    var tt= t.get();
     index++;
-    return tt;
+    return t.get();
   }
   public final T expectAnyLast(String what){
     var t= peekLast();
     if (t.isEmpty()){ throw errFactory().missing(spanLast(), what, List.of(),self()); }
-    var tt= t.get();
     limit--;
-    return tt;
+    return t.get();
   }
   @SafeVarargs @SuppressWarnings("varargs")
   public final T expect(String what,TK... kinds){
@@ -115,10 +113,7 @@ public abstract class MetaParser<
     index++;
     return v;
   }
-  public boolean fwdIf(boolean v){
-    if(v){ return fwd(true); }
-    return false;
-  }
+  public boolean fwdIf(boolean v){ return v && fwd(true); }
 
   //ParseSplitters
   public <R> R parseGroup(String frameName, Rule<T,TK,E,Tokenizer,Parser,Err,R> r){
@@ -288,14 +283,8 @@ public abstract class MetaParser<
     check.accept(shadow);
   }
   private void checkProbeErrorFront(boolean emptyAllowed, int start, int end, int drop, String frameName){
-    if (drop < 0 || start > end - drop){
-      var at= spanAround(start, start);
-      throw errFactory().badProbeDropIn(frameName, at, start, end, drop,self()); 
-      }
-    if (!emptyAllowed && start >= end){
-      var at = spanAround(start, start);
-      throw errFactory().probeStalledIn(frameName, at, start, end,self());
-    }
+    if (drop < 0 || start > end - drop){ throw errFactory().badProbeDropIn(frameName, spanAround(start, start), start, end, drop,self()); }
+    if (!emptyAllowed && start >= end){ throw errFactory().probeStalledIn(frameName, spanAround(start, start), start, end,self()); }
   }
   public enum SplitMode{Skipped,Left,Right}
   public int splitOn(SplitMode split, TK k){ return splitOn(split,t->t.is(k)); }
@@ -334,25 +323,13 @@ public abstract class MetaParser<
     }
     sb.append(']');
   }
-  private Optional<T> firstLeaf(List<T> ts){
-    for (var t:ts){
-      Optional<T> leaf= firstLeaf(t);
-      if (leaf.isPresent()){ return leaf; }
-    }
-    return Optional.empty();
-  }
+  private Optional<T> firstLeaf(List<T> ts){ return ts.stream().flatMap(t->firstLeaf(t).stream()).findFirst(); }
   private Optional<T> firstLeaf(T t){
     if (skip(t)){ return Optional.empty(); } 
     if (t.tokens().isEmpty()){ return Optional.of(t); }
     return firstLeaf(t.tokens());
   }
-  private Optional<T> lastLeaf(List<T> ts){
-    for (var t:ts.reversed()){
-      Optional<T> leaf= lastLeaf(t);
-      if (leaf.isPresent()){ return leaf; }
-    }
-    return Optional.empty();
-  }
+  private Optional<T> lastLeaf(List<T> ts){ return ts.reversed().stream().flatMap(t->lastLeaf(t).stream()).findFirst(); }
   private Optional<T> lastLeaf(T t){
     if (skip(t)){ return Optional.empty(); } 
     if (t.tokens().isEmpty()){ return Optional.of(t); }
@@ -377,10 +354,6 @@ public abstract class MetaParser<
       .flatMap(first->lastLeaf(ts)
         .map(last->makeSpan(first,last)));
   }
-  public Optional<Span> span(T t){
-    return firstLeaf(t)
-      .flatMap(first->lastLeaf(t)
-        .map(last->makeSpan(first,last)));
-  }
+  public Optional<Span> span(T t){ return span(t,t); }
   private Span makeSpan(T first, T last){ return Token.makeSpan(span.fileName(), first, last); }
 }

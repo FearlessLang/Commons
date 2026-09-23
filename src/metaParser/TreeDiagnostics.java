@@ -1,5 +1,6 @@
 package metaParser;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import metaParser.ErrFactory.LikelyCause;
@@ -16,21 +17,20 @@ record TreeDiagnostics<
 
   public E onBadCloser(T open, T badCloser){
     return Optional.<E>empty()
-    .or(()->tryEatenCloserBetween(open, badCloser))
-    .or(()->tryEatenOpenerBetween(open, badCloser))
-    .or(()->tryRemoveClose(open, badCloser))
-    .or(()->tryRemoveOpen(open, badCloser))
-    .orElseGet(()->baseError(open,badCloser));
+    .or(()->tryEatenBetween(open, badCloser, false))
+    .or(()->tryEatenBetween(open, badCloser, true))
+    .or(()->tryRemove(open, badCloser, StrayCloser, badCloser))
+    .or(()->tryRemove(open, badCloser, StrayOpener, open))
+    .orElseGet(()->error(open, badCloser, Unknown));
   }
   E onBadBarrier(T open, T barrier){
     return Optional.<E>empty()
-      .or(()->tryEatenCloserBetween(open, barrier))
-      .or(()->tryRemoveClose(open, barrier))
-      .or(()->tryRemoveOpen(open, barrier))
-      .orElseGet(()->baseError(open, barrier));
+      .or(()->tryEatenBetween(open, barrier, false))
+      .or(()->tryRemove(open, barrier, StrayCloser, barrier))
+      .or(()->tryRemove(open, barrier, StrayOpener, open))
+      .orElseGet(()->error(open, barrier, Unknown));
   }
 
-  private E baseError(T open, T stop){ return error(open,stop,Unknown); }
   private E error(T open, T stop, LikelyCause l){
     return tz.errFactory().groupHalt(open, stop, closersForOpener(open.kind()),l, tz.self());
   }
@@ -40,10 +40,7 @@ record TreeDiagnostics<
       .map(e->e.getKey()).toList();
   }
   private List<TK> closersForOpener(TK opener){
-    var m= spec.openClose.get(opener);
-    assert m != null : "unknown opener " + opener;
-    return m.keySet().stream().sorted(
-      (a,b)->Integer.compare(a.priority(), b.priority())).toList();
+    return spec.openClose.get(opener).keySet().stream().sorted(Comparator.comparing(TK::priority)).toList();
   }
   private Optional<E> tryEatenBetween(T open, T stop, boolean onOpen){
     var expect= !onOpen?closersForOpener(open.kind()):openerForCloser(stop.kind());
@@ -54,15 +51,13 @@ record TreeDiagnostics<
       for (var tok : onOpen?ts.reversed():ts){
         Optional<T> frag= eater.apply(tok);
         if (frag.isPresent()){ return Optional.of(onOpen
-          ?eaterOpenerBetween(open, stop, expect, frag.get(), tok)
-          :eaterCloserBetween(open, stop, expect, frag.get(), tok));
+          ?tz.errFactory().eatenOpenerBetween(open, stop, expect, frag.get(), tok, tz.self())
+          :tz.errFactory().eatenCloserBetween(open, stop, expect, frag.get(), tok, tz.self()));
         }
       }
     }
     return Optional.empty();    
   }
-  private Optional<E> tryRemoveClose(T open, T stop){ return tryRemove(open,stop,StrayCloser,stop); }
-  private Optional<E> tryRemoveOpen(T open, T stop){ return tryRemove(open,stop,StrayOpener,open); }
   @SuppressWarnings("unchecked")
   private Optional<E> tryRemove(T open, T stop, LikelyCause l, T remove){
     if(remove.is(tz.sof(),tz.eof())){ return Optional.empty(); }
@@ -73,19 +68,11 @@ record TreeDiagnostics<
     if (!progress){ return Optional.empty(); }
     return Optional.of(error(open,stop,l));    
   }
-  private Optional<E> tryEatenCloserBetween(T open, T stop){ return tryEatenBetween(open, stop, false); }
-  private Optional<E> tryEatenOpenerBetween(T open, T stop){ return tryEatenBetween(open, stop, true); }
 
   private List<T> betweenExclusive(T a, T b, List<T> tokens){
     int start= tokens.indexOf(a);
     int end= tokens.indexOf(b);
     assert start < end : "order mismatch";
     return tokens.subList(start + 1, end);
-  }
-  private E eaterCloserBetween(T open, T stop, List<TK> expect, T frag, T token){
-    return tz.errFactory().eatenCloserBetween(open, stop, expect, frag, token, tz.self());
-  }
-  private E eaterOpenerBetween(T open, T stop, List<TK> expect, T frag, T token){
-    return tz.errFactory().eatenOpenerBetween(open, stop, expect, frag, token, tz.self());
   }
 }

@@ -67,7 +67,6 @@ public final class PrettyFileName{
 
   /** Elide the middle of long paths, preserving basename (maxLen includes ellipsis). */
   private static String shorten(String s, int maxLen) {
-    if (s == null){ return "(unknown)"; }
     if (s.length() <= maxLen){ return s; }
 
     // Split on '/', keep leading '/' if present
@@ -76,7 +75,7 @@ public final class PrettyFileName{
     int n = parts.length;
 
     // Handle edge-y cases
-    if (n <= 2){ return "..." + tail(s, maxLen - 1); }
+    if (n <= 2){ return "..." + s.substring(s.length() - (maxLen - 1)); }
 
     String first = parts[abs ? 1 : 0];      // skip empty segment for absolute paths
     String last = parts[n - 1];
@@ -99,10 +98,5 @@ public final class PrettyFileName{
       base = base.substring(base.length() - (maxLen - 1));
     }
     return "..." + base;
-  }
-
-  private static String tail(String s, int maxLen) {
-    if (s.length() <= maxLen){ return s; }
-    return s.substring(s.length() - maxLen);
   }
 }

@@ -4,6 +4,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Stream;
+
+import utils.Push;
 
 final class Xdg{
   static Path home(){ return Path.of(System.getProperty("user.home")); }
@@ -12,30 +15,17 @@ final class Xdg{
   static List<Path> dataDirs(){ return dirs("XDG_DATA_DIRS", List.of(Path.of("/usr/local/share"), Path.of("/usr/share"))); }
   static List<Path> configDirs(){ return dirs("XDG_CONFIG_DIRS", List.of(Path.of("/etc/xdg"))); }
   //Every applications folder the desktop reads, nearest first.
-  static List<Path> appDirs(){
-    var res= new ArrayList<Path>();
-    res.add(dataHome().resolve("applications"));
-    dataDirs().forEach(d->res.add(d.resolve("applications")));
-    return List.copyOf(res);
-  }
+  static List<Path> appDirs(){ return Push.of(dataHome(), dataDirs()).stream().map(d->d.resolve("applications")).toList(); }
   //The desktop reads a prefixed list before the plain one, one prefix per name in XDG_CURRENT_DESKTOP.
   static List<String> listNames(){
-    var res= new ArrayList<String>();
-    for (var de: System.getenv().getOrDefault("XDG_CURRENT_DESKTOP","").split(":")){
-      if (!de.isEmpty()){ res.add(de.toLowerCase(Locale.ROOT)+"-mimeapps.list"); }
-    }
-    res.add("mimeapps.list");
-    return List.copyOf(res);
+    var prefixed= Stream.of(System.getenv().getOrDefault("XDG_CURRENT_DESKTOP","").split(":"))
+      .filter(de->!de.isEmpty()).map(de->de.toLowerCase(Locale.ROOT)+"-mimeapps.list").toList();
+    return Push.of(prefixed, "mimeapps.list");
   }
   //Every place a chosen answer can live, in the order the desktop consults them.
   static List<Path> choiceFiles(){
-    var res= new ArrayList<Path>();
-    var roots= new ArrayList<Path>();
-    roots.add(configHome());
-    roots.addAll(configDirs());
-    appDirs().forEach(roots::add);
-    for (var root: roots){ listNames().forEach(n->res.add(root.resolve(n))); }
-    return List.copyOf(res);
+    return Stream.of(List.of(configHome()), configDirs(), appDirs()).flatMap(List::stream)
+      .flatMap(root->listNames().stream().map(root::resolve)).toList();
   }
   private static Path dir(String name, Path fallback){
     var v= System.getenv(name);
