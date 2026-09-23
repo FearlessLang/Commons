@@ -49,7 +49,7 @@ public final class ChildJvm{
     }
     finally{ closeQuietly(lifeline); }
     joinUninterruptibly(pump);
-    if (pumpErr[0] != null){ throw Bug.of(pumpErr[0].toString()); }
+    if (pumpErr[0] != null){ throw Bug.of(pumpErr[0]); }
     return ec;
   }
   public void kill(){

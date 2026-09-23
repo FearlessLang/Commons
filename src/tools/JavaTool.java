@@ -13,7 +13,7 @@ import utils.Bug;
 public final class JavaTool{
   public static String runMain(List<String> jvmArgs, Path classesDir, Path libs, String mainClass, String... args) throws InterruptedException{
     try{ return _runMain(jvmArgs, cp(classesDir.toString(),List.of(libs)), mainClass, args); }
-    catch(IOException e){ throw Bug.of(e.toString()); }
+    catch(IOException e){ throw Bug.of(e); }
   }
   private static String cp(String main, List<Path> libDirs) throws IOException{
     var l= jarsCp(libDirs);
@@ -25,11 +25,11 @@ public final class JavaTool{
       assert !cp.isEmpty() : "No jars under "+jarDirs;
       return _runMain(jvmArgs,cp,mainClass,args);
     }
-    catch(IOException e){ throw Bug.of(e.toString()); }
+    catch(IOException e){ throw Bug.of(e); }
   }
   public static ChildJvm startMainFromJars(List<String> jvmArgs, List<Path> jarDirs, String mainClass, Consumer<String> out, String... mainArgs){
     try{ return start(jvmArgs, jarsCp(jarDirs), mainClass, out, mainArgs); }
-    catch(IOException e){ throw Bug.of(e.toString()); }
+    catch(IOException e){ throw Bug.of(e); }
   }
   private static ChildJvm start(List<String> jvmArgs,String classPath,String mainClass,Consumer<String> out,String... mainArgs){
     assert !classPath.isEmpty();
