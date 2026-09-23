@@ -21,7 +21,7 @@ public final class Err {
     Err.assertEquals= assertEquals;
     Err.assertTrue= assertTrue;
   }
-  public static String hole="[###]";//not contains \.[]{}()<>*+-=!?^$|
+  public static final String hole="[###]";//not contains \.[]{}()<>*+-=!?^$|
   public static boolean strCmp(String expected,String actual){
     if (expected == null || actual == null) {
       assertEquals.accept(expected,actual);

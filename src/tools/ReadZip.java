@@ -1,6 +1,5 @@
 package tools;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -12,9 +11,8 @@ public record ReadZip(
     Function<String,RuntimeException> dupNameErr,
     Function<String,RuntimeException> tooLargeName,
     Function<String,RuntimeException> emptyDirErr){
-  public interface IoSupplier{ ZipInputStream get() throws IOException; }
-  public Map<String,byte[]> readAll(IoSupplier szin){
-    return cleanUp(Fs.of(()->{try(var zin=szin.get()){ return _readAll(zin); }}));
+  public Map<String,byte[]> readAll(Fs.Run<ZipInputStream> szin){
+    return cleanUp(Fs.of(()->{try(var zin=szin.run()){ return _readAll(zin); }}));
   }
   private LinkedHashMap<String,byte[]> _readAll(ZipInputStream zin){
     var out= new LinkedHashMap<String,byte[]>();

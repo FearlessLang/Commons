@@ -25,6 +25,8 @@ import java.util.stream.Stream;
 
 import static offensiveUtils.Require.*;
 
+import utils.Bug;
+
 public final class Fs{
   // ASCII whitelist
   public static final String allowed=
@@ -99,7 +101,7 @@ public final class Fs{
       var m= lastModified(file);
       if (m > minExclusiveMillis){ return m; }
       try{ Thread.sleep(10); }
-      catch(InterruptedException ie){ Thread.currentThread().interrupt(); throw new RuntimeException(ie); }
+      catch(InterruptedException ie){ Thread.currentThread().interrupt(); throw Bug.of(ie); }
     }
   }
   public static void reqDir(Path p, String what){ check(Files.isDirectory(p), "Expected dir "+what+": "+p); }
