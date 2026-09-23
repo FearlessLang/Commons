@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
+import utils.Bug;
 import utils.Range;
 
 public abstract class MetaParser<
@@ -105,12 +106,12 @@ public abstract class MetaParser<
       .allMatch(Optional::isPresent);
   }
   public <R> R back(R v){
-    if (index == 0) { throw new IllegalStateException("Can not go back since already at start"); }
+    if (index == 0) { throw Bug.of("Can not go back since already at start"); }
     index--;
     return v;
     }
   public <R> R fwd(R v){
-    if (index == limit){ throw new IllegalStateException("Can not go fwd since already at end"); }
+    if (index == limit){ throw Bug.of("Can not go fwd since already at end"); }
     index++;
     return v;
   }
@@ -122,7 +123,7 @@ public abstract class MetaParser<
   //ParseSplitters
   public <R> R parseGroup(String frameName, Rule<T,TK,E,Tokenizer,Parser,Err,R> r){
     var tsIn= ts.get(index).tokens();
-    if(tsIn.isEmpty()){ throw new IllegalStateException("Expected a grouped token (with children), got "+PrettyToken.show(ts.get(index))+"."); }
+    if(tsIn.isEmpty()){ throw Bug.of("Expected a grouped token (with children), got "+PrettyToken.show(ts.get(index))+"."); }
     var nested= make(spanAround(index,index),tsIn);
     var res= nested.parseAll(frameName,r);
     index++;
@@ -162,7 +163,7 @@ public abstract class MetaParser<
   public <R> R parseRemaining(String frameName, Rule<T,TK,E,Tokenizer,Parser,Err,R> r){
     var tsIn= ts.subList(index, limit);
     var s= spanAround(index,limit-1);
-    if(tsIn.isEmpty()){ throw new IllegalStateException("Expected a grouped token (with children), got "+PrettyToken.show(ts.get(index))+"."); }
+    if(tsIn.isEmpty()){ throw Bug.of("Expected a grouped token (with children), got "+PrettyToken.show(ts.get(index))+"."); }
     var nested= make(s,tsIn);
     var res= nested.parseAll(frameName, r);
     index = limit;
