@@ -11,11 +11,8 @@ import utils.Bug;
 
 public final class JavaTool{
   public static String runMain(List<String> jvmArgs, Path classesDir, Path libs, String mainClass, String... args) throws InterruptedException{
-    return _runMain(jvmArgs, cp(classesDir.toString(),List.of(libs)), mainClass, args);
-  }
-  private static String cp(String main, List<Path> libDirs){
-    var l= jarsCp(libDirs);
-    return l.isEmpty() ? main : main+File.pathSeparator+l;
+    var l= jarsCp(List.of(libs));
+    return _runMain(jvmArgs, l.isEmpty() ? classesDir.toString() : classesDir+File.pathSeparator+l, mainClass, args);
   }
   public static String runMainFromJars(List<String> jvmArgs, List<Path> jarDirs, String mainClass, String... args) throws InterruptedException{
     String cp= jarsCp(jarDirs);

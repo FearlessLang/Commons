@@ -49,11 +49,6 @@ public interface SourceOracle{
     final class RefParents{
       private static SourceOracle.RefParent dir(String fp){
         record DirRefParent(String fearPath) implements SourceOracle.RefParent{
-          @Override public SourceOracle.RefParent parent(){
-              var p= Fs.removeFileNameAllowTop(fearPath);
-              return p.equals(fearPath) ? this : dir(p);
-          }
-          @Override public String fearPath(){ return fearPath; }
           @Override public String toString(){ return fearPath; }
         }
         return new DirRefParent(fp);
@@ -88,10 +83,7 @@ public interface SourceOracle{
     }
     ArrayList<Ref> allFiles = new ArrayList<>();
     public Builder putURI(URI uri, String content){ allFiles.add(new DebugRef(uri.normalize().toString(),content.getBytes(),content)); return this; }
-    public Builder put(String pathLike, String content){
-      URI u = Path.of(pathLike).toAbsolutePath().normalize().toUri();
-      return putURI(u, content);
-    }
+    public Builder put(String pathLike, String content){ return putURI(Path.of(pathLike).toAbsolutePath().normalize().toUri(), content); }
     public Builder put(int index,String content){ return putURI(defaultDbgFearPath(index), content); }
     public SourceOracle build(){ return new Debug(List.copyOf(allFiles)); }
   }

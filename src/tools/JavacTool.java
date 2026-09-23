@@ -1,6 +1,5 @@
 package tools;
 
-import java.io.File;
 import java.lang.module.ModuleDescriptor.Requires;
 import java.lang.module.ModuleFinder;
 import java.nio.file.Files;
@@ -12,8 +11,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import static offensiveUtils.Require.*;
 
-import utils.Bug;
-import utils.Join;
 import utils.Push;
 
 public final class JavacTool{
@@ -26,7 +23,7 @@ public final class JavacTool{
     var args= new ArrayList<String>(10+srcs.size());
     args.add("-encoding"); args.add("UTF-8");
     args.add("-d"); args.add(slash(classesDir));
-    var cp= jarsCp(jarPath, extraClasspathDirs);
+    var cp= JavaTool.jarsCp(Push.of(jarPath.getParent(), extraClasspathDirs));
     if (!cp.isEmpty()){ args.add("-cp"); args.add(cp); }
     srcs.forEach(p->args.add(slash(p)));
     var javacOut= runJavacArgFile(jarPath.getParent(), args);
@@ -49,14 +46,6 @@ public final class JavacTool{
       "-C",classesDir.toString(),"."));
   }
 
-  static String jarsCp(Path jarFile, List<Path> extraDirs){
-    return Push.of(jarFile.getParent(), extraDirs).stream()
-      .flatMap(dir->Fs.walk(dir,s->s.filter(p->p.toString().endsWith(".jar")).filter(p->!p.equals(jarFile)).toList()).stream())
-      .sorted(Comparator.comparing(p->p.getFileName().toString()))
-      .map(JavacTool::slash)
-      .collect(Collectors.joining(File.pathSeparator));
-  }
-
   private static String runJavacArgFile(Path dir, List<String> args){
     var file= dir.resolve(javacArgFile);
     Fs.writeUtf8(file, args.stream()
@@ -73,17 +62,6 @@ public final class JavacTool{
     if (s.indexOf('"')<0 && s.chars().noneMatch(Character::isWhitespace)){ return s; }
     return "\""+s.replace("\\","\\\\").replace("\"","\\\"")+"\"";
   }
-
-  private static String launcherProps(String moduleMain, List<String> javaOptions, boolean winConsole){
-    var b= new StringBuilder();
-    b.append("module=").append(moduleMain).append('\n');
-    var opts= joinJvmOpts(javaOptions);
-    if (!opts.isEmpty()){ b.append("java-options=").append(opts).append('\n'); }
-    if (Fs.isWindows()){ b.append("win-console=").append(winConsole ? "true" : "false").append('\n'); }
-    return b.toString();
-  }
-
-  private static String joinJvmOpts(List<String> opts){ return Join.of(opts,""," ","",""); }
 
   public static final String launcherKey= "app.launcher";
   public static final String appDirKey= "app.dir";
@@ -125,7 +103,7 @@ public final class JavacTool{
     var modsDir= dest.resolve(buildModsDirName);
     check(Files.isDirectory(modsDir), "Missing "+modsDir+" (put your module jars there)");
     var tmp= dest.resolve("_tmp_jpackage");
-    Fs.cleanDir(tmp); Fs.ensureDir(tmp);
+    Fs.cleanDir(tmp);
     var runtimeImage= jlinkRuntimeImage(modsDir, tmp);
     try{ jpBody(dest, appName, versionId, moduleMain, modsDir, appContent, runtimeImage, tmp, packaging); }
     finally{ Fs.rmTree(tmp); }
@@ -168,7 +146,8 @@ public final class JavacTool{
     String wName= name + "w";
     var icon= iconForCurrentOs(packaging);
     var wProps= tmp.resolve(wName+".properties");
-    Fs.writeUtf8(wProps, launcherProps(moduleMain, jvmOpts(winKey, versionId), false)+"icon="+icon.toString().replace("\\","\\\\")+"\n");
+    var winConsole= Fs.isWindows() ? "win-console=false\n" : "";
+    Fs.writeUtf8(wProps, "module="+moduleMain+"\njava-options="+String.join(" ", jvmOpts(winKey, versionId))+"\n"+winConsole+"icon="+icon.toString().replace("\\","\\\\")+"\n");
     var args= new ArrayList<String>(96);
     args.add("--type"); args.add("app-image");
     args.add("--dest"); args.add(dest.toString());
@@ -177,8 +156,7 @@ public final class JavacTool{
     args.add("--module-path"); args.add(modsDir.toString());
     args.add("--module"); args.add(moduleMain);
     args.add("--runtime-image"); args.add(runtimeImage.toString());
-    var consoleOpts= joinJvmOpts(jvmOpts(consoleKey, versionId));
-    if (!consoleOpts.isEmpty()){ args.add("--java-options"); args.add(consoleOpts); }
+    args.add("--java-options"); args.add(String.join(" ", jvmOpts(consoleKey, versionId)));
     if (Fs.isWindows()){ args.add("--win-console"); }
     args.add("--add-launcher"); args.add(wName+"="+wProps);
     args.add("--app-content"); args.add(appContent.toString());
@@ -192,14 +170,13 @@ public final class JavacTool{
   }
 
   private static Path iconForCurrentOs(Path packaging){
-    iconFile(packaging, "windows", "icon.ico");
-    iconFile(packaging, "macos", "icon.icns");
-    iconFile(packaging, "linux", "icon.png");
-    if (Fs.isWindows()){ return iconFile(packaging, "windows", "icon.ico"); }
-    if (Fs.isMac()){ return iconFile(packaging, "macos", "icon.icns"); }
-    if (Fs.isLinux()){ return iconFile(packaging, "linux", "icon.png"); }
-    check(false,"Unsupported OS: "+System.getProperty("os.name"));
-    throw Bug.unreachable();
+    var windows= iconFile(packaging, "windows", "icon.ico");
+    var mac= iconFile(packaging, "macos", "icon.icns");
+    var linux= iconFile(packaging, "linux", "icon.png");
+    if (Fs.isWindows()){ return windows; }
+    if (Fs.isMac()){ return mac; }
+    check(Fs.isLinux(),"Unsupported OS: "+System.getProperty("os.name"));
+    return linux;
   }
 
   private static List<String> jvmOpts(String launcherValue, String versionId){
@@ -220,7 +197,7 @@ public final class JavacTool{
   public static void javac(List<Path> srcs, Path classesDir, Path modsDir, List<String> extraLintDisables){
     srcs.forEach(src->check(Files.isDirectory(src), "Not a directory: "+src));
     check(Files.isDirectory(modsDir), "Not a directory: "+modsDir);
-    Fs.cleanDir(classesDir); Fs.ensureDir(classesDir);
+    Fs.cleanDir(classesDir);
     var mi= srcs.stream()
       .map(src->src.resolve("module-info.java"))
       .filter(Files::exists)

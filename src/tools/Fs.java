@@ -12,7 +12,6 @@ import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.DosFileAttributeView;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
@@ -73,12 +72,9 @@ public final class Fs{
   }  
   public static void writeUtf8(Path file, String content){
     ensureDir(file.getParent());
-    ofV(()->Files.writeString(file, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
+    ofV(()->Files.writeString(file, content));
   }
-  public static String readUtf8(Path file){
-    ensureDir(file.getParent());
-    return of(()->Files.readString(file,StandardCharsets.UTF_8));
-  }
+  public static String readUtf8(Path file){ return of(()->Files.readString(file)); }
   public static void copyTree(Path from, Path to){
     walkV(from,s->s.forEach(src->ofV(()->copyOne(from, to, src))));
   }
@@ -107,13 +103,10 @@ public final class Fs{
   public static void reqDir(Path p, String what){ check(Files.isDirectory(p), "Expected dir "+what+": "+p); }
   public static void cleanDir(Path p){
     if (!Files.exists(p)){ ensureDir(p); return; }
-    check(Files.isDirectory(p), "Expected directory: "+p);
     cleanDirContents(p);
   }
   public static void rmTree(Path p){
-    if (!Files.exists(p)){ return; }
-    if (!Files.isDirectory(p)){ ofV(()->Files.deleteIfExists(p)); return; }
-    cleanDirContents(p);
+    if (Files.isDirectory(p)){ cleanDirContents(p); }
     ofV(()->Files.deleteIfExists(p));
   }
   public static void copyFresh(Path from, Path to){
@@ -146,7 +139,6 @@ public final class Fs{
   public static String fileNameWithoutExtension(String s){
     int slash= lastSlashIndex(s);
     int dot= s.indexOf('.', slash + 1); // first dot after last slash
-    assert dot >= 0 && dot + 1 < s.length();
     assert dot > slash + 1 && dot + 1 < s.length();
     return s.substring(slash + 1, dot);
   }

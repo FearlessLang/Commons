@@ -1,11 +1,11 @@
 package offensiveUtils;
 
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
-import utils.Range;
 
 public final class Require {
   //pattern: the methods return a boolean so we can use them as
@@ -20,13 +20,8 @@ public final class Require {
     "java.util.Collections$UnmodifiableList",
     "java.util.Collections$UnmodifiableRandomAccessList"
   );
-  static boolean isKnownJdkUnmodifiableList(List<?> xs){
-    Module m= xs.getClass().getModule();
-    if (m != null && !"java.base".equals(m.getName())){ return false; }
-    return jdkUmodLists.contains(xs.getClass().getName());
-  }
   public static <E> boolean unmodifiable(List<E> xs, String what){
-    assert isKnownJdkUnmodifiableList(xs): what+" must be unmodifiable. Name is: "+xs.getClass().getName();
+    assert jdkUmodLists.contains(xs.getClass().getName()): what+" must be unmodifiable. Name is: "+xs.getClass().getName();
     return true;
   }
   public static boolean nonNull(Object...os){
@@ -48,21 +43,9 @@ public final class Require {
   }
   public static <E> boolean unmodifiableDistinct(List<E> xs, String what){
     unmodifiable(xs, what);
-    int n= xs.size();
-    if (n <= 1){ return true; }
-    if (n <= 32){
-      for (int i : Range.of(xs)){
-        var xi= xs.get(i);
-        for (int j : Range.of(i+1,n)){
-          assert xi != xs.get(j) : what+" must have distinct elements (==)";
-        }
-      }
-      return true;
-    }
-    var seen= Collections.newSetFromMap(new java.util.IdentityHashMap<E,Boolean>());
-    for (var x: xs){
-      assert seen.add(x): what+" must have distinct elements (==)";
-    }
+    if (xs.size() <= 1){ return true; }
+    var seen= Collections.newSetFromMap(new IdentityHashMap<E,Boolean>());
+    assert xs.stream().allMatch(seen::add): what+" must have distinct elements (==)";
     return true;
   }
   public static void check(boolean ok, String msg){

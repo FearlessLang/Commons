@@ -12,7 +12,7 @@ public record PortableApp(
 ){
   public void build(){
     reqInputs();
-    Fs.cleanDir(out); Fs.ensureDir(out);
+    Fs.cleanDir(out);
     var tmp= out.resolve("_tmp"); Fs.ensureDir(tmp);
     var modsDir= out.resolve(JavacTool.buildModsDirName);
     try{ build0(tmp, modsDir); }
