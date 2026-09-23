@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 
-class Out extends RuntimeException{ private static final long serialVersionUID= 1L; }
+@SuppressWarnings("serial") class Out extends RuntimeException{}
 
 //package private so we do not need to make private fields or to otherwise protect from the library user
 class TokenTrees<
