@@ -6,7 +6,6 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
-import java.lang.invoke.MethodHandle;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,7 +56,7 @@ public final class WindowsAssociations{
     stale.ifPresent(s->eradicate(s, belongsToFamily));
     if (!extensions.isEmpty()){
       extensions.forEach(icon->forgetOpenWithHistory(icon.extension(), belongsToFamily));
-      create(identity, command, extensions, programIco, halfDone);
+      Shell.req(importReg(regFile(identity, command, extensions, programIco)), halfDone);
     }
     notifyShellOfChange();
   }
@@ -142,10 +141,6 @@ public final class WindowsAssociations{
     });
     if (regValues(progIdsKey).isEmpty()){ Shell.exec(List.of("reg","delete",progIdsKey,"/f")); }
   }
-  private static void create(String identity, Path command, List<Icon> extensions, Path programIco,
-      Function<String,RuntimeException> halfDone){
-    Shell.req(importReg(regFile(identity, command, extensions, programIco)), halfDone);
-  }
   public static String regFile(String identity, Path command, List<Icon> extensions, Path programIco){
     var res= new StringBuilder("Windows Registry Editor Version 5.00\r\n");
     res.append(regEntry(capabilities(identity), "ApplicationName", identity));
@@ -220,20 +215,12 @@ public final class WindowsAssociations{
   @SuppressWarnings("restricted")
   private static void notifyShellOfChange(){
     try(var arena= Arena.ofConfined()){
-      var linker= Linker.nativeLinker();
-      var lib= SymbolLookup.libraryLookup("shell32.dll", arena);
-      var notify= handle(linker, lib, "SHChangeNotify", FunctionDescriptor.ofVoid(
-        ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-      call(notify, assocChanged, 0, MemorySegment.NULL, MemorySegment.NULL);
+      var notify= Linker.nativeLinker().downcallHandle(
+        SymbolLookup.libraryLookup("shell32.dll", arena).find("SHChangeNotify").orElseThrow(),
+        FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+      notify.invokeWithArguments(assocChanged, 0, MemorySegment.NULL, MemorySegment.NULL);
     }
-  }
-  private static final int assocChanged= 0x08000000;
-  @SuppressWarnings("restricted")
-  private static MethodHandle handle(Linker linker, SymbolLookup lib, String name, FunctionDescriptor fd){
-    return linker.downcallHandle(lib.find(name).orElseThrow(), fd);
-  }
-  private static Object call(MethodHandle h, Object... args){
-    try { return h.invokeWithArguments(args); }
     catch(Throwable t){ throw Bug.of(t); }
   }
+  private static final int assocChanged= 0x08000000;
 }

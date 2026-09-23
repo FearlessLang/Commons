@@ -1,7 +1,6 @@
 package metaParser;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -24,17 +23,9 @@ class TokenTrees<
   TK closesMe(TK open,TK close){//null for not valid closing
     return spec.openClose.getOrDefault(open,Map.of()).get(close);
   }
-  List<TK> closers(TK open){//null for not valid opener
-    assert spec.openClose.containsKey(open);
-    return spec.openClose.get(open).keySet()
-      .stream().sorted(Comparator.comparing(TK::priority)).toList();
-  }
   T of(ListIterator<T> it){
     var first=it.next();
     return new Builder<>(this,new ArrayList<>(List.of(first)),it).build(first);
-  }
-  Span spanOf(T first, T last){
-    return Token.makeSpan(tokenizer.fileName(), first, last);
   }
   TreeDiagnostics<T,TK,E,Tokenizer,Parser,Err> diag(){ return new TreeDiagnostics<T,TK,E,Tokenizer,Parser,Err>(spec, tokenizer); }
   E diagOnBadCloser(T open,T stop){ return diag().onBadCloser(open, stop); }

@@ -12,8 +12,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import tools.Fs;
+import utils.Push;
 
 public final class LinuxAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
@@ -56,14 +58,14 @@ public final class LinuxAssociations{
 
   private static List<String> existingIdentities(Predicate<String> belongsToFamily){
     var res= new LinkedHashSet<String>();
-    for (var dir: Xdg.appDirs()){ desktopFiles(dir).forEach(f->res.add(baseName(f,".desktop"))); }
-    for (var dir: mimeDirs()){ mimePackages(dir).forEach(f->res.add(baseName(f,".xml"))); }
+    for (var dir: Xdg.appDirs()){ listed(dir, ".desktop").forEach(f->res.add(baseName(f,".desktop"))); }
+    for (var dir: mimeDirs()){ listed(dir.resolve("packages"), ".xml").forEach(f->res.add(baseName(f,".xml"))); }
     return res.stream().filter(belongsToFamily).sorted().toList();
   }
   private static Set<String> claimants(String type){
     var res= new LinkedHashSet<String>();
     for (var dir: Xdg.appDirs()){
-      for (var file: desktopFiles(dir)){
+      for (var file: listed(dir, ".desktop")){
         if (claimedTypes(file).contains(type)){ res.add(baseName(file,".desktop")); }
       }
     }
@@ -84,24 +86,13 @@ public final class LinuxAssociations{
     return List.of();
   }
   private static List<Path> filesOf(String identityName){
-    var res= new ArrayList<Path>();
-    for (var dir: Xdg.appDirs()){
-      var f= dir.resolve(identityName+".desktop");
-      if (Files.isRegularFile(f)){ res.add(f); }
-    }
-    for (var dir: mimeDirs()){
-      var f= dir.resolve("packages").resolve(identityName+".xml");
-      if (Files.isRegularFile(f)){ res.add(f); }
-    }
-    return List.copyOf(res);
+    var desktops= Xdg.appDirs().stream().map(d->d.resolve(identityName+".desktop"));
+    var packages= mimeDirs().stream().map(d->d.resolve("packages").resolve(identityName+".xml"));
+    return Stream.concat(desktops, packages).filter(Files::isRegularFile).toList();
   }
   private static List<Path> targetsNotWritable(){
-    var res= new ArrayList<Path>();
-    var desktopDir= Xdg.dataHome().resolve("applications");
-    if (!writableForCreation(desktopDir)){ res.add(desktopDir); }
-    var mimeDir= Xdg.dataHome().resolve("mime").resolve("packages");
-    if (!writableForCreation(mimeDir)){ res.add(mimeDir); }
-    return List.copyOf(res);
+    return Stream.of(Xdg.dataHome().resolve("applications"), Xdg.dataHome().resolve("mime").resolve("packages"))
+      .filter(d->!writableForCreation(d)).toList();
   }
   private static boolean writableForCreation(Path dir){
     var p= dir;
@@ -212,18 +203,7 @@ public final class LinuxAssociations{
       MimeType=%s;
       """.formatted(identity, command, identity, String.join(";", types));
   }
-  private static List<Path> mimeDirs(){
-    var res= new ArrayList<Path>();
-    res.add(Xdg.dataHome().resolve("mime"));
-    Xdg.dataDirs().forEach(d->res.add(d.resolve("mime")));
-    return List.copyOf(res);
-  }
-  private static List<Path> mimePackages(Path mimeDir){
-    var dir= mimeDir.resolve("packages");
-    if (!Files.isDirectory(dir)){ return List.of(); }
-    return Fs.of(()->{ try(var s= Files.list(dir)){
-      return s.filter(p->p.getFileName().toString().endsWith(".xml")).sorted().toList(); }});
-  }
+  private static List<Path> mimeDirs(){ return Push.of(Xdg.dataHome(), Xdg.dataDirs()).stream().map(d->d.resolve("mime")).toList(); }
   private static List<String> splitTypes(String types){
     return List.of(types.split(";")).stream().map(String::strip).filter(s->!s.isEmpty()).toList();
   }
@@ -234,10 +214,10 @@ public final class LinuxAssociations{
     }
     return List.of();
   }
-  private static List<Path> desktopFiles(Path dir){
+  private static List<Path> listed(Path dir, String suffix){
     if (!Files.isDirectory(dir)){ return List.of(); }
     return Fs.of(()->{ try(var s= Files.list(dir)){
-      return s.filter(p->p.getFileName().toString().endsWith(".desktop")).sorted().toList(); }});
+      return s.filter(p->p.getFileName().toString().endsWith(suffix)).sorted().toList(); }});
   }
   private static List<String> lines(Path file){
     if (!Files.isRegularFile(file)){ return List.of(); }

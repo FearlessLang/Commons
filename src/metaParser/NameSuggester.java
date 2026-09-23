@@ -87,7 +87,7 @@ public final class NameSuggester {
     if (kindsCompatible(tKind, cKind)){ score += 0.03; }
     else { score -= 0.10; }
 
-    return clamp01(score);
+    return Math.clamp(score, 0, 1);
   }
 
   private static boolean kindsCompatible(Kind a, Kind b){
@@ -124,7 +124,7 @@ public final class NameSuggester {
         double penalty= 0.04 * start + 0.02 * (m - (start + n));
         best= Math.max(best, avg - penalty);
       }
-      return clamp01(best);
+      return Math.clamp(best, 0, 1);
     }
 
     double best= 0.0;
@@ -135,7 +135,7 @@ public final class NameSuggester {
       double penalty= 0.10 * start + 0.08 * (n - (start + m)) + 0.12 * (n - m);
       best= Math.max(best, avg - penalty);
     }
-    return clamp01(best);
+    return Math.clamp(best, 0, 1);
   }
 
   private static double tokenScore(String a, String b){
@@ -143,7 +143,7 @@ public final class NameSuggester {
     String al= lowerAscii(a);
     String bl= lowerAscii(b);
 
-    if (AliasHolder.v.sameGroup(al, bl)){ return 0.96; }
+    if (aliases.stream().anyMatch(g->g.contains(al) && g.contains(bl))){ return 0.96; }
     if (al.equals(bl)){ return 0.92; }
     return normalizedLevenshtein(al, bl);
   }
@@ -172,11 +172,7 @@ public final class NameSuggester {
     int n= s.length();
     if (n == 0){ return List.of(); }
 
-    boolean anyLetter= false;
-    for (int i : Range.of(0,n)){
-      if (isAsciiLetter(s.charAt(i))){ anyLetter= true; break; }
-    }
-    if (!anyLetter){ return List.of(s); }
+    if (s.chars().noneMatch(c->isAsciiLetter((char)c))){ return List.of(s); }
 
     List<String> out= new ArrayList<>();
     int start= 0;
@@ -225,8 +221,6 @@ public final class NameSuggester {
 
   private static int levenshtein(String a, String b){
     int n= a.length(), m= b.length();
-    if (n == 0){ return m; }
-    if (m == 0){ return n; }
 
     int[] prev= new int[m + 1];
     int[] curr= new int[m + 1];
@@ -246,8 +240,6 @@ public final class NameSuggester {
     }
     return prev[m];
   }
-
-  private static double clamp01(double x){ return (x < 0) ? 0 : (x > 1 ? 1 : x); }
 
   private static boolean isAsciiUpper(char c){ return c >= 'A' && c <= 'Z'; }
   private static boolean isAsciiLower(char c){ return c >= 'a' && c <= 'z'; }
@@ -271,88 +263,18 @@ public final class NameSuggester {
     return s;
   }
 
-  private static final class AliasHolder{
-    static final Alias v= Alias.parse(aliasGroups);
+  private static final List<Set<String>> aliases= aliases();
+  private static List<Set<String>> aliases(){
+    var res= new ArrayList<Set<String>>();
+    aliasGroups.lines().map(l->l.replaceFirst("#.*","").strip()).filter(l->!l.isEmpty())
+      .forEach(l->connect(res, new HashSet<>(List.of(lowerAscii(l).split("\\s+")))));
+    return List.copyOf(res);
   }
-
-  private static final class Alias{
-    private final Map<String,Integer> keyToGroup;
-    private Alias(Map<String,Integer> keyToGroup){ this.keyToGroup= keyToGroup; }
-
-    boolean sameGroup(String aLower, String bLower){
-      Integer ga= keyToGroup.get(aLower);
-      if (ga == null){ return false; }
-      Integer gb= keyToGroup.get(bLower);
-      return gb != null && ga.intValue() == gb.intValue();
-    }
-
-    static Alias parse(String groups){
-      Map<String,Integer> id= new HashMap<>();
-      Dsu dsu= new Dsu();
-
-      for (String rawLine: groups.split("\\R")){
-        String line= rawLine.strip();
-        if (line.isEmpty() || line.startsWith("#")){ continue; }
-        int hash= line.indexOf('#');
-        if (hash >= 0){ line= line.substring(0, hash).strip(); }
-        if (line.isEmpty()){ continue; }
-
-        String[] toks= line.split("\\s+");
-        if (toks.length < 2){ continue; }
-
-        int first= tokenId(id, dsu, toks[0]);
-        for (int i : Range.of(1,toks.length)){
-          dsu.union(first, tokenId(id, dsu, toks[i]));
-        }
-      }
-
-      Map<String,Integer> out= new HashMap<>(id.size());
-      for (var e: id.entrySet()){
-        out.put(e.getKey(), dsu.find(e.getValue()));
-      }
-      return new Alias(Map.copyOf(out));
-    }
-
-    private static int tokenId(Map<String,Integer> id, Dsu dsu, String t){
-      String k= lowerAscii(t);
-      Integer old= id.get(k);
-      if (old != null){ return old.intValue(); }
-      int nid= dsu.add();
-      id.put(k, nid);
-      return nid;
-    }
-
-    private static final class Dsu{
-      private int[] parent= new int[64];
-      private byte[] rank= new byte[64];
-      private int size;
-
-      int add(){
-        int id= ++size;
-        if (id == parent.length){
-          parent= Arrays.copyOf(parent, parent.length * 2);
-          rank= Arrays.copyOf(rank, rank.length * 2);
-        }
-        parent[id]= id;
-        return id;
-      }
-      int find(int x){
-        int p= parent[x];
-        if (p == x){ return x; }
-        int r= find(p);
-        parent[x]= r;
-        return r;
-      }
-      void union(int a, int b){
-        int ra= find(a), rb= find(b);
-        if (ra == rb){ return; }
-        int ka= rank[ra] & 0xFF, kb= rank[rb] & 0xFF;
-        if (ka < kb){ parent[ra]= rb; return; }
-        if (ka > kb){ parent[rb]= ra; return; }
-        parent[rb]= ra;
-        rank[ra]= (byte)(ka + 1);
-      }
-    }
+  private static void connect(ArrayList<Set<String>> groups, HashSet<String> group){
+    var overlapping= groups.stream().filter(g->!Collections.disjoint(g, group)).toList();
+    overlapping.forEach(group::addAll);
+    groups.removeAll(overlapping);
+    groups.add(group);
   }
 
   // Put this at the very end so it is easy to tweak.

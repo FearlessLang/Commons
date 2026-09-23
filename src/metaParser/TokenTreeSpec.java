@@ -38,7 +38,6 @@ public final class TokenTreeSpec<
     return this;
   }
   boolean isBarrierFor(T current, T open){
-    var bs= barriers.getOrDefault(open.kind(), Set.of());
-    return bs.contains(current.kind());
+    return barriers.getOrDefault(open.kind(), Set.of()).contains(current.kind());
   }
 }

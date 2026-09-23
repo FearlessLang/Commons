@@ -3,6 +3,7 @@ package tools;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
@@ -27,12 +28,8 @@ public record NativeOverrides(Set<String> pairs, Set<String> fileNames){
         for (var cu: task.parse()){ scanUnit(cu, pairs); }
       }
     });
-    var fileNames= new HashSet<String>();
-    for (var p: files){
-      var name= p.getFileName().toString();
-      fileNames.add(name.substring(0, name.length()-".java".length()));
-    }
-    return new NativeOverrides(Set.copyOf(pairs), Set.copyOf(fileNames));
+    var fileNames= files.stream().map(p->p.getFileName().toString()).map(n->n.substring(0, n.length()-".java".length())).collect(Collectors.toUnmodifiableSet());
+    return new NativeOverrides(Set.copyOf(pairs), fileNames);
   }
   private static void scanUnit(CompilationUnitTree cu, Set<String> pairs){
     new TreeScanner<Void,Void>(){
