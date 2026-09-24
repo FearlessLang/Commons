@@ -36,7 +36,6 @@ public abstract class MetaParser<
     return res;
   }
   public boolean end(){ return limit == index; }
-  public int remaining(){ return limit - index; }
   public int index(){ return index; }
   public int limit(){ return limit; }
 
@@ -46,8 +45,7 @@ public abstract class MetaParser<
     return Optional.of(ts.get(index));
   }
   public Optional<T> peek(int la){ return peekAbs(index + la); }
-  public Optional<T> peekLast(){ return peekLast(0); }
-  public Optional<T> peekLast(int la){ return peekAbs((limit-la)-1); }
+  public Optional<T> peekLast(){ return peekAbs(limit-1); }
   
   @SafeVarargs @SuppressWarnings("varargs")
   public final boolean peek(TK... kinds){

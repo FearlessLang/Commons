@@ -13,15 +13,11 @@ import java.util.stream.Collectors;
 import utils.Bug;
 import utils.Range;
 
-public record Message(String msg, int priority){
+public final class Message{
 
   private static final int tabWidth= 4;
   private static final int minLineWidth= 3;
 
-  private static Optional<String> optCaretLine(String[] lines, Grouping g, int width){
-    if (g.singles.isEmpty()){ return Optional.empty(); }
-    return Optional.of(makeCaretLine(lines, g, width));
-  }
   public static String of(Function<URI,String> loader, List<Frame> frames, String msg){
     try{ return _of(loader,frames,msg); }
     catch(Throwable e){ 
@@ -30,17 +26,17 @@ public record Message(String msg, int priority){
     }
   }
   private static String _of(Function<URI,String> loader, List<Frame> frames, String msg){
-    if (frames == null || frames.isEmpty()){ return msg; }
+    if (frames.isEmpty()){ return msg; }
     List<Frame> contained= ensureContainment(frames);
     List<Frame> visible= trimInvisible(loader, contained);
     Grouping g= group(visible);
     String src= Objects.requireNonNull(loader.apply(g.file()));
     String[] lines= splitLines(src);
     int width= lineNumberWidth(lines.length);
-    Optional<String> caretLine= optCaretLine(lines, g, width);
+    Optional<String> caretLine= g.singles().isEmpty() ? Optional.empty() : Optional.of(makeCaretLine(lines, g, width));
     String body= (g.multiLine() != null)
       ? renderMulti(lines, g, width, caretLine)
-      : renderTwo(lines, g, width, caretLine);
+      : numberedCaret(lines, g.caretLine(), width) + "\n" + caretLine.orElse("");
     String header= "In file: " + PrettyFileName.displayFileName(g.file());
     String framesLine= "While inspecting " + frames.stream()
       .filter(f->!f.name().isBlank()).map(Frame::name)
@@ -142,12 +138,6 @@ public record Message(String msg, int priority){
   // ===== Phase 4: caret line construction =======================================
   
   // ===== Phase 5: final rendering ===============================================
-
-  /** 2-line render fallback when there is no multiline span. */
-  private static String renderTwo(String[] lines, Grouping g, int width, Optional<String> caretLine){
-    String l1 = numberedCaret(lines, g.caretLine(), width);
-    return l1 + "\n" + caretLine.orElse("");
-  }
 
   // ----- numbered code line helpers ---------------------------------------------
 

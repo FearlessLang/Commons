@@ -6,7 +6,6 @@ import java.nio.file.Paths;
 public final class PrettyFileName{
   public static String displayFileName(URI uri) { return sanitizeAscii(displayFileNameRaw(uri)); }
   private static String displayFileNameRaw(URI uri) {
-    if (uri == null){ return "(unknown)"; }
     try {
       uri = uri.normalize();
       String scheme = uri.getScheme();
@@ -33,14 +32,8 @@ public final class PrettyFileName{
         Path rel = p.startsWith(cwd) ? cwd.relativize(p) : p;
 
         // Or collapse to ~/... when under home
-        String homeProp = System.getProperty("user.home");
-        if (homeProp != null && !homeProp.isBlank()) {
-          Path home = Paths.get(homeProp).toAbsolutePath().normalize();
-          if (p.startsWith(home)) {
-            Path tail = home.relativize(p);
-            return shorten("~/" + toUnix(tail), 80);
-          }
-        }
+        Path home = Paths.get(System.getProperty("user.home")).toAbsolutePath().normalize();
+        if (p.startsWith(home)){ return shorten("~/" + toUnix(home.relativize(p)), 80); }
         return shorten(toUnix(rel), 80);
       }
 

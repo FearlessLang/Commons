@@ -17,7 +17,6 @@ import tools.Fs;
 import utils.Range;
 
 public final class Ico{
-  private Ico(){}
   public static final List<Integer> sizes= List.of(16,20,24,32,40,48,64,256);
   public static void fromPng(Path png, Path ico){
     var src= Objects.requireNonNull(Fs.of(()->ImageIO.read(png.toFile())));
