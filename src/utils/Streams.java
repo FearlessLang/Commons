@@ -18,13 +18,10 @@ public final class Streams {
   public static <T> Stream<T> ofWC(Stream<T>...ss){ return of(ss); }
 
   public static <A,B> Zipper2<A,B> zip(List<A> as, List<B> bs){
-    assert as.size()==bs.size();
+    assert as.size() == bs.size();
     return new ListZipper<>(as,bs);
   }
-  public static <A,B> Zipper2<A,B> zip(A[] as, B[] bs){
-    assert as.length==bs.length;
-    return zip(Arrays.asList(as), Arrays.asList(bs));
-  }
+  public static <A,B> Zipper2<A,B> zip(A[] as, B[] bs){ return zip(Arrays.asList(as), Arrays.asList(bs)); }
 
   private record ListZipper<A,B>(List<A> as, List<B> bs) implements Zipper2<A,B>{
     @Override public void forEach(BiConsumer<A,B> f){
@@ -49,30 +46,22 @@ public final class Streams {
       var bsi= new ArrayList<B>();
       IntStream.range(0, as.size())
         .filter(i->f.test(as.get(i), bs.get(i)))
-        .forEachOrdered(i->{
-          asi.add(as.get(i));
-          bsi.add(bs.get(i));
-        });
+        .forEachOrdered(i->{ asi.add(as.get(i)); bsi.add(bs.get(i)); });
       return new ListZipper<>(asi, bsi);
     }
     @Override public <R> R fold(Acc2<R,A,B> folder, R initial){
       Box<R> acc= new Box<>(initial);
-      IntStream.range(0, as.size())
-        .forEach(i->acc.set(folder.apply(acc.get(), as.get(i), bs.get(i))));
+      IntStream.range(0, as.size()).forEach(i->acc.set(folder.apply(acc.get(), as.get(i), bs.get(i))));
       return acc.get();
     }
     @Override public boolean anyMatch(BiPredicate<A,B> test){
-      return IntStream.range(0, as.size())
-        .anyMatch(i->test.test(as.get(i), bs.get(i)));
+      return IntStream.range(0, as.size()).anyMatch(i->test.test(as.get(i), bs.get(i)));
     }
     @Override public boolean allMatch(BiPredicate<A,B> test){
-      return IntStream.range(0, as.size())
-        .allMatch(i->test.test(as.get(i), bs.get(i)));
+      return IntStream.range(0, as.size()).allMatch(i->test.test(as.get(i), bs.get(i)));
     }
     @Override public boolean allMatchParallel(BiPredicate<A,B> test){
-      return IntStream.range(0, as.size())
-        .parallel()
-        .allMatch(i->test.test(as.get(i), bs.get(i)));
+      return IntStream.range(0, as.size()).parallel().allMatch(i->test.test(as.get(i), bs.get(i)));
     }
   }
   public static <T> Optional<Integer> firstPos(List<T> xs, Predicate<Integer> p) {
@@ -91,10 +80,7 @@ public final class Streams {
     assert as.size() == bs.size();
     return new ListZipper3<>(IntStream.range(0, as.size()).boxed().toList(), as, bs);
   }
-  public static <A,B> Zipper3<Integer,A,B> zipI(A[] as, B[] bs){
-    assert as.length == bs.length;
-    return zipI(Arrays.asList(as), Arrays.asList(bs));
-  }
+  public static <A,B> Zipper3<Integer,A,B> zipI(A[] as, B[] bs){ return zipI(Arrays.asList(as), Arrays.asList(bs)); }
   private record ListZipper3<A,B,C>(List<A> as, List<B> bs, List<C> cs) implements Zipper3<A,B,C>{
     @Override public void forEach(TriConsumer<A,B,C> f){
       IntStream.range(0, as.size()).forEach(i->f.accept(as.get(i), bs.get(i), cs.get(i)));

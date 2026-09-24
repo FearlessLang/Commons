@@ -19,8 +19,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
     cmd.add("-ea");
     cmd.add("-D"+lifelineKey+"="+lifelineValue);
     cmd.addAll(args);
-    var pb= new ProcessBuilder(cmd);
-    pb.environment().remove("_JPACKAGE_LAUNCHER");
+    var pb= Fs.processBuilder(cmd);
     Process p= Fs.of(()->pb.redirectErrorStream(true).start());
     var pumpErr= new IOException[1];
     var pump= new Thread(()->pumpOutput(p,out,pumpErr),"FearlessJvmOut");

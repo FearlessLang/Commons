@@ -1,19 +1,18 @@
 package tools;
 
 import java.nio.file.Path;
+import java.util.List;
 //This file only exists because
 //Desktop.getDesktop().open(path.toFile())
 //has a bug connected with JPackage (shell poisoning)
 public final class OpenPath{
   public static void open(Path path){
-    var pb= new ProcessBuilder(command(path));
-    pb.environment().remove("_JPACKAGE_LAUNCHER");
-    Fs.ofV(pb::start);
+    Fs.ofV(Fs.processBuilder(command(path))::start);
   }
-  private static String[] command(Path path){
+  private static List<String> command(Path path){
     var p= path.toAbsolutePath().toString();
-    if (Fs.isWindows()){ return new String[]{"explorer.exe", p}; }
-    if (Fs.isMac()){ return new String[]{"open", p}; }
-    return new String[]{"xdg-open", p};
+    if (Fs.isWindows()){ return List.of("explorer.exe", p); }
+    if (Fs.isMac()){ return List.of("open", p); }
+    return List.of("xdg-open", p);
   }
 }

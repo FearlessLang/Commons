@@ -30,7 +30,7 @@ public record PortableApp(
     Fs.writeUtf8(mimeLoc, mime);
   }
   private static void removeOtherPlatformSkijaJars(Path modsDir){
-    var currentTag= (Fs.isLinux()? "linux" : Fs.isMac()? "macos" : "windows")
+    var currentTag= (Fs.isWindows()? "windows" : Fs.isMac()? "macos" : "linux")
       +"-"+(System.getProperty("os.arch").contains("aarch64")? "arm64" : "x64");
     Fs.walk(modsDir, s->s
       .filter(Files::isRegularFile)

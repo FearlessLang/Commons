@@ -156,7 +156,7 @@ public abstract class MetaParser<
   public <R> R parseRemaining(String frameName, Rule<T,TK,E,Tokenizer,Parser,Err,R> r){
     var tsIn= ts.subList(index, limit);
     var s= spanAround(index,limit-1);
-    if(tsIn.isEmpty()){ throw Bug.of("Expected a grouped token (with children), got "+PrettyToken.show(ts.get(index))+"."); }
+    if(tsIn.isEmpty()){ throw Bug.of("Expected at least one remaining token."); }
     var nested= make(s,tsIn);
     var res= nested.parseAll(frameName, r);
     index = limit;

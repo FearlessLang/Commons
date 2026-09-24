@@ -34,7 +34,7 @@ public final class Fs{
     " \n";
   public static void ensureDir(Path p){ of(()->Files.createDirectories(p)); }
   public static void cleanDirContents(Path p){
-    check(Files.isDirectory(p), "Expected directory: "+p);
+    reqDir(p, "cleaning");
     var xs= walk(p, s-> s
       .filter(x->!x.equals(p))
       .sorted(Comparator.reverseOrder())
@@ -86,7 +86,7 @@ public final class Fs{
       catch(InterruptedException ie){ Thread.currentThread().interrupt(); throw Bug.of(ie); }
     }
   }
-  public static void reqDir(Path p, String what){ check(Files.isDirectory(p), "Expected dir "+what+": "+p); }
+  public static void reqDir(Path p, String what){ check(Files.isDirectory(p), "Expected a directory for "+what+": "+p); }
   public static void cleanDir(Path p){
     if (!Files.exists(p)){ ensureDir(p); return; }
     cleanDirContents(p);
@@ -105,13 +105,21 @@ public final class Fs{
     var ps= new PrintStream(baos, true, StandardCharsets.UTF_8);
     int rc= tp.run(ps, ps, args.toArray(String[]::new));
     var out= baos.toString(StandardCharsets.UTF_8);
+    checkTool(tool, rc, args, out);
+    return out;
+  }
+  static void checkTool(String tool, int rc, List<String> args, String out){
     check(rc == 0,
       "Tool error: "+tool+
       "\nExit code: "+rc+
       "\nArgs:\n"+String.join("\n",args)+
       "\nOutput length: "+out.length()+
       "\nOutput:\n<<<\n"+out+"\n>>>");
-    return out;
+  }
+  public static ProcessBuilder processBuilder(List<String> cmd){
+    var pb= new ProcessBuilder(cmd);
+    pb.environment().remove("_JPACKAGE_LAUNCHER");
+    return pb;
   }
   ///Returns the filename with extension (the substring after the last '/').
   public static String fileNameWithExtension(URI s){ return fileNameWithExtension(s.toString()); } 
@@ -181,7 +189,7 @@ public final class Fs{
       .entrySet().stream()
       .filter(e->e.getValue().size() > 1)
       .toList();
-    check(duplicates.isEmpty(), "Duplicate file names while flattening copy:\n"+duplicates);
+    check(duplicates.isEmpty(), "Expected distinct file names to flatten "+from+" into "+to+", found:\n"+duplicates);
     ensureDir(to);
     files.forEach(src->ofV(()->copyFlat(to, src)));
   }

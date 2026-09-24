@@ -23,7 +23,7 @@ public interface TokenProcessor<
       Err extends ErrFactory<T,TK,E,Tokenizer,Parser,Err>
     >{
     public Map<T,TK,E,Tokenizer,Parser,Err> put(TK kind,TokenProcessor<T,TK,E,Tokenizer,Parser,Err> p){
-      assert !map.containsKey(kind): "token kind "+kind+" already in the processMap";
+      assert !map.containsKey(kind);
       map.put(kind, p);
       return this;
     }
@@ -38,9 +38,7 @@ public interface TokenProcessor<
 
     private final TokenProcessor<T,TK,E,Tokenizer,Parser,Err> identity= (_,t,_)->Stream.of(t);
     public Stream<T> process(int i, T t, Tokenizer tk){
-      return Objects.requireNonNull(
-          map.getOrDefault(t.kind(), identity).process(i, t, tk),
-          "TokenProcessors must not return null");
+      return Objects.requireNonNull(map.getOrDefault(t.kind(), identity).process(i, t, tk));
     }
     private final LinkedHashMap<TK,TokenProcessor<T,TK,E,Tokenizer,Parser,Err>> map= new LinkedHashMap<>();
   }

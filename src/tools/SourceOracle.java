@@ -1,9 +1,7 @@
 package tools;
 
-import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -26,14 +24,11 @@ public interface SourceOracle{
     byte[] loadBytes();
     long lastModified();
     default String loadString(){
-      try{
-        return StandardCharsets.UTF_8.newDecoder()
-          .onMalformedInput(CodingErrorAction.REPORT)
-          .onUnmappableCharacter(CodingErrorAction.REPORT)
-          .decode(ByteBuffer.wrap(loadBytes()))
-          .toString();
-      }
-      catch(CharacterCodingException e){ throw new UncheckedIOException(e); }
+      return Fs.of(()->StandardCharsets.UTF_8.newDecoder()
+        .onMalformedInput(CodingErrorAction.REPORT)
+        .onUnmappableCharacter(CodingErrorAction.REPORT)
+        .decode(ByteBuffer.wrap(loadBytes()))
+        .toString());
     }
     //NOTE: we also need to manually override toString=fearPath in all the implementations
   }
