@@ -170,7 +170,6 @@ public final class NameSuggester {
     */
   private static List<String> splitCamel(String s){
     int n= s.length();
-    if (n == 0){ return List.of(); }
 
     if (s.chars().noneMatch(c->isAsciiLetter((char)c))){ return List.of(s); }
 
@@ -212,9 +211,7 @@ public final class NameSuggester {
   }
 
   private static double normalizedLevenshtein(String a, String b){
-    if (a.equals(b)){ return 1.0; }
     int max= Math.max(a.length(), b.length());
-    if (max == 0){ return 1.0; }
     int d= levenshtein(a, b);
     return 1.0 - (d / (double)max);
   }

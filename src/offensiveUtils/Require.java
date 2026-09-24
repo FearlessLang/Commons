@@ -43,7 +43,6 @@ public final class Require {
   }
   public static <E> boolean unmodifiableDistinct(List<E> xs, String what){
     unmodifiable(xs, what);
-    if (xs.size() <= 1){ return true; }
     var seen= Collections.newSetFromMap(new IdentityHashMap<E,Boolean>());
     assert xs.stream().allMatch(seen::add): what+" must have distinct elements (==)";
     return true;

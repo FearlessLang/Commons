@@ -2,7 +2,6 @@ package tools;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,16 +10,9 @@ import java.util.function.Consumer;
 
 import utils.Bug;
 
-public final class ChildJvm{
+public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<String> cmd){
   public static final String lifelineKey= "fearless.parentLifeline";
   public static final String lifelineValue= "stdin";
-  private final Process p;
-  private final Thread pump;
-  private final IOException[] pumpErr;
-  private final List<String> cmd;
-  private ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<String> cmd){
-    this.p= p; this.pump= pump; this.pumpErr= pumpErr; this.cmd= cmd;
-  }
   public static ChildJvm start(List<String> args, Consumer<String> out){
     var cmd= new ArrayList<String>(args.size()+3);
     cmd.add(javaExe().toString());
@@ -35,7 +27,6 @@ public final class ChildJvm{
     pump.start();
     return new ChildJvm(p,pump,pumpErr,List.copyOf(cmd));
   }
-  public List<String> cmd(){ return cmd; }
   public int await() throws InterruptedException{
     var lifeline= p.getOutputStream();
     int ec; try{ ec= p.waitFor(); }
@@ -113,12 +104,5 @@ public final class ChildJvm{
     catch(IOException _){}
     Runtime.getRuntime().halt(121);
   }
-  static Path javaExe(){
-    var bin= Path.of(System.getProperty("java.home"),"bin");
-    var j= bin.resolve("java");
-    if (Files.isRegularFile(j)){ return j; }
-    j= bin.resolve("java.exe");
-    if (Files.isRegularFile(j)){ return j; }
-    throw Bug.of("No java launcher in "+bin);
-  }
+  static Path javaExe(){ return Path.of(System.getProperty("java.home"),"bin",Fs.isWindows() ? "java.exe" : "java"); }
 }

@@ -62,13 +62,21 @@ record TreeDiagnostics<
   private Optional<E> tryRemove(T open, T stop, LikelyCause l, T remove){
     if(remove.is(tz.sof(),tz.eof())){ return Optional.empty(); }
     List<T> ts= tz.tokensForTree().stream().filter(t->t!=remove).toList();
-    int res1= TokenTreeBulder.ofRecovery(spec,tz, tz.tokensForTree());
-    int res2= TokenTreeBulder.ofRecovery(spec,tz, ts);
+    int res1= ofRecovery(tz.tokensForTree());
+    int res2= ofRecovery(ts);
     var progress= ts.size() == res2 || res2 >= res1 + 5;
     if (!progress){ return Optional.empty(); }
     return Optional.of(error(open,stop,l));    
   }
-
+  private int ofRecovery(List<T> tokens){
+    var li= tokens.listIterator();
+    try{ new TokenTrees<T,TK,E,Tokenizer,Parser,Err>(spec, tz){
+      E diagOnBadCloser(T open,T stop){ throw new Out(); }
+      E diagOnBadBarrier(T open,T stop){ throw new Out(); }
+    }.of(li);}
+    catch(Out _){/*eated*/}
+    return li.nextIndex();
+  }
   private List<T> betweenExclusive(T a, T b, List<T> tokens){
     int start= tokens.indexOf(a);
     int end= tokens.indexOf(b);

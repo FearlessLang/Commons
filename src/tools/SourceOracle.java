@@ -39,15 +39,10 @@ public interface SourceOracle{
     default RefParent parent(){//may return 'this' for root
       var fp= fearPath();
       var p= Fs.removeFileNameAllowTop(fp);
-      return p.equals(fp) ? this : RefParents.dir(p);
-    }
-    final class RefParents{
-      private static SourceOracle.RefParent dir(String fp){
-        record DirRefParent(String fearPath) implements SourceOracle.RefParent{
-          @Override public String toString(){ return fearPath; }
-        }
-        return new DirRefParent(fp);
+      record DirRefParent(String fearPath) implements RefParent{
+        @Override public String toString(){ return fearPath; }
       }
+      return p.equals(fp) ? this : new DirRefParent(p);
     }
   }
   List<Ref> allFiles();
@@ -58,7 +53,6 @@ public interface SourceOracle{
     return URI.create("fear:/___DBG___/"+(index==0 ? "_rank_app999.fear" : "in_memory"+index+".fear"));
   }
   default SourceOracle withFallback(SourceOracle fb){
-    assert nonNull(fb);
     var all= Push.of(allFiles(), fb.allFiles());
     assert all.stream().map(e->e.fearPath()).distinct().count()== all.size();
     return ()->all;
