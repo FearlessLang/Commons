@@ -199,10 +199,8 @@ public final class JavacTool{
       .filter(Files::exists)
       .toList();
     check(mi.size() == 1, "No module-info or ambiguous module-info");
-    var args= new ArrayList<String>(64);
-    args.add("-encoding"); args.add("UTF-8");
-    args.add("-Xlint:all,-auxiliaryclass,-missing-explicit-ctor"+extraLintDisables.stream().map(l->","+l).collect(Collectors.joining()));
-    args.add("-Werror");
+    var args= new ArrayList<String>(javacArgs);
+    extraLintDisables.forEach(l->args.add("-Xlint:"+l));
     args.add("-d"); args.add(slash(classesDir));
     args.add("--module-path"); args.add(slash(modsDir));
     srcs.forEach(src->Fs.walkV(src,s->s

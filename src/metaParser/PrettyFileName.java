@@ -10,19 +10,6 @@ public final class PrettyFileName{
       uri = uri.normalize();
       String scheme = uri.getScheme();
 
-      // Handle jar:file:/...!/entry
-      if ("jar".equalsIgnoreCase(scheme)) {
-        String ssp = uri.getSchemeSpecificPart();
-        int bang = ssp.indexOf("!/");
-        if (bang > 0) {
-          URI inner = URI.create(ssp.substring(0, bang));
-          String entry = ssp.substring(bang + 2);
-          String innerDisp = displayFileNameRaw(inner); // recurse
-          return shorten(innerDisp + "!" + entry, 80);
-        }
-        return shorten(uri.toString(), 80);
-      }
-
       // Treat file: (or no scheme) as a filesystem path
       if (scheme == null || "file".equalsIgnoreCase(scheme)) {
         Path p = Paths.get(uri).toAbsolutePath().normalize();

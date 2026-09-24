@@ -82,7 +82,7 @@ public final class Message{
     return new Span(s.fileName(), a.line, a.col, b.line, b.col);
   }
   private static Pos nextVisible(String[] lines, Pos p, Pos limit){
-    int line= clamp(p.line, 1, lines.length), col = Math.max(1, p.col);
+    int line= Math.clamp(p.line, 1, lines.length), col = Math.max(1, p.col);
     while (beforeOrEqual(line, col, limit)){
       String ln= get(lines, line);
       if (col > ln.length()){ line++; col = 1; continue; }
@@ -93,7 +93,7 @@ public final class Message{
     return limit;
   }
   private static Pos prevVisible(String[] lines, Pos start, Pos p){
-    int line= clamp(p.line, 1, lines.length);
+    int line= Math.clamp(p.line, 1, lines.length);
     int col= Math.max(1, p.col);
     while (afterOrEqual(line, col, start)){
       String ln= get(lines, line);
@@ -141,11 +141,6 @@ public final class Message{
 
   // ----- numbered code line helpers ---------------------------------------------
 
-  private static String elided(int width, int count){
-    return " ".repeat(width) + '|' + ' ' + "... " + count + " lines ...";
-  }
-
-
   // ===== small helpers (split, lines, visual columns, padding) ==================
 
   private static String[] splitLines(String s){ return s.split("\\R", -1); }
@@ -153,7 +148,6 @@ public final class Message{
     if (oneBased < 1 || oneBased > lines.length){ return ""; }
     return lines[oneBased-1];
   }
-  private static int clamp(int v, int lo, int hi){ return Math.max(lo, Math.min(hi, v)); }
 
   private static int lineNumberWidth(int totalLines){
     int digits = String.valueOf(Math.max(1, totalLines)).length();
@@ -383,9 +377,8 @@ public final class Message{
     String safeDisplay = sanitizeForCaret(expandTabs(raw));
     // decide marks so a single span uses '^'
     List<Span> sps = g.singles();
-    int n = Math.min(3, sps.size());
+    int n = sps.size();
     char[] marks = switch(n){
-      case 0 -> new char[0];
       case 1 -> new char[]{'^'};
       case 2 -> new char[]{'-','^'};
       default -> new char[]{'-','~','^'};
@@ -453,7 +446,7 @@ public final class Message{
     if (count == 1){
       out.add(numbered(lines, oneLineNum, width));
     } else if (count > 1){
-      out.add(elided(width, count));
+      out.add(" ".repeat(width) + '|' + ' ' + "... " + count + " lines ...");
     }
   }
   private static String renderMulti(String[] lines, Grouping g, int width, Optional<String> caretLine){

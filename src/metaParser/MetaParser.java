@@ -347,11 +347,6 @@ public abstract class MetaParser<
       .flatMap(first->lastLeaf(high)
         .map(last->makeSpan(first,last)));
   }
-  public Optional<Span> span(List<T> ts){
-    return firstLeaf(ts)
-      .flatMap(first->lastLeaf(ts)
-        .map(last->makeSpan(first,last)));
-  }
   public Optional<Span> span(T t){ return span(t,t); }
   private Span makeSpan(T first, T last){ return Token.makeSpan(span.fileName(), first, last); }
 }

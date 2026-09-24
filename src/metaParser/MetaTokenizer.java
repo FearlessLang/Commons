@@ -99,7 +99,13 @@ public abstract class MetaTokenizer<
     assert !frozen : "cannot call .whiteList during .tokenize, .postTokenize, .buildTokenTree";
     assert errFactory!=null: "call method .errFactory before tokenize";
     assert input!=null:      "call method .input before tokenize";
-    new Validate(Objects.requireNonNull(whiteList)).of(input);
+    int l= 1, c= 1;
+    for (int i= 0; i < input.length(); ){
+      int cp= input.codePointAt(i);
+      i += Character.charCount(cp);
+      if (whiteList.indexOf(cp) < 0){ var at= new Span(fileName, l, c, l, c); throw withFrozen(()->errFactory().illegalCharAt(at, cp, self())); }
+      if (cp == '\n'){ l++; c = 1; } else { c++; }
+    }
     return self();
   }
   public Tokenizer tokenize(){
@@ -138,41 +144,16 @@ public abstract class MetaTokenizer<
     var tmp= tokensForTree();
     assert tmp.get(0).kind() == sof : "first token must be SOF";
     assert tmp.get(tmp.size()-1).kind() == eof : "last token must be EOF";
-    tree = withFrozen(() -> TokenTreeBulder.of(spec, self(),tmp));
+    tree = withFrozen(() -> new TokenTrees<T,TK,E,Tokenizer,Parser,Err>(spec, self()).of(tmp.listIterator()).tokens());
     return self();
   }
-  public URI fileName(){
-    assert fileName != null : "call .input before .fileName";
-    return fileName;
-  }
-  public TK sof(){
-    assert sof != null : "call .tokenKinds before .sof";
-    return sof;
-  }
-
-  public TK eof(){
-    assert eof != null : "call .tokenKinds before .eof";
-    return eof;
-  }
-
-  public Span span(){
-    assert base != null : "call .tokenize before .span";
-    return base;
-  }
-
-  public Err errFactory(){
-    assert errFactory != null : "call .setErrFactory before .errFactory";
-    return errFactory;
-  }
-
-  public List<T> tokenTree(){
-    assert tree!=null: "call method .tokenTree after .buildTokenTree";    
-    return tree;
-  }
-  public List<T> allTokens(){
-    assert allTokens!=null: "call method .allTokens after .tokenize";    
-    return allTokens; 
-  }
+  public URI fileName(){ return Objects.requireNonNull(fileName); }
+  public TK sof(){ return Objects.requireNonNull(sof); }
+  public TK eof(){ return Objects.requireNonNull(eof); }
+  public Span span(){ return Objects.requireNonNull(base); }
+  public Err errFactory(){ return Objects.requireNonNull(errFactory); }
+  public List<T> tokenTree(){ return Objects.requireNonNull(tree); }
+  public List<T> allTokens(){ return Objects.requireNonNull(allTokens); }
   private void assertMonotonic(List<T> toks){
     int prevLine = -1, prevCol = -1;
     for (var tok : toks){
@@ -180,19 +161,6 @@ public abstract class MetaTokenizer<
       assert (l > prevLine) || (l == prevLine && c >= prevCol)
         : "tokens out of order at " + l + ":" + c;
       prevLine = l; prevCol = c;
-    }
-  }
-  class Validate{
-    String whiteList; Validate(String whiteList){ this.whiteList= whiteList; }
-    int line = 1; int col = 1;
-    void of(String src){ src.codePoints().forEach(this::ofSingle); }
-    void ofSingle(int cp){
-      boolean ok= whiteList.indexOf(cp) >= 0;
-      if (!ok){
-        var at = new Span(fileName, line, col, line, col);
-        throw withFrozen(()->errFactory().illegalCharAt(at, cp,self()));
-      }
-      if (cp == '\n'){ line++; col = 1; } else { col++; }
     }
   }
 }
