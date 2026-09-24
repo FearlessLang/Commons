@@ -72,7 +72,7 @@ record TreeDiagnostics<
   private List<T> betweenExclusive(T a, T b, List<T> tokens){
     int start= tokens.indexOf(a);
     int end= tokens.indexOf(b);
-    assert start < end : "order mismatch";
+    assert start < end;
     return tokens.subList(start + 1, end);
   }
 }

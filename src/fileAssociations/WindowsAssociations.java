@@ -103,15 +103,15 @@ public final class WindowsAssociations{
     }
     return regValue(hkcu(capabilities(identity)), "ApplicationIcon").equals(Optional.of(programIco+",0"));
   }
-  private static void eradicate(String identityName, Predicate<String> belongsToFamily){
-    var declared= regValues(hkcu(fileAssociations(identityName)));
+  private static void eradicate(String identity, Predicate<String> belongsToFamily){
+    var declared= regValues(hkcu(fileAssociations(identity)));
     declared.forEach((ext,progId)->{
       Shell.exec(List.of("reg","delete",hkcu(classes)+progId,"/f"));
       dropClaim(ext, progId);
       forgetOpenWithHistory(ext, belongsToFamily);
     });
-    Shell.exec(List.of("reg","delete",hkcu(softwareRoot)+"\\"+identityName,"/f"));
-    Shell.exec(List.of("reg","delete",hkcu(registeredApplications),"/v",identityName,"/f"));
+    Shell.exec(List.of("reg","delete",hkcu(softwareRoot)+"\\"+identity,"/f"));
+    Shell.exec(List.of("reg","delete",hkcu(registeredApplications),"/v",identity,"/f"));
   }
   private static void dropClaim(String ext, String progId){
     var extKey= hkcu(classes)+ext;

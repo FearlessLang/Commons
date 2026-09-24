@@ -29,13 +29,13 @@ public final class TokenTreeSpec<
   }
   public TokenTreeSpec<T, TK> addCloserEater(TK closer, Function<T, Optional<T>> f){
     assert Require.nonNull(closer, f);
-    assert !closerEaters.containsKey(closer): "duplicate closer eater for " + closer;
+    assert !closerEaters.containsKey(closer);
     closerEaters.put(closer, f);
     return this;
   }
   public TokenTreeSpec<T, TK> addOpenerEater(TK opener, Function<T, Optional<T>> f){
     assert Require.nonNull(opener, f);
-    assert !openerEaters.containsKey(opener): "duplicate opener eater for " + opener;
+    assert !openerEaters.containsKey(opener);
     openerEaters.put(opener, f);
     return this;
   }

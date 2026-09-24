@@ -9,7 +9,7 @@ import java.util.zip.ZipInputStream;
 public record ReadZip(
     Function<String,RuntimeException> badNameErr,
     Function<String,RuntimeException> dupNameErr,
-    Function<String,RuntimeException> tooLargeName,
+    Function<String,RuntimeException> tooLargeErr,
     Function<String,RuntimeException> emptyDirErr){
   public Map<String,byte[]> readAll(Fs.Run<ZipInputStream> szin){
     return cleanUp(Fs.of(()->{try(var zin=szin.run()){ return _readAll(zin); }}));
@@ -41,7 +41,7 @@ public record ReadZip(
   }
   private byte[] readEntryBytes(String name, ZipInputStream zin){
     try{ return Fs.of(zin::readAllBytes); }
-    catch(OutOfMemoryError oom){ throw tooLargeName.apply(name); }
+    catch(OutOfMemoryError oom){ throw tooLargeErr.apply(name); }
   }
   private Map<String,byte[]> cleanUp(LinkedHashMap<String,byte[]> map){
     for (var e: map.entrySet()){

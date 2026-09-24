@@ -71,7 +71,7 @@ public final class LinuxAssociations{
       }
     }
     for (var file: Xdg.choiceFiles()){
-      chosenFor(file, type).forEach(name->res.add(name.endsWith(".desktop") ? name.substring(0,name.length()-8) : name));
+      chosenFor(file, type).forEach(name->res.add(name.endsWith(".desktop") ? name.substring(0,name.length()-".desktop".length()) : name));
     }
     return Collections.unmodifiableSet(res);//keep insertion order, unlike Set.copyOf
   }
@@ -86,9 +86,9 @@ public final class LinuxAssociations{
     }
     return List.of();
   }
-  private static List<Path> filesOf(String identityName){
-    var desktops= Xdg.appDirs().stream().map(d->d.resolve(identityName+".desktop"));
-    var packages= mimeDirs().stream().map(d->d.resolve("packages").resolve(identityName+".xml"));
+  private static List<Path> filesOf(String identity){
+    var desktops= Xdg.appDirs().stream().map(d->d.resolve(identity+".desktop"));
+    var packages= mimeDirs().stream().map(d->d.resolve("packages").resolve(identity+".xml"));
     return Stream.concat(desktops, packages).filter(Files::isRegularFile).toList();
   }
   private static List<Path> targetsNotWritable(){
@@ -110,9 +110,9 @@ public final class LinuxAssociations{
     }
     return programIconBytes(identity).map(b->Arrays.equals(b, bytesOf(programPng))).orElse(false);
   }
-  private static void eradicate(String identityName){
-    Fs.ofV(()->Files.deleteIfExists(ourDesktop(identityName)));
-    Fs.ofV(()->Files.deleteIfExists(ourPackage(identityName)));
+  private static void eradicate(String identity){
+    Fs.ofV(()->Files.deleteIfExists(ourDesktop(identity)));
+    Fs.ofV(()->Files.deleteIfExists(ourPackage(identity)));
   }
   private static void create(String identity, Path command, List<Icon> extensions, Path programPng){
     var icons= new LinkedHashMap<String,String>();

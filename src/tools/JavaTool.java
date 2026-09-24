@@ -7,15 +7,14 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import utils.Bug;
 
 public final class JavaTool{
-  public static String runMain(List<String> jvmArgs, Path classesDir, Path libs, String mainClass, String... args) throws InterruptedException{
+  public static String runMain(List<String> jvmArgs, Path classesDir, Path libs, String mainClass, String... mainArgs) throws InterruptedException{
     var l= jarsCp(List.of(libs));
-    return _runMain(jvmArgs, l.isEmpty() ? classesDir.toString() : classesDir+File.pathSeparator+l, mainClass, args);
+    return _runMain(jvmArgs, l.isEmpty() ? classesDir.toString() : classesDir+File.pathSeparator+l, mainClass, mainArgs);
   }
-  public static String runMainFromJars(List<String> jvmArgs, List<Path> jarDirs, String mainClass, String... args) throws InterruptedException{
-    return _runMain(jvmArgs,jarsCp(jarDirs),mainClass,args);
+  public static String runMainFromJars(List<String> jvmArgs, List<Path> jarDirs, String mainClass, String... mainArgs) throws InterruptedException{
+    return _runMain(jvmArgs,jarsCp(jarDirs),mainClass,mainArgs);
   }
   public static ChildJvm startMainFromJars(List<String> jvmArgs, List<Path> jarDirs, String mainClass, Consumer<String> out, String... mainArgs){
     return start(jvmArgs, jarsCp(jarDirs), mainClass, out, mainArgs);
@@ -30,8 +29,7 @@ public final class JavaTool{
   private static String _runMain(List<String> jvmArgs,String classPath,String mainClass,String... mainArgs) throws InterruptedException{
     var sb= new StringBuilder();
     var jvm= start(jvmArgs, classPath, mainClass, s->{ sb.append(s); System.out.print(s); }, mainArgs);
-    int ec= jvm.await();
-    if (ec != 0){ throw Bug.of("java failed (ec="+ec+") cmd="+jvm.cmd()+"\n"+sb); }
+    Fs.checkTool("java", jvm.await(), jvm.cmd(), sb.toString());
     return sb.toString();
   }
   static String jarsCp(List<Path> jarDirs){

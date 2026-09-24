@@ -19,8 +19,7 @@ final class Shell{
     return reported;
   }
   static Optional<Ran> exec(List<String> cmd){
-    var pb= new ProcessBuilder(cmd).redirectErrorStream(true);
-    pb.environment().remove("_JPACKAGE_LAUNCHER");
+    var pb= Fs.processBuilder(cmd).redirectErrorStream(true);
     Process p;
     try { p= pb.start(); }
     catch(IOException e){ return Optional.empty(); }

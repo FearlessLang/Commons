@@ -19,7 +19,7 @@ public final class JavacTool{
   public static String compileTree(Path srcRoot, Path classesDir, Runnable postProcess, Path jarPath, List<Path> extraClasspathDirs){
     var srcs= javaSourcesUnder(srcRoot);
     Fs.of(()->Files.deleteIfExists(jarPath));
-    check(!srcs.isEmpty(), "No .java files under "+srcRoot);
+    check(!srcs.isEmpty(), "Expected .java files under "+srcRoot);
     var args= new ArrayList<String>(10+srcs.size());
     args.add("-encoding"); args.add("UTF-8");
     args.add("-d"); args.add(slash(classesDir));
@@ -97,11 +97,11 @@ public final class JavacTool{
 
   public static void jpackage(Path dest, Path packaging, String appName, String versionId, String moduleMain, Path appContent){
     var slash= moduleMain.indexOf('/');
-    check(slash > 0, "Bad moduleMain (need Mod/pkg.Main): "+moduleMain);
+    check(slash > 0, "Expected moduleMain of the form Module/pkg.Main: "+moduleMain);
     Fs.reqDir(packaging, "packaging");
     Fs.reqDir(appContent, "app content");
     var modsDir= dest.resolve(buildModsDirName);
-    check(Files.isDirectory(modsDir), "Missing "+modsDir+" (put your module jars there)");
+    Fs.reqDir(modsDir, "module jars");
     var tmp= dest.resolve("_tmp_jpackage");
     Fs.cleanDir(tmp);
     var runtimeImage= jlinkRuntimeImage(modsDir, tmp);
@@ -112,7 +112,7 @@ public final class JavacTool{
   private static Path jlinkRuntimeImage(Path modsDir, Path tmp){
     var javaHome= Path.of(System.getProperty("java.home"));
     var jmods= javaHome.resolve("jmods");
-    check(Files.isDirectory(jmods), "No jmods dir at "+jmods+" (need a full JDK, not a JRE, to jlink a trimmed runtime)");
+    Fs.reqDir(jmods, "the jmods of a full JDK (a JRE has none)");
     var appModules= ModuleFinder.of(modsDir).findAll();
     var appModuleNames= appModules.stream().map(m->m.descriptor().name()).collect(Collectors.toSet());
     var platformModules= appModules.stream()
@@ -139,7 +139,7 @@ public final class JavacTool{
       .toList());
     check(found.size() == 1, "Expected exactly one '"+deployedModsDirName+"' dir under "+dest+" after jpackage, found: "+found);
     var jars= Fs.walk(found.getFirst(), s->s.filter(p->p.toString().endsWith(".jar")).toList());
-    check(!jars.isEmpty(), "jpackage-produced '"+deployedModsDirName+"' dir has no jars: "+found.getFirst());
+    check(!jars.isEmpty(), "Expected jars in the '"+deployedModsDirName+"' dir made by jpackage: "+found.getFirst());
   }
 
   private static void jpBody(Path dest, String name, String versionId, String moduleMain, Path modsDir, Path appContent, Path runtimeImage, Path tmp, Path packaging){
@@ -165,7 +165,7 @@ public final class JavacTool{
 
   private static Path iconFile(Path packaging, String osDir, String file){
     var p= packaging.resolve(osDir).resolve(file);
-    check(Files.isRegularFile(p), "Missing icon file: "+p);
+    check(Files.isRegularFile(p), "Expected an icon file: "+p);
     return p.toAbsolutePath().normalize();
   }
 
@@ -175,7 +175,6 @@ public final class JavacTool{
     var linux= iconFile(packaging, "linux", "icon.png");
     if (Fs.isWindows()){ return windows; }
     if (Fs.isMac()){ return mac; }
-    check(Fs.isLinux(),"Unsupported OS: "+System.getProperty("os.name"));
     return linux;
   }
 
@@ -202,7 +201,7 @@ public final class JavacTool{
       .map(src->src.resolve("module-info.java"))
       .filter(Files::exists)
       .toList();
-    check(mi.size() == 1, "No module-info or ambiguous module-info");
+    check(mi.size() == 1, "Expected exactly one module-info.java in the source roots "+srcs+", found: "+mi);
     var args= new ArrayList<String>(javacArgs);
     extraLintDisables.forEach(l->args.add("-Xlint:"+l));
     args.add("-d"); args.add(slash(classesDir));

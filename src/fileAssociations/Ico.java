@@ -35,7 +35,7 @@ public final class Ico{
     var out= new ByteArrayOutputStream();
     out.writeBytes(header.array());
     frames.forEach(out::writeBytes);
-    Fs.of(()->Files.write(ico,out.toByteArray()));
+    Fs.ofV(()->Files.write(ico,out.toByteArray()));
   }
   private static BufferedImage scaled(BufferedImage img, int size){
     var res= img;
