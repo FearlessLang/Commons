@@ -3,6 +3,7 @@ package fileAssociations;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -107,7 +108,7 @@ public final class LinuxAssociations{
     for (var icon: extensions){
       if (!(identity+"-"+hash(bytesOf(icon.png()))).equals(declared.get(icon.extension()))){ return false; }
     }
-    return programIconBytes(identity).map(b->java.util.Arrays.equals(b, bytesOf(programPng))).orElse(false);
+    return programIconBytes(identity).map(b->Arrays.equals(b, bytesOf(programPng))).orElse(false);
   }
   private static void eradicate(String identityName){
     Fs.ofV(()->Files.deleteIfExists(ourDesktop(identityName)));

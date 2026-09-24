@@ -37,7 +37,7 @@ public final class Fs{
     " \n";
   public static void ensureDir(Path p){ of(()->Files.createDirectories(p)); }
   public static void cleanDirContents(Path p){
-    check(Files.isDirectory(p), "Expected directory: "+p);
+    reqDir(p, "cleaning");
     var xs= walk(p, s-> s
       .filter(x->!x.equals(p))
       .sorted(Comparator.reverseOrder())
@@ -100,7 +100,7 @@ public final class Fs{
       catch(InterruptedException ie){ Thread.currentThread().interrupt(); throw Bug.of(ie); }
     }
   }
-  public static void reqDir(Path p, String what){ check(Files.isDirectory(p), "Expected dir "+what+": "+p); }
+  public static void reqDir(Path p, String what){ check(Files.isDirectory(p), "Expected a directory for "+what+": "+p); }
   public static void cleanDir(Path p){
     if (!Files.exists(p)){ ensureDir(p); return; }
     cleanDirContents(p);

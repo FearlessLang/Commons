@@ -98,8 +98,8 @@ public final class JavacTool{
   public static void jpackage(Path dest, Path packaging, String appName, String versionId, String moduleMain, Path appContent){
     var slash= moduleMain.indexOf('/');
     check(slash > 0, "Bad moduleMain (need Mod/pkg.Main): "+moduleMain);
-    check(Files.isDirectory(packaging), "Not a directory: "+packaging);
-    check(Files.isDirectory(appContent), "Not a directory: "+appContent);
+    Fs.reqDir(packaging, "packaging");
+    Fs.reqDir(appContent, "app content");
     var modsDir= dest.resolve(buildModsDirName);
     check(Files.isDirectory(modsDir), "Missing "+modsDir+" (put your module jars there)");
     var tmp= dest.resolve("_tmp_jpackage");
@@ -195,23 +195,19 @@ public final class JavacTool{
   //extraLintDisables: for modules that must `requires` an automatic module (no module-info in
   //the jar, e.g. flexmark), since that is otherwise an unavoidable -Werror failure
   public static void javac(List<Path> srcs, Path classesDir, Path modsDir, List<String> extraLintDisables){
-    srcs.forEach(src->check(Files.isDirectory(src), "Not a directory: "+src));
-    check(Files.isDirectory(modsDir), "Not a directory: "+modsDir);
+    srcs.forEach(src->Fs.reqDir(src, "source root"));
+    Fs.reqDir(modsDir, "module path");
     Fs.cleanDir(classesDir);
     var mi= srcs.stream()
       .map(src->src.resolve("module-info.java"))
       .filter(Files::exists)
       .toList();
     check(mi.size() == 1, "No module-info or ambiguous module-info");
-    var args= new ArrayList<String>(64);
-    args.add("-encoding"); args.add("UTF-8");
-    args.add("-Xlint:all,-auxiliaryclass,-missing-explicit-ctor"+extraLintDisables.stream().map(l->","+l).collect(Collectors.joining()));
-    args.add("-Werror");
+    var args= new ArrayList<String>(javacArgs);
+    extraLintDisables.forEach(l->args.add("-Xlint:"+l));
     args.add("-d"); args.add(slash(classesDir));
     args.add("--module-path"); args.add(slash(modsDir));
-    srcs.forEach(src->Fs.walkV(src,s->s
-      .filter(p->p.toString().endsWith(".java"))
-      .forEach(p->args.add(slash(p)))));
+    srcs.forEach(src->javaSourcesUnder(src).forEach(p->args.add(slash(p))));
     runJavacArgFile(classesDir.getParent(), args);
   }
 }

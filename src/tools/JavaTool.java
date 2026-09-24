@@ -15,9 +15,7 @@ public final class JavaTool{
     return _runMain(jvmArgs, l.isEmpty() ? classesDir.toString() : classesDir+File.pathSeparator+l, mainClass, args);
   }
   public static String runMainFromJars(List<String> jvmArgs, List<Path> jarDirs, String mainClass, String... args) throws InterruptedException{
-    String cp= jarsCp(jarDirs);
-    assert !cp.isEmpty() : "No jars under "+jarDirs;
-    return _runMain(jvmArgs,cp,mainClass,args);
+    return _runMain(jvmArgs,jarsCp(jarDirs),mainClass,args);
   }
   public static ChildJvm startMainFromJars(List<String> jvmArgs, List<Path> jarDirs, String mainClass, Consumer<String> out, String... mainArgs){
     return start(jvmArgs, jarsCp(jarDirs), mainClass, out, mainArgs);

@@ -18,7 +18,7 @@ public record NativeOverrides(Set<String> pairs, Set<String> fileNames){
   public boolean has(String iface, String mangledName){ return pairs.contains(iface+"#"+mangledName); }
   public boolean hasFile(String simpleName){ return fileNames.contains(simpleName); }
   public static NativeOverrides scan(Path rtPath){
-    var files= Fs.walk(rtPath, s->s.filter(p->p.toString().endsWith(".java")).toList());
+    var files= JavacTool.javaSourcesUnder(rtPath);
     var compiler= ToolProvider.getSystemJavaCompiler();
     var pairs= new HashSet<String>();
     Fs.ofV(()->{
