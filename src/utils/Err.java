@@ -25,10 +25,6 @@ public final class Err {
   }
   public static final String hole="[###]";//not contains \.[]{}()<>*+-=!?^$|
   public static boolean strCmp(String expected,String actual){
-    if (expected == null || actual == null) {
-      assertEquals.accept(expected,actual);
-      throw Bug.of();
-    }
     actual = actual.trim();
     expected = expected.trim();
     try {assertTrue.accept(strCmpAux(expected,actual,Err.hole));}

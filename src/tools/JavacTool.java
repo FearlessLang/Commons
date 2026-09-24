@@ -17,7 +17,10 @@ public final class JavacTool{
   private static final String javacArgFile="_javac.args";
 
   public static String compileTree(Path srcRoot, Path classesDir, Runnable postProcess, Path jarPath, List<Path> extraClasspathDirs){
-    var srcs= javaSourcesUnder(srcRoot);
+    var srcs= Fs.walk(srcRoot,pi->pi
+      .filter(p->p.toString().endsWith(".java"))
+      .sorted(Comparator.comparing(p->srcRoot.relativize(p).toString()))
+      .toList());
     Fs.of(()->Files.deleteIfExists(jarPath));
     check(!srcs.isEmpty(), "No .java files under "+srcRoot);
     var args= new ArrayList<String>(10+srcs.size());
@@ -30,13 +33,6 @@ public final class JavacTool{
     postProcess.run();
     jar(classesDir, jarPath);
     return javacOut;
-  }
-
-  static List<Path> javaSourcesUnder(Path root){
-    return Fs.walk(root,pi->pi
-      .filter(p->p.toString().endsWith(".java"))
-      .sorted(Comparator.comparing(p->root.relativize(p).toString()))
-      .toList());
   }
 
   public static void jar(Path classesDir, Path jarFile){
@@ -203,10 +199,8 @@ public final class JavacTool{
       .filter(Files::exists)
       .toList();
     check(mi.size() == 1, "No module-info or ambiguous module-info");
-    var args= new ArrayList<String>(64);
-    args.add("-encoding"); args.add("UTF-8");
-    args.add("-Xlint:all,-auxiliaryclass,-missing-explicit-ctor"+extraLintDisables.stream().map(l->","+l).collect(Collectors.joining()));
-    args.add("-Werror");
+    var args= new ArrayList<String>(javacArgs);
+    extraLintDisables.forEach(l->args.add("-Xlint:"+l));
     args.add("-d"); args.add(slash(classesDir));
     args.add("--module-path"); args.add(slash(modsDir));
     srcs.forEach(src->Fs.walkV(src,s->s

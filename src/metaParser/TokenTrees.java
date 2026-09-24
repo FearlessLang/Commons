@@ -27,7 +27,6 @@ class TokenTrees<
     var first=it.next();
     return new Builder<>(this,new ArrayList<>(List.of(first)),it).build(first);
   }
-  TreeDiagnostics<T,TK,E,Tokenizer,Parser,Err> diag(){ return new TreeDiagnostics<T,TK,E,Tokenizer,Parser,Err>(spec, tokenizer); }
-  E diagOnBadCloser(T open,T stop){ return diag().onBadCloser(open, stop); }
-  E diagOnBadBarrier(T open,T stop){ return diag().onBadBarrier(open, stop); }
+  E diagOnBadCloser(T open,T stop){ return new TreeDiagnostics<T,TK,E,Tokenizer,Parser,Err>(spec, tokenizer).onBadCloser(open, stop); }
+  E diagOnBadBarrier(T open,T stop){ return new TreeDiagnostics<T,TK,E,Tokenizer,Parser,Err>(spec, tokenizer).onBadBarrier(open, stop); }
 }

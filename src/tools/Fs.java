@@ -12,9 +12,6 @@ import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.attribute.DosFileAttributeView;
-import java.nio.file.attribute.PosixFileAttributeView;
-import java.nio.file.attribute.PosixFilePermission;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -46,7 +43,7 @@ public final class Fs{
     xs.forEach(x->ofV(()->forceDelete(x)));
   }
   private static void forceDelete(Path p) throws IOException{
-    try{ makeWritableIfPossible(p); } catch(Throwable _){}
+    if (isWindows()){ Files.setAttribute(p, "dos:readonly", false, LinkOption.NOFOLLOW_LINKS); }
     for(int attempt= 0; ; attempt++){
       try{ Files.deleteIfExists(p); return; }
       catch(AccessDeniedException e){
@@ -59,17 +56,6 @@ public final class Fs{
   private static void sleepBriefly(){
     try{ Thread.sleep(25); } catch(InterruptedException e){ Thread.currentThread().interrupt(); }
   }
-  private static void makeWritableIfPossible(Path p) throws IOException{
-    var dos= Files.getFileAttributeView(p, DosFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
-    if (dos != null){ dos.setReadOnly(false); return; }
-    var posix= Files.getFileAttributeView(p, PosixFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
-    if (posix != null){
-      var ps= posix.readAttributes().permissions();
-      if (ps.add(PosixFilePermission.OWNER_WRITE)){ Files.setPosixFilePermissions(p, ps); }
-      return;
-    }
-    p.toFile().setWritable(true);
-  }  
   public static void writeUtf8(Path file, String content){
     ensureDir(file.getParent());
     ofV(()->Files.writeString(file, content));
@@ -135,7 +121,6 @@ public final class Fs{
     return res;
   }
   /// Returns the filename without the extension. Example: "fear:/a/b/c.tar.gz" -> "c"
-  public static String fileNameWithoutExtension(URI u){ return fileNameWithoutExtension(u.toString()); }
   public static String fileNameWithoutExtension(String s){
     int slash= lastSlashIndex(s);
     int dot= s.indexOf('.', slash + 1); // first dot after last slash
@@ -149,7 +134,6 @@ public final class Fs{
     return s.substring(dot);
   }
   ///Returns the path without the filename
-  public static String removeFileName(URI s){ return removeFileName(s.toString()); } 
   public static String removeFileName(String s){ return s.substring(0,lastSlashIndex(s)); }
   public static String removeFileNameAllowTop(URI s){ return removeFileNameAllowTop(s.toString()); } 
   public static String removeFileNameAllowTop(String s){
