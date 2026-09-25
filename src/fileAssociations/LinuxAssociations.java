@@ -9,16 +9,20 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import javax.imageio.ImageIO;
+
 import tools.Fs;
 import utils.Push;
 
 public final class LinuxAssociations{
+  private static final int iconSide= 256;
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programPng,
       Function<String,RuntimeException> ambiguous,
@@ -106,9 +110,10 @@ public final class LinuxAssociations{
     var declared= readOwned(lines(ourPackage(identity)));
     if (declared.size() != extensions.size()){ return false; }
     for (var icon: extensions){
-      if (!(identity+"-"+hash(bytesOf(icon.png()))).equals(declared.get(icon.extension()))){ return false; }
+      if (!(identity+"-"+hash(desktopPng(icon.png()))).equals(declared.get(icon.extension()))){ return false; }
     }
-    return programIconBytes(identity).map(b->Arrays.equals(b, bytesOf(programPng))).orElse(false);
+    if (!lines(ourDesktop(identity)).contains("StartupWMClass="+windowClass())){ return false; }
+    return programIconBytes(identity).map(b->Arrays.equals(b, desktopPng(programPng))).orElse(false);
   }
   private static void eradicate(String identity){
     Fs.ofV(()->Files.deleteIfExists(ourDesktop(identity)));
@@ -117,9 +122,9 @@ public final class LinuxAssociations{
   private static void create(String identity, Path command, List<Icon> extensions, Path programPng){
     var icons= new LinkedHashMap<String,String>();
     extensions.forEach(icon->icons.put(icon.extension(), install(identity, icon.png())));
-    Fs.writeUtf8(ourDesktop(identity), desktopEntry(identity, command.toString(), types(icons)));
+    Fs.writeUtf8(ourDesktop(identity), desktopEntry(identity, command.toString(), windowClass(), types(icons)));
     Fs.writeUtf8(ourPackage(identity), mimePackage(identity, icons));
-    put(bytesOf(programPng), "apps", identity);
+    put(desktopPng(programPng), "apps", identity);
   }
   private static void rebuild(Function<String,RuntimeException> halfDone){
     Shell.req(List.of("update-mime-database", Xdg.dataHome().resolve("mime").toString()), halfDone);
@@ -131,33 +136,23 @@ public final class LinuxAssociations{
   private static List<String> types(Map<String,String> icons){ return icons.keySet().stream().map(LinuxAssociations::typeOf).toList(); }
   public static String typeOf(String ext){ return "application/x-"+ext.substring(1); }
   private static String install(String identity, Path png){
-    var bytes= bytesOf(png);
+    var bytes= desktopPng(png);
     return put(bytes, "mimetypes", identity+"-"+hash(bytes));
   }
+  private static byte[] desktopPng(Path png){
+    return Ico.png(Ico.scaled(Objects.requireNonNull(Fs.of(()->ImageIO.read(png.toFile()))), iconSide));
+  }
+  private static Path iconDir(){ return Xdg.dataHome().resolve("icons").resolve("hicolor").resolve(iconSide+"x"+iconSide); }
   private static String put(byte[] bytes, String context, String icon){
-    var side= side(bytes);
-    var dest= Xdg.dataHome().resolve("icons").resolve("hicolor")
-      .resolve(side+"x"+side).resolve(context).resolve(icon+".png");
+    var dest= iconDir().resolve(context).resolve(icon+".png");
     Fs.ensureDir(dest.getParent());
     Fs.ofV(()->Files.write(dest, bytes));
     return icon;
   }
   private static Optional<byte[]> programIconBytes(String identity){
-    var hicolor= Xdg.dataHome().resolve("icons").resolve("hicolor");
-    if (!Files.isDirectory(hicolor)){ return Optional.empty(); }
-    return Fs.of(()->{ try(var s= Files.list(hicolor)){
-      return s.map(d->d.resolve("apps").resolve(identity+".png")).filter(Files::isRegularFile)
-        .sorted().findFirst().map(LinuxAssociations::bytesOf); }});
+    return Optional.of(iconDir().resolve("apps").resolve(identity+".png")).filter(Files::isRegularFile).map(LinuxAssociations::bytesOf);
   }
   private static byte[] bytesOf(Path file){ return Fs.of(()->Files.readAllBytes(file)); }
-  public static int side(byte[] png){
-    var w= intAt(png, 16);
-    assert w == intAt(png, 20);
-    return w;
-  }
-  private static int intAt(byte[] b, int i){
-    return ((b[i]&0xff)<<24)|((b[i+1]&0xff)<<16)|((b[i+2]&0xff)<<8)|(b[i+3]&0xff);
-  }
   public static String hash(byte[] bytes){
     var h= 0xcbf29ce484222325L;
     for (var b: bytes){ h= (h ^ (b & 0xff))*0x100000001b3L; }
@@ -193,17 +188,23 @@ public final class LinuxAssociations{
       +"<glob pattern=\"*%s\" weight=\"100\"/><icon name=\"%s\"/></mime-type>\n")
       .formatted(typeOf(ext), identity, ext, icon);
   }
-  public static String desktopEntry(String identity, String command, List<String> types){
+  public static String desktopEntry(String identity, String command, String windowClass, List<String> types){
     return """
       [Desktop Entry]
       Type=Application
       Name=%s
       Exec=%s %%f
       Icon=%s
+      StartupWMClass=%s
       Terminal=false
       MimeType=%s;
-      """.formatted(identity, command, identity, String.join(";", types));
+      """.formatted(identity, command, identity, windowClass, String.join(";", types));
   }
+  public static String windowClass(String javaCommand){
+    var main= javaCommand.split(" ")[0];
+    return main.substring(main.indexOf('/')+1).replace('.', '-');
+  }
+  private static String windowClass(){ return windowClass(System.getProperty("sun.java.command")); }
   private static List<Path> mimeDirs(){ return Push.of(Xdg.dataHome(), Xdg.dataDirs()).stream().map(d->d.resolve("mime")).toList(); }
   private static List<String> splitTypes(String types){
     return List.of(types.split(";")).stream().map(String::strip).filter(s->!s.isEmpty()).toList();
