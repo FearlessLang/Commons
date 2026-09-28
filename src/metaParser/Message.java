@@ -143,7 +143,7 @@ public final class Message{
 
   // ===== small helpers (split, lines, visual columns, padding) ==================
 
-  private static String[] splitLines(String s){ return s.split("\\R", -1); }
+  private static String[] splitLines(String s){ return MetaTokenizer.normalizeSource(s).split("\n", -1); }
   private static String get(String[] lines, int oneBased){
     if (oneBased < 1 || oneBased > lines.length){ return ""; }
     return lines[oneBased-1];

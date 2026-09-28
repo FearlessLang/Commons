@@ -1,82 +1,23 @@
 package metaParser;
 import java.net.URI;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+
+import tools.Fs;
 
 public final class PrettyFileName{
-  public static String displayFileName(URI uri) { return sanitizeAscii(displayFileNameRaw(uri)); }
-  private static String displayFileNameRaw(URI uri) {
-    try {
-      uri = uri.normalize();
-      String scheme = uri.getScheme();
-
-      // Treat file: (or no scheme) as a filesystem path
-      if (scheme == null || "file".equalsIgnoreCase(scheme)) {
-        Path p = Paths.get(uri).toAbsolutePath().normalize();
-
-        // Prefer path relative to CWD if it shortens
-        Path cwd = Paths.get("").toAbsolutePath().normalize();
-        Path rel = p.startsWith(cwd) ? cwd.relativize(p) : p;
-
-        // Or collapse to ~/... when under home
-        Path home = Paths.get(System.getProperty("user.home")).toAbsolutePath().normalize();
-        if (p.startsWith(home)){ return shorten("~/" + toUnix(home.relativize(p)), 80); }
-        return shorten(toUnix(rel), 80);
-      }
-
-      // Fallback: other schemes as-is (http:, mem:, dbg:, etc.)
-      return shorten(uri.toString(), 80);
-
-    } catch (Exception e) {
-      // Never let filename rendering break error reporting
-      return "(unknown)";
-    }
+  public static String displayFileName(URI uri){
+    var s= "file".equals(uri.getScheme()) ? relativeToCwd(Path.of(uri)) : uri.toString();
+    var plain= s.chars().allMatch(c->c != ' ' && c != '\n' && Fs.allowed.indexOf(c) != -1);
+    return plain ? s : uri.toASCIIString();
   }
-
-  // --- helpers ---
-
-  private static String toUnix(Path path) {
-    return path.toString().replace('\\', '/');
+  private static String relativeToCwd(Path p){
+    var cwd= Path.of("").toAbsolutePath();
+    var under= p.startsWith(cwd) && !p.equals(cwd);
+    return under ? cwd.relativize(p).toString() : p.toString();
   }
-
   public static String sanitizeAscii(String s){
     var sb= new StringBuilder(s.length());
     s.codePoints().forEach(cp-> sb.append(cp >= 0x20 && cp <= 0x7E ? (char)cp : '?'));
     return sb.toString();
-  }
-
-  /** Elide the middle of long paths, preserving basename (maxLen includes ellipsis). */
-  private static String shorten(String s, int maxLen) {
-    if (s.length() <= maxLen){ return s; }
-
-    // Split on '/', keep leading '/' if present
-    boolean abs = s.startsWith("/");
-    String[] parts = s.split("/");
-    int n = parts.length;
-
-    // Handle edge-y cases
-    if (n <= 2){ return "..." + s.substring(s.length() - (maxLen - 1)); }
-
-    String first = parts[abs ? 1 : 0];      // skip empty segment for absolute paths
-    String last = parts[n - 1];
-    String penult = parts[n - 2];
-
-    String candidate = (abs ? "/" : "") + first + "/.../" + penult + "/" + last;
-    if (candidate.length() <= maxLen){ return candidate; }
-
-    // Try keeping just the tail
-    String tail2 = penult + "/" + last;
-    String t2 = (abs ? "/.../" : ".../") + tail2;
-    if (t2.length() <= maxLen){ return t2; }
-
-    // Last resort: ensure basename is visible
-    String onlyLast = (abs ? "/.../" : ".../") + last;
-    if (onlyLast.length() <= maxLen){ return onlyLast; }
-    // Trim basename from the left if still too long
-    String base = last;
-    if (base.length() > maxLen - 1) {
-      base = base.substring(base.length() - (maxLen - 1));
-    }
-    return "..." + base;
   }
 }
