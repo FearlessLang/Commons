@@ -198,7 +198,10 @@ public final class LinuxAssociations{
       StartupWMClass=%s
       Terminal=false
       MimeType=%s;
-      """.formatted(identity, command, identity, windowClass, String.join(";", types));
+      """.formatted(identity, execArg(command), identity, windowClass, String.join(";", types));
+  }
+  private static String execArg(String s){
+    return ("\""+s.replaceAll("[\"`$\\\\]", "\\\\$0")+"\"").replace("%", "%%").replace("\\", "\\\\");
   }
   public static String windowClass(String javaCommand){
     var main= javaCommand.split(" ")[0];
