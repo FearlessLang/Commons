@@ -22,10 +22,10 @@ public final class JavacTool{
     check(!srcs.isEmpty(), "Expected .java files under "+srcRoot);
     var args= new ArrayList<String>(10+srcs.size());
     args.add("-encoding"); args.add("UTF-8");
-    args.add("-d"); args.add(slash(classesDir));
+    args.add("-d"); args.add(abs(classesDir));
     var cp= JavaTool.jarsCp(Push.of(jarPath.getParent(), extraClasspathDirs));
     if (!cp.isEmpty()){ args.add("-cp"); args.add(cp); }
-    srcs.forEach(p->args.add(slash(p)));
+    srcs.forEach(p->args.add(abs(p)));
     var javacOut= runJavacArgFile(jarPath.getParent(), args);
     postProcess.run();
     jar(classesDir, jarPath);
@@ -51,17 +51,12 @@ public final class JavacTool{
     Fs.writeUtf8(file, args.stream()
       .map(JavacTool::argToken)
       .collect(Collectors.joining("\n","","\n")));
-    return Fs.runTool("javac", List.of("@"+slash(file)));
+    return Fs.runTool("javac", List.of("@"+abs(file)));
   }
 
-  private static String slash(Path p){ return slash(p.toAbsolutePath().normalize().toString()); }
-  private static String slash(String s){ return s.replace('\\','/'); }
+  private static String abs(Path p){ return p.toAbsolutePath().normalize().toString(); }
 
-  private static String argToken(String s){
-    s= slash(s);
-    if (s.indexOf('"')<0 && s.chars().noneMatch(Character::isWhitespace)){ return s; }
-    return "\""+s.replace("\\","\\\\").replace("\"","\\\"")+"\"";
-  }
+  private static String argToken(String s){ return "\""+s.replace("\\","\\\\").replace("\"","\\\"")+"\""; }
 
   public static final String launcherKey= "app.launcher";
   public static final String appDirKey= "app.dir";
@@ -204,9 +199,9 @@ public final class JavacTool{
     check(mi.size() == 1, "Expected exactly one module-info.java in the source roots "+srcs+", found: "+mi);
     var args= new ArrayList<String>(javacArgs);
     extraLintDisables.forEach(l->args.add("-Xlint:"+l));
-    args.add("-d"); args.add(slash(classesDir));
-    args.add("--module-path"); args.add(slash(modsDir));
-    srcs.forEach(src->javaSourcesUnder(src).forEach(p->args.add(slash(p))));
+    args.add("-d"); args.add(abs(classesDir));
+    args.add("--module-path"); args.add(abs(modsDir));
+    srcs.forEach(src->javaSourcesUnder(src).forEach(p->args.add(abs(p))));
     runJavacArgFile(classesDir.getParent(), args);
   }
 }
