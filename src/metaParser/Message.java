@@ -84,10 +84,9 @@ public final class Message{
   private static Pos nextVisible(String[] lines, Pos p, Pos limit){
     int line= Math.clamp(p.line, 1, lines.length), col = Math.max(1, p.col);
     while (beforeOrEqual(line, col, limit)){
-      String ln= get(lines, line);
-      if (col > ln.length()){ line++; col = 1; continue; }
-      char ch= ln.charAt(col - 1);
-      if (isVisible(ch)){ return new Pos(line, col); }
+      int[] ln= codePoints(lines, line);
+      if (col > ln.length){ line++; col = 1; continue; }
+      if (isVisible(ln[col - 1])){ return new Pos(line, col); }
       col++;
     }
     return limit;
@@ -96,18 +95,18 @@ public final class Message{
     int line= Math.clamp(p.line, 1, lines.length);
     int col= Math.max(1, p.col);
     while (afterOrEqual(line, col, start)){
-      String ln= get(lines, line);
-      var visible= col <= ln.length() && isVisible(ln.charAt(col - 1)); 
+      int[] ln= codePoints(lines, line);
+      var visible= col <= ln.length && isVisible(ln[col - 1]); 
       if (visible){ return new Pos(line, col); }
       col--;
       if (col >= 1){ continue; }
       line--;
       if (line < start.line){ return new Pos(start.line, start.col); }
-      col = Math.max(1, get(lines, line).length());
+      col = Math.max(1, codePoints(lines, line).length);
     }
     return new Pos(start.line, start.col);
   }
-  private static boolean isVisible(char c){ return c!=' ' && c!='\t' && c!='\n' && c!='\r'; }
+  private static boolean isVisible(int c){ return c!=' ' && c!='\t' && c!='\n' && c!='\r'; }
 
   private record Grouping(URI file, List<Span> singles, Span multiLine, int caretLine){}
 
@@ -143,11 +142,12 @@ public final class Message{
 
   // ===== small helpers (split, lines, visual columns, padding) ==================
 
-  private static String[] splitLines(String s){ return s.split("\\R", -1); }
+  private static String[] splitLines(String s){ return MetaTokenizer.normalizeSource(s).split("\n", -1); }
   private static String get(String[] lines, int oneBased){
     if (oneBased < 1 || oneBased > lines.length){ return ""; }
     return lines[oneBased-1];
   }
+  private static int[] codePoints(String[] lines, int oneBased){ return get(lines, oneBased).codePoints().toArray(); }
 
   private static int lineNumberWidth(int totalLines){
     int digits = String.valueOf(Math.max(1, totalLines)).length();
@@ -164,48 +164,38 @@ public final class Message{
     if (s.indexOf('\t') < 0){ return s; }
     StringBuilder out = new StringBuilder(s.length() + 8);
     int col = 1; // 1-based
-    for (int i : Range.of(0,s.length())){
-      char ch = s.charAt(i);
+    for (int ch : s.codePoints().toArray()){
       if (ch == '\t'){
         int spaces = tabWidth - ((col - 1) % tabWidth);
         out.append(" ".repeat(spaces));
         col += spaces;
       }else{
-        out.append(ch);
+        out.appendCodePoint(ch);
         col += 1;
       }
     }
     return out.toString();
   }
 
-  private static int tabAwareWidth(String rawLine, int fromIdxIncl, int toIdxExcl, int baseVis){
-    int vis= baseVis;
-    for (int i : Range.of(fromIdxIncl,toIdxExcl)){
-      char ch= rawLine.charAt(i);
-      if (ch == '\t'){
-        int spaces= tabWidth - (vis % tabWidth);
-        vis += spaces;
-      }else{
-        vis += 1;
-      }
-    }
+  private static int tabAwareWidth(int[] rawLine, int toIdxExcl){
+    int vis= 0;
+    for (int i : Range.of(0,toIdxExcl)){ vis += rawLine[i] == '\t' ? tabWidth - (vis % tabWidth) : 1; }
     return vis;
   }
 
   /** Visual column (1-based) at a logical column (expands tabs). */
-  private static int visualCol(String rawLine, int logicalCol){
+  private static int visualCol(int[] rawLine, int logicalCol){
     if (logicalCol <= 1){ return 1; }
-    int limit= Math.min(logicalCol - 1, rawLine.length());
-    return tabAwareWidth(rawLine, 0, limit, 1);
+    return tabAwareWidth(rawLine, Math.min(logicalCol - 1, rawLine.length)) + 1;
   }
 
-  private static int visualDelta(String rawLine, int startCol, int endCol){
-    if (rawLine.isEmpty()){ return 0; }
+  private static int visualDelta(int[] rawLine, int startCol, int endCol){
+    if (rawLine.length == 0){ return 0; }
     int aIdx= Math.max(0, startCol - 1);
     // Clamped independent of aIdx -- the old Math.max(aIdx,...) form let this track aIdx past line end, defeating the guard below.
-    int bIdxInclusive= Math.min(endCol - 1, rawLine.length() - 1);
+    int bIdxInclusive= Math.min(endCol - 1, rawLine.length - 1);
     if (aIdx > bIdxInclusive){ return 0; }
-    return tabAwareWidth(rawLine, aIdx, bIdxInclusive + 1, 0);
+    return tabAwareWidth(rawLine, bIdxInclusive + 1) - tabAwareWidth(rawLine, aIdx);
   }
 
   private static boolean beforeOrEqual(int l, int c, Pos limit){
@@ -371,10 +361,10 @@ public final class Message{
   }
 
   private static String makeCaretLine(String[] lines, Grouping g, int width){
-    String raw = get(lines, g.caretLine());
+    int[] raw = codePoints(lines, g.caretLine());
     // Only the caret-bearing line is sanitized for display;
     // geometry (columns/lengths) is computed from RAW with tab math.
-    String safeDisplay = sanitizeForCaret(expandTabs(raw));
+    String safeDisplay = sanitizeForCaret(expandTabs(get(lines, g.caretLine())));
     // decide marks so a single span uses '^'
     List<Span> sps = g.singles();
     int n = sps.size();
