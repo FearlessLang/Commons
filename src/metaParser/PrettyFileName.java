@@ -55,7 +55,7 @@ public final class PrettyFileName{
     int n = parts.length;
 
     // Handle edge-y cases
-    if (n <= 2){ return "..." + s.substring(s.length() - (maxLen - 1)); }
+    if (n <= 2){ return "..." + s.substring(s.length() - (maxLen - 3)); }
 
     String first = parts[abs ? 1 : 0];      // skip empty segment for absolute paths
     String last = parts[n - 1];
@@ -73,10 +73,6 @@ public final class PrettyFileName{
     String onlyLast = (abs ? "/.../" : ".../") + last;
     if (onlyLast.length() <= maxLen){ return onlyLast; }
     // Trim basename from the left if still too long
-    String base = last;
-    if (base.length() > maxLen - 1) {
-      base = base.substring(base.length() - (maxLen - 1));
-    }
-    return "..." + base;
+    return "..." + last.substring(Math.max(0, last.length() - (maxLen - 3)));
   }
 }
