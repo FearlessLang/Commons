@@ -129,7 +129,7 @@ public abstract class MetaParser<
     if (low > high){ low = high; }
     assert low >= 0 && low < ts.size();
     assert high >= 0 && high < ts.size();
-    var here = span(ts.get(low),ts.get(high));
+    var here = span(ts.subList(low,high+1));
     if (here.isPresent()) { return here.get(); }
     int startLine= this.span.startLine();
     int  startCol= this.span.startCol();
@@ -334,14 +334,12 @@ public abstract class MetaParser<
     return lastLeaf(t.tokens());
   }
   public Span span(){ return span; }
-  public Span spanLast(){
-    if (limit - 1 < 0){ return span; }
-    return span(ts.get(limit - 1)).orElse(span); 
-  }
+  public Span spanLast(){ return ts.subList(0,limit).reversed().stream().flatMap(t->span(t).stream()).findFirst().orElse(span); }
   public Span remainingSpan(){
     if(end()){ return spanLast(); }
-    return span(ts.get(index),ts.get(limit-1)).orElse(span); 
+    return spanAround(index,limit-1);
   }
+  private Optional<Span> span(List<T> ts){ return firstLeaf(ts).flatMap(first->lastLeaf(ts).map(last->makeSpan(first,last))); }
   public Optional<Span> span(T low, T high){//not equal to span(List.of(low,high))
     return firstLeaf(low)
       .flatMap(first->lastLeaf(high)
