@@ -63,7 +63,7 @@ public abstract class MetaTokenizer<
         .<T>comparingInt(t -> t.content().length())
         .thenComparingInt(t -> -t.kind().priority()));
   }
-  private static String normalizeSource(String s){
+  static String normalizeSource(String s){
     if (s.startsWith("\uFEFF")){ s = s.substring(1); } // Drop BOM if present at start
     s = s.replace("\r\n", "\n").replace('\r', '\n'); // Normalize common newline variants to '\n' CRLF -> LF, lone CR -> LF
     s = s.replace('\u2028', '\n').replace('\u2029', '\n').replace('\u0085', '\n'); // Unicode separators to LF (LS, PS, NEL)

@@ -25,7 +25,7 @@ public interface Token<T extends Token<T,TK>, TK extends TokenKind> {
       i += Character.charCount(cp);
       if (cp == '\n'){ l += 1; c = 1; } else { c += 1; }
     }
-    if (l == last.line()){ return new Span(fileName,first.line(),first.column(),l,Math.max(first.column(), c - 1)); }
-    return new Span(fileName, first.line(),first.column(),l,Math.max(1,c - 1));
+    int minCol= first.line() == l ? first.column() : 1;
+    return new Span(fileName,first.line(),first.column(),l,Math.max(minCol,c - 1));
   }
 }
