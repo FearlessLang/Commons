@@ -26,19 +26,18 @@ public final class LinuxAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programPng,
       Function<String,RuntimeException> ambiguous,
-      Function<String,RuntimeException> notOurs,
+      Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
     if (existing.size() > 1){ throw ambiguous.apply(String.join("\n", existing)); }
 
-    var foreign= new ArrayList<String>();
+    var foreign= new LinkedHashMap<String,List<String>>();
     for (var icon: extensions){
-      for (var claimant: claimants(typeOf(icon.extension()))){
-        if (!belongsToFamily.test(claimant)){ foreign.add(icon.extension()+" -> "+claimant); }
-      }
+      var held= claimants(typeOf(icon.extension())).stream().filter(belongsToFamily.negate()).toList();
+      if (!held.isEmpty()){ foreign.put(icon.extension(), held); }
     }
-    if (!foreign.isEmpty()){ throw notOurs.apply(String.join("\n", foreign)); }
+    if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
 
     var stale= existing.isEmpty() ? Optional.<String>empty() : Optional.of(existing.getFirst());
     var unwritable= new ArrayList<Path>();

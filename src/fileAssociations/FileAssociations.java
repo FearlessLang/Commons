@@ -2,6 +2,7 @@ package fileAssociations;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -17,6 +18,8 @@ import utils.Bug;
  * - command: an absolute executable path.
  * - extensions: a list of (file extension, file icon) pairs. May be empty.
  * - programIco, programPng: one icon, independent of extensions.
+ * - ambiguous, userLocked, notOurs, notWritable, halfDone: one function per kind of
+ * failure, each turning what was found into the exception reconcile throws.
  *
  * A ProgId (Windows) belongs to identity X if it equals X followed by "." followed by
  * the extension with its leading dot removed. A .desktop file or MIME-package file
@@ -33,10 +36,11 @@ import utils.Bug;
  * 2. [Windows only] For every extension in extensions,
  * HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\(extension)\UserChoice
  * is read. If a value is present there for any of them - naming any ProgId at all,
- * including one belonging to identity - the operation refuses, naming every such
- * extension. The error states that no program can remove or change this value, and that
- * Settings, Apps, Default apps, Reset is the only way to clear it, and that Reset
- * affects every app default on the machine. Nothing is changed.
+ * including one belonging to identity - the operation refuses with userLocked applied
+ * to the list of every such extension, in the order of extensions. The error states
+ * that no program can remove or change this value, and that Settings, Apps, Default
+ * apps, Reset is the only way to clear it, and that Reset affects every app default on
+ * the machine. Nothing is changed.
  *
  * 3. For every extension in extensions, its current claimants are determined - Windows:
  * the ProgId named by Classes\(extension) (default value), plus every ProgId named
@@ -46,8 +50,9 @@ import utils.Bug;
  * literal text "(value not set)") is deleted on the spot and counted as no claimant at
  * all, rather than as a claimant named "(value not set)".
  * Each claimant is classified by whether its owning identity satisfies belongsToFamily.
- * A claimant whose owning identity does not satisfy belongsToFamily causes the operation
- * to refuse, naming the extension and the claimant, and changes nothing. A claimant
+ * If any claimant's owning identity does not satisfy belongsToFamily, the operation
+ * refuses with notOurs applied to a map from each such extension, in the order of
+ * extensions, to its claimants outside the family, and changes nothing. A claimant
  * whose owning identity does satisfy belongsToFamily is marked for removal.
  *
  * 4. Every location identity would need to write to, and every location an identity
@@ -103,8 +108,8 @@ public interface FileAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programIco, Path programPng,
       Function<String,RuntimeException> ambiguous,
-      Function<String,RuntimeException> userLocked,
-      Function<String,RuntimeException> notOurs,
+      Function<List<String>,RuntimeException> userLocked,
+      Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
     if (Fs.isWindows()){

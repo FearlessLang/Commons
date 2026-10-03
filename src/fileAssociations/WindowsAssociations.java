@@ -31,8 +31,8 @@ public final class WindowsAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programIco,
       Function<String,RuntimeException> ambiguous,
-      Function<String,RuntimeException> userLocked,
-      Function<String,RuntimeException> notOurs,
+      Function<List<String>,RuntimeException> userLocked,
+      Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
@@ -40,15 +40,14 @@ public final class WindowsAssociations{
 
     var locked= extensions.stream().map(Icon::extension)
       .filter(e->userChoice(e).isPresent() || userChoiceLatest(e).isPresent()).toList();
-    if (!locked.isEmpty()){ throw userLocked.apply(String.join("\n", locked)); }
+    if (!locked.isEmpty()){ throw userLocked.apply(locked); }
 
-    var foreign= new ArrayList<String>();
+    var foreign= new LinkedHashMap<String,List<String>>();
     for (var icon: extensions){
-      for (var progId: claimants(icon.extension())){
-        if (!belongsToFamily.test(owner(progId, icon.extension()))){ foreign.add(icon.extension()+" -> "+progId); }
-      }
+      var held= claimants(icon.extension()).stream().filter(p->!belongsToFamily.test(owner(p, icon.extension()))).toList();
+      if (!held.isEmpty()){ foreign.put(icon.extension(), held); }
     }
-    if (!foreign.isEmpty()){ throw notOurs.apply(String.join("\n", foreign)); }
+    if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
 
     var stale= existing.isEmpty() ? Optional.<String>empty() : Optional.of(existing.getFirst());
     if (alreadyMatches(stale, identity, command, extensions, programIco)){ return; }
