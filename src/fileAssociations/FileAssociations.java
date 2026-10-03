@@ -42,22 +42,29 @@ import utils.Bug;
  * apps, Reset is the only way to clear it, and that Reset affects every app default on
  * the machine. Nothing is changed.
  *
- * 3. [Linux only] A program opens MIME types, not extensions. The known types of an
- * extension are the types having exactly the glob "*" followed by the extension in the
- * globs2 file of the mime folder of $XDG_DATA_HOME and of every $XDG_DATA_DIRS entry
+ * 3. [Linux only] A program opens MIME types, not extensions. The MIME database is the
+ * mime folder of $XDG_DATA_HOME and of every $XDG_DATA_DIRS entry: the globs of globs2
  * (compared ignoring case unless the glob has the cs flag; a type with __NOGLOBS__ in a
- * folder ignores its globs in every later folder), leaving out the types with a glob in
- * the MIME-package files of identities for which belongsToFamily holds. The types of an
- * extension are its known types or, when it has none, application/x- followed by the
- * extension without its dot.
+ * folder ignores its globs in every later folder), the types of types, the aliases of
+ * aliases and the parents of subclasses. Each folder leaves out the types with a glob in
+ * its own MIME-package files of identities for which belongsToFamily holds; the folder
+ * of $XDG_DATA_HOME, rebuilt after every change, also leaves out the types no other
+ * MIME-package file there names. The known types of an extension are the types having
+ * exactly the glob "*" followed by the extension. The types of an extension are its
+ * known types or, when it has none, application/x- followed by the extension without
+ * its dot.
  *
- * If a known type of an extension in extensions has any other glob, the operation
- * refuses with sharedType applied to a map from each such extension, in the order of
- * extensions, to its first such type and that type's other globs, and changes nothing.
+ * If a type of an extension in extensions, or a type below it in subclasses, has any
+ * other glob, or an extension without known types finds application/x-(extension)
+ * already in the database as a type or an alias, the operation refuses with sharedType
+ * applied to a map from each such extension, in the order of extensions, to its first
+ * such type and those other globs, and changes nothing.
  * Then, for every extension in extensions, its current claimants are determined - Windows:
  * the ProgId named by Classes\(extension) (default value), plus every ProgId named
  * under Classes\(extension)\OpenWithProgids; Linux: every .desktop file whose MimeType=
- * line names one of that extension's types, plus every choice-file entry naming one.
+ * line names one of that extension's types or a type above one in subclasses, plus every
+ * [Default Applications] and [Added Associations] entry of a choice file naming one;
+ * types are compared through the aliases.
  * [Windows only] A registry value reg.exe itself reports as never having been set (the
  * literal text "(value not set)") is deleted on the spot and counted as no claimant at
  * all, rather than as a claimant named "(value not set)".
@@ -71,7 +78,7 @@ import utils.Bug;
  * marked for removal would need to be removed from, is confirmed writable - Windows: no
  * additional check, registry keys under HKCU are always removable by their owner;
  * Linux: every such .desktop file, MIME-package file, and (when the whole file would be
- * deleted) its containing directory. If any are not writable, the operation refuses,
+ * deleted) its containing directory, and the icon folders mimetypes and apps. If any are not writable, the operation refuses,
  * naming all of them.
  *
  * What happens once all checks pass:
@@ -121,8 +128,10 @@ import utils.Bug;
  *
  * eradicateAll(belongsToFamily) performs none of the checks above: every existing
  * on-system identity for which belongsToFamily holds, however many there are, is
- * deleted in full, and nothing is created. One shell or database refresh is issued
- * for the whole operation, or none at all if no identity matched.
+ * deleted in full, and nothing is created. [Linux only] Every icon file in mimetypes
+ * named (name)-(hex hash).png, and in apps named (name).png, for a name for which
+ * belongsToFamily holds is deleted too. One shell or database refresh is issued for the
+ * whole operation, or none at all if no identity matched.
  */
 public interface FileAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
