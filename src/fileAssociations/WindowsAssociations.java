@@ -9,7 +9,6 @@ import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -80,7 +79,7 @@ public final class WindowsAssociations{
     return regValue(hkcu(fileExts+ext+"\\UserChoiceLatest\\ProgId"), "ProgId");
   }
   private static List<String> claimants(String ext){
-    var res= new ArrayList<String>();
+    var res= new LinkedHashSet<String>();
     regValue(hkcu(classes)+ext, "").ifPresent(res::add);
     res.addAll(regValues(hkcu(classes)+ext+"\\OpenWithProgids").keySet());
     return List.copyOf(res);
