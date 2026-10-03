@@ -58,7 +58,7 @@ public final class LinuxAssociations{
     }
     List<String> others(String type, String ext){
       var below= closure(type, 1);
-      return globs.stream().filter(g->below.contains(g.type()) && !g.is(ext)).map(Glob::pattern).distinct().toList();
+      return below.stream().flatMap(t->globs.stream().filter(g->g.type().equals(t) && !g.is(ext))).map(Glob::pattern).distinct().toList();
     }
     List<String> held(String ext){
       return types(ext).stream().map(t->closure(t, 0))
