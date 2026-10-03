@@ -37,22 +37,17 @@ public final class WindowsAssociations{
       Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
     if (existing.size() > 1){ throw ambiguous.apply(String.join("\n", existing)); }
-
     var locked= extensions.stream().map(Icon::extension)
       .filter(e->userChoice(e).isPresent() || userChoiceLatest(e).isPresent()).toList();
     if (!locked.isEmpty()){ throw userLocked.apply(locked); }
-
     var foreign= new LinkedHashMap<String,List<String>>();
     for (var icon: extensions){
       var held= claimants(icon.extension()).stream().filter(p->!belongsToFamily.test(owner(p, icon.extension()))).toList();
       if (!held.isEmpty()){ foreign.put(icon.extension(), held); }
     }
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
-
-    var stale= existing.isEmpty() ? Optional.<String>empty() : Optional.of(existing.getFirst());
-    if (alreadyMatches(stale, identity, command, extensions, programIco)){ return; }
-
-    stale.ifPresent(s->eradicate(s, belongsToFamily));
+    if (alreadyMatches(existing, identity, command, extensions, programIco)){ return; }
+    existing.forEach(s->eradicate(s, belongsToFamily));
     if (!extensions.isEmpty()){
       extensions.forEach(icon->forgetOpenWithHistory(icon.extension(), belongsToFamily));
       Shell.req(importReg(regFile(identity, command, extensions, programIco)), halfDone);
@@ -89,9 +84,9 @@ public final class WindowsAssociations{
     var suffix= "."+ext.substring(1);
     return progId.endsWith(suffix) ? progId.substring(0, progId.length()-suffix.length()) : progId;
   }
-  private static boolean alreadyMatches(Optional<String> stale, String identity, Path command, List<Icon> extensions, Path programIco){
-    if (extensions.isEmpty()){ return stale.isEmpty(); }
-    if (stale.isEmpty() || !stale.get().equals(identity)){ return false; }
+  private static boolean alreadyMatches(List<String> existing, String identity, Path command, List<Icon> extensions, Path programIco){
+    if (extensions.isEmpty()){ return existing.isEmpty(); }
+    if (!existing.equals(List.of(identity))){ return false; }
     var declared= regValues(hkcu(fileAssociations(identity)));
     if (declared.size() != extensions.size()){ return false; }
     for (var icon: extensions){
