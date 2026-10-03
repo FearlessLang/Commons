@@ -15,6 +15,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -78,11 +79,11 @@ public final class WindowsAssociations{
   private static Optional<String> userChoiceLatest(String ext){
     return regValue(hkcu(fileExts+ext+"\\UserChoiceLatest\\ProgId"), "ProgId");
   }
-  private static List<String> claimants(String ext){
+  private static Set<String> claimants(String ext){
     var res= new LinkedHashSet<String>();
     regValue(hkcu(classes)+ext, "").ifPresent(res::add);
     res.addAll(regValues(hkcu(classes)+ext+"\\OpenWithProgids").keySet());
-    return List.copyOf(res);
+    return Collections.unmodifiableSet(res);
   }
   private static String owner(String progId, String ext){
     var suffix= "."+ext.substring(1);
