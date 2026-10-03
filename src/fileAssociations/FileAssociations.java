@@ -18,8 +18,8 @@ import utils.Bug;
  * - command: an absolute executable path.
  * - extensions: a list of (file extension, file icon) pairs. May be empty.
  * - programIco, programPng: one icon, independent of extensions.
- * - ambiguous, userLocked, notOurs, notWritable, halfDone: one function per kind of
- * failure, each turning what was found into the exception reconcile throws.
+ * - ambiguous, userLocked, sharedType, notOurs, notWritable, halfDone: one function per
+ * kind of failure, each turning what was found into the exception reconcile throws.
  *
  * A ProgId (Windows) belongs to identity X if it equals X followed by "." followed by
  * the extension with its leading dot removed. A .desktop file or MIME-package file
@@ -42,10 +42,22 @@ import utils.Bug;
  * apps, Reset is the only way to clear it, and that Reset affects every app default on
  * the machine. Nothing is changed.
  *
- * 3. For every extension in extensions, its current claimants are determined - Windows:
+ * 3. [Linux only] A program opens MIME types, not extensions. The known types of an
+ * extension are the types having exactly the glob "*" followed by the extension in the
+ * globs2 file of the mime folder of $XDG_DATA_HOME and of every $XDG_DATA_DIRS entry
+ * (compared ignoring case unless the glob has the cs flag; a type with __NOGLOBS__ in a
+ * folder ignores its globs in every later folder), leaving out the types with a glob in
+ * the MIME-package files of identities for which belongsToFamily holds. The types of an
+ * extension are its known types or, when it has none, application/x- followed by the
+ * extension without its dot.
+ *
+ * If a known type of an extension in extensions has any other glob, the operation
+ * refuses with sharedType applied to a map from each such extension, in the order of
+ * extensions, to its first such type and that type's other globs, and changes nothing.
+ * Then, for every extension in extensions, its current claimants are determined - Windows:
  * the ProgId named by Classes\(extension) (default value), plus every ProgId named
  * under Classes\(extension)\OpenWithProgids; Linux: every .desktop file whose MimeType=
- * line names that extension's MIME type, plus every choice-file entry naming that type.
+ * line names one of that extension's types, plus every choice-file entry naming one.
  * [Windows only] A registry value reg.exe itself reports as never having been set (the
  * literal text "(value not set)") is deleted on the spot and counted as no claimant at
  * all, rather than as a claimant named "(value not set)".
@@ -67,7 +79,8 @@ import utils.Bug;
  * 5. If exactly one identity was found in step 1, it equals identity, and it already
  * declares exactly extensions (same extensions, same per-extension icons), the same
  * command, and the same program icon, nothing further happens: this is a successful
- * call that changes nothing.
+ * call that changes nothing. [Linux only] It also requires that no icon file of identity
+ * is left beyond those of extensions.
  *
  * 6. Otherwise, every identity marked for removal in steps 1 and 3 is deleted in full -
  * every registry key or file it created, for every extension it declared, including
@@ -82,6 +95,13 @@ import utils.Bug;
  * programIco/programPng is recorded as identity's own application icon, independent of
  * the per-extension file icons. If extensions is empty, nothing is created: identity is
  * left entirely unregistered.
+ * [Linux only] The .desktop file lists the types of every extension. The MIME-package
+ * file defines application/x-(extension) with its glob for an extension without known
+ * types, and gives each known type only its icon. Each icon is the file
+ * $XDG_DATA_HOME/icons/hicolor/256x256/mimetypes/(identity)-(hex hash).png, and the
+ * program icon is apps/(identity).png there. Every file named (identity)-(hex hash).png
+ * in mimetypes belongs to identity: deleting identity in full, as step 6 and
+ * eradicateAll do, and recreating it delete those not wanted.
  *
  * 8. One shell or database refresh is issued for the whole of steps 6-7 combined -
  * SHChangeNotify once (Windows) or update-mime-database/update-desktop-database once
@@ -109,6 +129,7 @@ public interface FileAssociations{
       List<Icon> extensions, Path programIco, Path programPng,
       Function<String,RuntimeException> ambiguous,
       Function<List<String>,RuntimeException> userLocked,
+      Function<Map<String,Map.Entry<String,List<String>>>,RuntimeException> sharedType,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
@@ -119,7 +140,7 @@ public interface FileAssociations{
     }
     if (Fs.isLinux()){
       LinuxAssociations.reconcile(identity, belongsToFamily, command, extensions, programPng,
-        ambiguous, notOurs, notWritable, halfDone);
+        ambiguous, sharedType, notOurs, notWritable, halfDone);
       return;
     }
     throw Bug.unreachable();

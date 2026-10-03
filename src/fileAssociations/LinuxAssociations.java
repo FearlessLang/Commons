@@ -1,10 +1,12 @@
 package fileAssociations;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -12,8 +14,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
@@ -22,23 +27,34 @@ import tools.Fs;
 import utils.Push;
 
 public final class LinuxAssociations{
+  public static Function<String,String> env= System::getenv;
+  public static BiConsumer<List<String>,Function<String,RuntimeException>> run= Shell::req;
   private static final int iconSide= 256;
+  record Glob(String type, String pattern, boolean cs){
+    boolean is(String ext){ return cs ? pattern.equals("*"+ext) : pattern.equalsIgnoreCase("*"+ext); }
+  }
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programPng,
       Function<String,RuntimeException> ambiguous,
+      Function<Map<String,Map.Entry<String,List<String>>>,RuntimeException> sharedType,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
     if (existing.size() > 1){ throw ambiguous.apply(String.join("\n", existing)); }
-
+    var globs= globs(belongsToFamily);
+    var shared= new LinkedHashMap<String,Map.Entry<String,List<String>>>();
+    for (var icon: extensions){
+      known(globs, icon.extension()).stream().map(t->Map.entry(t, others(globs, t, icon.extension())))
+        .filter(e->!e.getValue().isEmpty()).findFirst().ifPresent(e->shared.put(icon.extension(), e));
+    }
+    if (!shared.isEmpty()){ throw sharedType.apply(Collections.unmodifiableMap(shared)); }
     var foreign= new LinkedHashMap<String,List<String>>();
     for (var icon: extensions){
-      var held= claimants(typeOf(icon.extension())).stream().filter(belongsToFamily.negate()).toList();
+      var held= types(globs, icon.extension()).stream().flatMap(t->claimants(t).stream()).distinct().filter(belongsToFamily.negate()).toList();
       if (!held.isEmpty()){ foreign.put(icon.extension(), held); }
     }
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
-
     var stale= existing.isEmpty() ? Optional.<String>empty() : Optional.of(existing.getFirst());
     var unwritable= new ArrayList<Path>();
     stale.ifPresent(s->unwritable.addAll(filesOf(s).stream().filter(f->!Files.isWritable(f)).toList()));
@@ -46,11 +62,11 @@ public final class LinuxAssociations{
     if (!unwritable.isEmpty()){
       throw notWritable.apply(String.join("\n", unwritable.stream().map(Path::toString).toList()));
     }
-
-    if (alreadyMatches(stale, identity, extensions, programPng)){ return; }
-
+    var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, command, extensions, programPng, globs);
+    if (stale.stream().allMatch(identity::equals) && alreadyMatches(identity, wanted)){ return; }
     stale.ifPresent(LinuxAssociations::eradicate);
-    if (!extensions.isEmpty()){ create(identity, command, extensions, programPng); }
+    eradicate(identity);
+    wanted.forEach(LinuxAssociations::write);
     rebuild(halfDone);
   }
   static void eradicateAll(Predicate<String> belongsToFamily, Function<String,RuntimeException> halfDone){
@@ -65,6 +81,34 @@ public final class LinuxAssociations{
     for (var dir: Xdg.appDirs()){ listed(dir, ".desktop").forEach(f->res.add(baseName(f,".desktop"))); }
     for (var dir: mimeDirs()){ listed(dir.resolve("packages"), ".xml").forEach(f->res.add(baseName(f,".xml"))); }
     return res.stream().filter(belongsToFamily).sorted().toList();
+  }
+  private static List<Glob> globs(Predicate<String> belongsToFamily){
+    var ours= familyTypes(belongsToFamily);
+    var res= new ArrayList<Glob>();
+    var cleared= new HashSet<String>();
+    for (var dir: mimeDirs()){
+      var here= lines(dir.resolve("globs2")).stream().filter(l->!l.startsWith("#")).map(l->l.split(":"))
+        .filter(f->f.length > 2 && !ours.contains(f[1]) && !cleared.contains(f[1])).toList();
+      here.stream().filter(f->!f[2].equals("__NOGLOBS__"))
+        .forEach(f->res.add(new Glob(f[1], f[2], f.length > 3 && List.of(f[3].split(",")).contains("cs"))));
+      here.stream().filter(f->f[2].equals("__NOGLOBS__")).forEach(f->cleared.add(f[1]));
+    }
+    return List.copyOf(res);
+  }
+  private static Set<String> familyTypes(Predicate<String> belongsToFamily){
+    return mimeDirs().stream().flatMap(d->listed(d.resolve("packages"), ".xml").stream())
+      .filter(f->belongsToFamily.test(baseName(f, ".xml"))).flatMap(f->lines(f).stream())
+      .filter(l->l.contains("<glob ")).flatMap(l->between(l, "<mime-type type=\"").stream()).collect(Collectors.toSet());
+  }
+  private static List<String> known(List<Glob> globs, String ext){
+    return globs.stream().filter(g->g.is(ext)).map(Glob::type).distinct().toList();
+  }
+  private static List<String> others(List<Glob> globs, String type, String ext){
+    return globs.stream().filter(g->g.type().equals(type) && !g.is(ext)).map(Glob::pattern).distinct().toList();
+  }
+  private static List<String> types(List<Glob> globs, String ext){
+    var known= known(globs, ext);
+    return known.isEmpty() ? List.of(typeOf(ext)) : known;
   }
   private static Set<String> claimants(String type){
     var res= new LinkedHashSet<String>();
@@ -103,68 +147,54 @@ public final class LinuxAssociations{
     while (p != null && !Files.exists(p)){ p= p.getParent(); }
     return p != null && Files.isWritable(p);
   }
-  private static boolean alreadyMatches(Optional<String> stale, String identity, List<Icon> extensions, Path programPng){
-    if (extensions.isEmpty()){ return stale.isEmpty(); }
-    if (stale.isEmpty() || !stale.get().equals(identity)){ return false; }
-    var declared= readOwned(lines(ourPackage(identity)));
-    if (declared.size() != extensions.size()){ return false; }
-    for (var icon: extensions){
-      if (!(identity+"-"+hash(desktopPng(icon.png()))).equals(declared.get(icon.extension()))){ return false; }
-    }
-    if (!lines(ourDesktop(identity)).contains("StartupWMClass="+windowClass())){ return false; }
-    return programIconBytes(identity).map(b->Arrays.equals(b, desktopPng(programPng))).orElse(false);
-  }
-  private static void eradicate(String identity){
-    Fs.ofV(()->Files.deleteIfExists(ourDesktop(identity)));
-    Fs.ofV(()->Files.deleteIfExists(ourPackage(identity)));
-  }
-  private static void create(String identity, Path command, List<Icon> extensions, Path programPng){
+  private static Map<Path,byte[]> wanted(String identity, Path command, List<Icon> extensions, Path programPng, List<Glob> globs){
+    var res= new LinkedHashMap<Path,byte[]>();
     var icons= new LinkedHashMap<String,String>();
-    extensions.forEach(icon->icons.put(icon.extension(), install(identity, icon.png())));
-    Fs.writeUtf8(ourDesktop(identity), desktopEntry(identity, command.toString(), windowClass(), types(icons)));
-    Fs.writeUtf8(ourPackage(identity), mimePackage(identity, icons));
-    put(desktopPng(programPng), "apps", identity);
+    for (var icon: extensions){
+      var bytes= desktopPng(icon.png());
+      var name= identity+"-"+hash(bytes);
+      icons.put(icon.extension(), name);
+      res.put(iconDir().resolve("mimetypes").resolve(name+".png"), bytes);
+    }
+    var types= extensions.stream().flatMap(i->types(globs, i.extension()).stream()).toList();
+    res.put(ourDesktop(identity), utf8(desktopEntry(identity, command.toString(), windowClass(), types)));
+    res.put(ourPackage(identity), utf8(mimePackage(identity, icons, globs)));
+    res.put(appIcon(identity), desktopPng(programPng));
+    return Collections.unmodifiableMap(res);
+  }
+  private static boolean alreadyMatches(String identity, Map<Path,byte[]> wanted){
+    if (!Set.copyOf(ownedFiles(identity)).equals(wanted.keySet())){ return false; }
+    return wanted.entrySet().stream().allMatch(e->Arrays.equals(bytesOf(e.getKey()), e.getValue()));
+  }
+  private static List<Path> ownedFiles(String identity){
+    var icon= Pattern.compile(Pattern.quote(identity)+"-[0-9a-f]+\\.png");
+    var icons= listed(iconDir().resolve("mimetypes"), ".png").stream().filter(f->icon.matcher(f.getFileName().toString()).matches());
+    return Stream.concat(icons, Stream.of(ourDesktop(identity), ourPackage(identity), appIcon(identity)).filter(Files::isRegularFile)).toList();
+  }
+  private static void eradicate(String identity){ ownedFiles(identity).forEach(f->Fs.ofV(()->Files.delete(f))); }
+  private static void write(Path file, byte[] bytes){
+    Fs.ensureDir(file.getParent());
+    Fs.ofV(()->Files.write(file, bytes));
   }
   private static void rebuild(Function<String,RuntimeException> halfDone){
-    Shell.req(List.of("update-mime-database", Xdg.dataHome().resolve("mime").toString()), halfDone);
+    run.accept(List.of("update-mime-database", Xdg.dataHome().resolve("mime").toString()), halfDone);
     Xdg.appDirs().stream().filter(Files::isDirectory).filter(Files::isWritable)
-      .forEach(d->Shell.req(List.of("update-desktop-database", d.toString()), halfDone));
+      .forEach(d->run.accept(List.of("update-desktop-database", d.toString()), halfDone));
   }
   private static Path ourDesktop(String identity){ return Xdg.dataHome().resolve("applications").resolve(identity+".desktop"); }
   private static Path ourPackage(String identity){ return Xdg.dataHome().resolve("mime").resolve("packages").resolve(identity+".xml"); }
-  private static List<String> types(Map<String,String> icons){ return icons.keySet().stream().map(LinuxAssociations::typeOf).toList(); }
-  public static String typeOf(String ext){ return "application/x-"+ext.substring(1); }
-  private static String install(String identity, Path png){
-    var bytes= desktopPng(png);
-    return put(bytes, "mimetypes", identity+"-"+hash(bytes));
-  }
+  private static Path appIcon(String identity){ return iconDir().resolve("apps").resolve(identity+".png"); }
+  private static String typeOf(String ext){ return "application/x-"+ext.substring(1); }
   private static byte[] desktopPng(Path png){
     return Ico.png(Ico.scaled(Objects.requireNonNull(Fs.of(()->ImageIO.read(png.toFile()))), iconSide));
   }
   private static Path iconDir(){ return Xdg.dataHome().resolve("icons").resolve("hicolor").resolve(iconSide+"x"+iconSide); }
-  private static String put(byte[] bytes, String context, String icon){
-    var dest= iconDir().resolve(context).resolve(icon+".png");
-    Fs.ensureDir(dest.getParent());
-    Fs.ofV(()->Files.write(dest, bytes));
-    return icon;
-  }
-  private static Optional<byte[]> programIconBytes(String identity){
-    return Optional.of(iconDir().resolve("apps").resolve(identity+".png")).filter(Files::isRegularFile).map(LinuxAssociations::bytesOf);
-  }
   private static byte[] bytesOf(Path file){ return Fs.of(()->Files.readAllBytes(file)); }
+  private static byte[] utf8(String text){ return text.getBytes(StandardCharsets.UTF_8); }
   public static String hash(byte[] bytes){
     var h= 0xcbf29ce484222325L;
     for (var b: bytes){ h= (h ^ (b & 0xff))*0x100000001b3L; }
     return Long.toHexString(h);
-  }
-  public static Map<String,String> readOwned(List<String> xml){
-    var res= new LinkedHashMap<String,String>();
-    for (var line: xml){
-      var ext= between(line, "<glob pattern=\"*");
-      var icon= between(line, "<icon name=\"");
-      if (ext.isPresent() && icon.isPresent()){ res.put(ext.get(), icon.get()); }
-    }
-    return Collections.unmodifiableMap(res);//keep insertion order, unlike Map.copyOf
   }
   private static Optional<String> between(String line, String open){
     var i= line.indexOf(open);
@@ -173,16 +203,19 @@ public final class LinuxAssociations{
     var end= rest.indexOf('"');
     return end < 0 ? Optional.empty() : Optional.of(rest.substring(0, end));
   }
-  public static String mimePackage(String identity, Map<String,String> icons){
+  private static String mimePackage(String identity, Map<String,String> icons, List<Glob> globs){
     var body= new StringBuilder();
-    icons.forEach((ext,icon)->body.append(mimeType(identity, ext, icon)));
+    icons.forEach((ext,icon)->body.append(mimeTypes(identity, ext, icon, known(globs, ext))));
     return """
       <?xml version="1.0" encoding="UTF-8"?>
       <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
       %s</mime-info>
       """.formatted(body);
   }
-  private static String mimeType(String identity, String ext, String icon){
+  private static String mimeTypes(String identity, String ext, String icon, List<String> known){
+    if (!known.isEmpty()){
+      return known.stream().map(t->"  <mime-type type=\"%s\"><icon name=\"%s\"/></mime-type>\n".formatted(t, icon)).collect(Collectors.joining());
+    }
     return ("  <mime-type type=\"%s\"><comment>%s</comment>"
       +"<glob pattern=\"*%s\" weight=\"100\"/><icon name=\"%s\"/></mime-type>\n")
       .formatted(typeOf(ext), identity, ext, icon);
