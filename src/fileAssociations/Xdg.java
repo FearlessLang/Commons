@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import utils.Push;
@@ -18,7 +19,7 @@ final class Xdg{
   static List<Path> appDirs(){ return Push.of(dataHome(), dataDirs()).stream().map(d->d.resolve("applications")).toList(); }
   //The desktop reads a prefixed list before the plain one, one prefix per name in XDG_CURRENT_DESKTOP.
   static List<String> listNames(){
-    var prefixed= Stream.of(System.getenv().getOrDefault("XDG_CURRENT_DESKTOP","").split(":"))
+    var prefixed= Stream.of(Objects.requireNonNullElse(LinuxAssociations.env.apply("XDG_CURRENT_DESKTOP"),"").split(":"))
       .filter(de->!de.isEmpty()).map(de->de.toLowerCase(Locale.ROOT)+"-mimeapps.list").toList();
     return Push.of(prefixed, "mimeapps.list");
   }
@@ -28,13 +29,13 @@ final class Xdg{
       .flatMap(root->listNames().stream().map(root::resolve)).toList();
   }
   private static Path dir(String name, Path fallback){
-    var v= System.getenv(name);
+    var v= LinuxAssociations.env.apply(name);
     if (v == null || v.isBlank()){ return fallback; }
     var res= Path.of(v);
     return res.isAbsolute() ? res.normalize() : fallback;
   }
   private static List<Path> dirs(String name, List<Path> fallback){
-    var v= System.getenv(name);
+    var v= LinuxAssociations.env.apply(name);
     if (v == null || v.isBlank()){ return fallback; }
     var res= new ArrayList<Path>();
     for (var part: v.split(":")){

@@ -32,6 +32,11 @@ public final class Fs{
     "+-*/=<>,.;:()[]{}" +
     "`'\"!?@#$%^&_|~\\" +
     " \n";
+  public static final int maxExtSeg= 16;
+  public static boolean isExtSegChar(char c){ return ('a' <= c && c <= 'z') || ('0' <= c && c <= '9'); }
+  public static boolean isExtSeg(String s){
+    return !s.isEmpty() && s.length() <= maxExtSeg && s.chars().allMatch(c->isExtSegChar((char)c));
+  }
   public static void ensureDir(Path p){ of(()->Files.createDirectories(p)); }
   public static void cleanDirContents(Path p){
     reqDir(p, "cleaning");
