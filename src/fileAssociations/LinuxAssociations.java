@@ -6,14 +6,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -33,54 +31,41 @@ public final class LinuxAssociations{
   public static BiConsumer<List<String>,Function<String,RuntimeException>> run= Shell::req;
   private static final int iconSide= 256;
   private static final Pattern declared= Pattern.compile("<mime-type type=\"([^\"]*)\"");
+  private static final String defaults= "[Default Applications]";
+  private static final String added= "[Added Associations]";
   record Glob(String type, String pattern, boolean cs){
-    boolean is(String ext){ return cs ? pattern.equals("*"+ext) : pattern.equalsIgnoreCase("*"+ext); }
-  }
-  record Db(List<Glob> globs, Set<String> names, Map<String,String> aliases, List<List<String>> subclasses, List<Map.Entry<String,String>> opened){
-    String unalias(String type){ return aliases.getOrDefault(type, type); }
-    Set<String> closure(String type, int from){
-      var res= new LinkedHashSet<String>(List.of(type));
-      var size= 0;
-      while (size != res.size()){
-        size= res.size();
-        subclasses.stream().filter(s->res.contains(unalias(s.get(from)))).map(s->unalias(s.get(1-from))).toList().forEach(res::add);
-      }
-      return Collections.unmodifiableSet(res);
+    boolean is(String ext){
+      var regex= new StringBuilder();
+      for (var c: (cs ? pattern : pattern.toLowerCase(Locale.ROOT)).replace("[!", "[^").toCharArray()){ regex.append(wildcard(c)); }
+      return ("*"+ext).matches(regex.toString());
     }
-    List<String> known(String ext){ return globs.stream().filter(g->g.is(ext)).map(Glob::type).distinct().toList(); }
-    List<String> types(String ext){
-      var known= known(ext);
-      return known.isEmpty() ? List.of(unalias(typeOf(ext))) : known;
-    }
-    Optional<Map.Entry<String,List<String>>> shared(String ext){
-      var taken= known(ext).isEmpty() && (names.contains(typeOf(ext)) || aliases.containsKey(typeOf(ext)));
-      return types(ext).stream().map(t->Map.entry(t, others(t, ext))).filter(e->taken || !e.getValue().isEmpty()).findFirst();
-    }
-    List<String> others(String type, String ext){
-      var below= closure(type, 1);
-      return below.stream().flatMap(t->globs.stream().filter(g->g.type().equals(t) && !g.is(ext))).map(Glob::pattern).distinct().toList();
-    }
-    List<String> held(String ext){
-      return types(ext).stream().map(t->closure(t, 0))
-        .flatMap(above->opened.stream().filter(o->above.contains(unalias(o.getValue())))).map(Map.Entry::getKey).distinct().toList();
+    private static String wildcard(char c){
+      return switch(c){
+        case '*' -> ".*";
+        case '?' -> ".";
+        case '[', ']', '-', '^' -> String.valueOf(c);
+        default -> Character.isLetterOrDigit(c) ? String.valueOf(c) : "\\"+c;
+      };
     }
   }
+  record Opener(String program, String type, String section){}
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programPng,
       Function<String,RuntimeException> ambiguous,
-      Function<Map<String,Map.Entry<String,List<String>>>,RuntimeException> sharedType,
+      Function<List<String>,RuntimeException> userLocked,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
     if (existing.size() > 1){ throw ambiguous.apply(String.join("\n", existing)); }
-    var db= db(belongsToFamily);
-    var shared= new LinkedHashMap<String,Map.Entry<String,List<String>>>();
-    extensions.forEach(icon->db.shared(icon.extension()).ifPresent(s->shared.put(icon.extension(), s)));
-    if (!shared.isEmpty()){ throw sharedType.apply(Collections.unmodifiableMap(shared)); }
+    var globs= globs(belongsToFamily);
+    var openers= openers().stream().filter(o->!belongsToFamily.test(o.program())).toList();
+    var locked= extensions.stream().filter(Icon::system).map(Icon::extension)
+      .filter(e->openers.stream().anyMatch(o->o.section().equals(defaults) && o.type().equals(typeOf(e)))).toList();
+    if (!locked.isEmpty()){ throw userLocked.apply(locked); }
     var foreign= new LinkedHashMap<String,List<String>>();
-    for (var icon: extensions){
-      var held= db.held(icon.extension()).stream().filter(belongsToFamily.negate()).toList();
+    for (var icon: extensions.stream().filter(i->!i.system()).toList()){
+      var held= held(icon.extension(), globs, openers);
       if (!held.isEmpty()){ foreign.put(icon.extension(), held); }
     }
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
@@ -89,7 +74,7 @@ public final class LinuxAssociations{
       : Stream.of(home("applications"), home("mime/packages"), iconDir("mimetypes"), iconDir("apps")).filter(d->!writableForCreation(d));
     var refused= Stream.concat(unwritable, targets).map(Path::toString).toList();
     if (!refused.isEmpty()){ throw notWritable.apply(String.join("\n", refused)); }
-    var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, command, extensions, programPng, db);
+    var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, command, extensions, programPng, globs);
     if (alreadyMatches(existing, identity, wanted)){ return; }
     owned(Push.of(existing, identity)::contains).forEach(f->Fs.ofV(()->Files.delete(f)));
     wanted.keySet().forEach(f->Fs.ensureDir(f.getParent()));
@@ -100,6 +85,14 @@ public final class LinuxAssociations{
     var existing= existingIdentities(belongsToFamily);
     owned(belongsToFamily).forEach(f->Fs.ofV(()->Files.delete(f)));
     if (!existing.isEmpty()){ rebuild(halfDone); }
+  }
+  private static List<String> held(String ext, List<Glob> globs, List<Opener> openers){
+    var programs= openers.stream().filter(o->o.type().equals(typeOf(ext)) && !(ext.equals(".fearless") && o.section().equals(added))).map(Opener::program);
+    return Stream.concat(programs, globTypes(ext, globs).stream()).distinct().toList();
+  }
+  private static List<String> globTypes(String ext, List<Glob> globs){
+    if (ext.equals(".fearless")){ return List.of(); }
+    return globs.stream().filter(g->g.is(ext)).map(Glob::type).distinct().toList();
   }
 
   private static Stream<Path> desktops(){ return Xdg.appDirs().stream().flatMap(d->listed(d, ".desktop").stream()); }
@@ -116,25 +109,21 @@ public final class LinuxAssociations{
       .flatMap(List::stream).filter(f->owner.test(baseName(f)));
     return Stream.concat(icons, named).toList();
   }
-  private static Db db(Predicate<String> belongsToFamily){
-    var globs= new ArrayList<Glob>();
+  private static List<Glob> globs(Predicate<String> belongsToFamily){
+    var res= new ArrayList<Glob>();
     var cleared= new HashSet<String>();
-    var names= new HashSet<String>();
-    var aliases= new HashMap<String,String>();
-    var subclasses= new ArrayList<List<String>>();
     for (var dir: mimeDirs()){
       var keep= keep(dir, belongsToFamily);
-      var here= fields(dir.resolve("globs2"), ":").filter(f->f.size() > 2 && keep.test(f.get(1)) && !cleared.contains(f.get(1))).toList();
+      var here= fields(dir.resolve("globs2")).filter(f->f.size() > 2 && keep.test(f.get(1)) && !cleared.contains(f.get(1))).toList();
       here.stream().filter(f->!f.get(2).equals("__NOGLOBS__"))
-        .forEach(f->globs.add(new Glob(f.get(1), f.get(2), f.size() > 3 && List.of(f.get(3).split(",")).contains("cs"))));
+        .forEach(f->res.add(new Glob(f.get(1), f.get(2), f.size() > 3 && List.of(f.get(3).split(",")).contains("cs"))));
       here.stream().filter(f->f.get(2).equals("__NOGLOBS__")).forEach(f->cleared.add(f.get(1)));
-      fields(dir.resolve("types"), " ").filter(f->keep.test(f.getFirst())).forEach(f->names.add(f.getFirst()));
-      fields(dir.resolve("aliases"), " ").filter(f->f.size() == 2 && keep.test(f.get(1))).forEach(f->aliases.putIfAbsent(f.get(0), f.get(1)));
-      fields(dir.resolve("subclasses"), " ").filter(f->f.size() == 2 && keep.test(f.get(0))).forEach(subclasses::add);
     }
-    var desktops= desktops().flatMap(f->opens(f).map(t->Map.entry(baseName(f), t)));
-    var opened= Stream.concat(desktops, Xdg.choiceFiles().stream().flatMap(f->chosen(f).stream())).toList();
-    return new Db(List.copyOf(globs), Set.copyOf(names), Map.copyOf(aliases), List.copyOf(subclasses), opened);
+    return List.copyOf(res);
+  }
+  private static List<Opener> openers(){
+    var listing= desktops().flatMap(f->opens(f).map(t->new Opener(baseName(f), t, "[Desktop Entry]")));
+    return Stream.concat(listing, Xdg.choiceFiles().stream().flatMap(f->chosen(f).stream())).toList();
   }
   private static Predicate<String> keep(Path dir, Predicate<String> belongsToFamily){
     var packages= listed(dir.resolve("packages"), ".xml").stream().collect(Collectors.partitioningBy(f->belongsToFamily.test(baseName(f))));
@@ -144,36 +133,37 @@ public final class LinuxAssociations{
     var others= packages.get(false).stream().map(f->String.join("\n", lines(f))).collect(Collectors.joining("\n"));
     return t->!family.contains(t) && (others.contains("\""+t+"\"") || others.contains("'"+t+"'"));
   }
-  private static Stream<List<String>> fields(Path file, String separator){
-    return lines(file).stream().filter(l->!l.isBlank() && !l.startsWith("#")).map(l->List.of(l.strip().split(separator)));
+  private static Stream<List<String>> fields(Path file){
+    return lines(file).stream().filter(l->!l.isBlank() && !l.startsWith("#")).map(l->List.of(l.strip().split(":")));
   }
   private static Stream<String> opens(Path desktopFile){
     return lines(desktopFile).stream().filter(l->l.startsWith("MimeType=")).findFirst().stream().flatMap(l->split(l.substring("MimeType=".length())));
   }
-  private static List<Map.Entry<String,String>> chosen(Path file){
-    var res= new ArrayList<Map.Entry<String,String>>();
-    var chosen= false;
+  private static List<Opener> chosen(Path file){
+    var res= new ArrayList<Opener>();
+    var section= "";
     for (var line: lines(file)){
-      if (line.startsWith("[")){ chosen= line.startsWith("[Default Applications]") || line.startsWith("[Added Associations]"); continue; }
+      if (line.startsWith("[")){ section= line.strip(); continue; }
       var eq= line.indexOf('=');
-      if (!chosen || eq < 0){ continue; }
-      split(line.substring(eq+1)).forEach(n->res.add(Map.entry(n.replaceFirst("\\.desktop$", ""), line.substring(0,eq).strip())));
+      if (eq < 0 || !List.of(defaults, added).contains(section)){ continue; }
+      var at= section;
+      split(line.substring(eq+1)).forEach(n->res.add(new Opener(n.replaceFirst("\\.desktop$", ""), line.substring(0,eq).strip(), at)));
     }
     return Collections.unmodifiableList(res);
   }
   private static boolean writableForCreation(Path dir){
     return Stream.iterate(dir, Objects::nonNull, Path::getParent).filter(Files::exists).findFirst().filter(Files::isWritable).isPresent();
   }
-  private static Map<Path,byte[]> wanted(String identity, Path command, List<Icon> extensions, Path programPng, Db db){
+  private static Map<Path,byte[]> wanted(String identity, Path command, List<Icon> extensions, Path programPng, List<Glob> globs){
     var res= new LinkedHashMap<Path,byte[]>();
     var body= new StringBuilder();
     for (var icon: extensions){
       var bytes= desktopPng(icon.png());
       var name= identity+"-"+hash(bytes);
       res.put(iconDir("mimetypes").resolve(name+".png"), bytes);
-      body.append(mimeTypes(identity, icon.extension(), name, db.known(icon.extension())));
+      body.append(mimeType(identity, icon.extension(), name, globTypes(icon.extension(), globs)));
     }
-    var types= extensions.stream().flatMap(i->db.types(i.extension()).stream()).toList();
+    var types= extensions.stream().map(i->typeOf(i.extension())).toList();
     res.put(home("applications").resolve(identity+".desktop"), utf8(desktopEntry(identity, command.toString(), windowClass(), types)));
     res.put(home("mime/packages").resolve(identity+".xml"), utf8("""
       <?xml version="1.0" encoding="UTF-8"?>
@@ -194,7 +184,7 @@ public final class LinuxAssociations{
   }
   private static Path home(String folder){ return Xdg.dataHome().resolve(folder); }
   private static Path iconDir(String kind){ return home("icons/hicolor/"+iconSide+"x"+iconSide).resolve(kind); }
-  private static String typeOf(String ext){ return "application/x-"+ext.substring(1); }
+  private static String typeOf(String ext){ return "application/x-fearless"+(ext.equals(".fearless") ? "" : "-"+ext.substring(1)); }
   private static byte[] desktopPng(Path png){
     return Ico.png(Ico.scaled(Objects.requireNonNull(Fs.of(()->ImageIO.read(png.toFile()))), iconSide));
   }
@@ -204,13 +194,11 @@ public final class LinuxAssociations{
     for (var b: bytes){ h= (h ^ (b & 0xff))*0x100000001b3L; }
     return Long.toHexString(h);
   }
-  private static String mimeTypes(String identity, String ext, String icon, List<String> known){
-    if (!known.isEmpty()){
-      return known.stream().map(t->"  <mime-type type=\"%s\"><icon name=\"%s\"/></mime-type>\n".formatted(t, icon)).collect(Collectors.joining());
-    }
+  private static String mimeType(String identity, String ext, String icon, List<String> supertypes){
+    var subclass= supertypes.stream().map(t->"<sub-class-of type=\"%s\"/>".formatted(t)).collect(Collectors.joining());
     return ("  <mime-type type=\"%s\"><comment>%s</comment>"
-      +"<glob pattern=\"*%s\" weight=\"100\"/><icon name=\"%s\"/></mime-type>\n")
-      .formatted(typeOf(ext), identity, ext, icon);
+      +"<glob pattern=\"*%s\" weight=\"100\"/>%s<icon name=\"%s\"/></mime-type>\n")
+      .formatted(typeOf(ext), identity, ext, subclass, icon);
   }
   public static String desktopEntry(String identity, String command, String windowClass, List<String> types){
     return """

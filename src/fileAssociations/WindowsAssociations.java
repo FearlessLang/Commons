@@ -41,7 +41,7 @@ public final class WindowsAssociations{
       .filter(e->userChoice(e).isPresent() || userChoiceLatest(e).isPresent()).toList();
     if (!locked.isEmpty()){ throw userLocked.apply(locked); }
     var foreign= new LinkedHashMap<String,List<String>>();
-    for (var icon: extensions){
+    for (var icon: extensions.stream().filter(i->!i.system()).toList()){
       var held= claimants(icon.extension()).stream().filter(p->!belongsToFamily.test(owner(p, icon.extension()))).toList();
       if (!held.isEmpty()){ foreign.put(icon.extension(), held); }
     }
