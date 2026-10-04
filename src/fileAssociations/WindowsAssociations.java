@@ -9,7 +9,6 @@ import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -18,6 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import tools.Fs;
 import utils.Bug;
@@ -31,29 +31,21 @@ public final class WindowsAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programIco,
       Function<String,RuntimeException> ambiguous,
-      Function<String,RuntimeException> userLocked,
-      Function<String,RuntimeException> notOurs,
+      Function<List<String>,RuntimeException> userLocked,
+      Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
     if (existing.size() > 1){ throw ambiguous.apply(String.join("\n", existing)); }
-
     var locked= extensions.stream().map(Icon::extension)
       .filter(e->userChoice(e).isPresent() || userChoiceLatest(e).isPresent()).toList();
-    if (!locked.isEmpty()){ throw userLocked.apply(String.join("\n", locked)); }
-
-    var foreign= new ArrayList<String>();
-    for (var icon: extensions){
-      for (var progId: claimants(icon.extension())){
-        if (!belongsToFamily.test(owner(progId, icon.extension()))){ foreign.add(icon.extension()+" -> "+progId); }
-      }
-    }
-    if (!foreign.isEmpty()){ throw notOurs.apply(String.join("\n", foreign)); }
-
-    var stale= existing.isEmpty() ? Optional.<String>empty() : Optional.of(existing.getFirst());
-    if (alreadyMatches(stale, identity, command, extensions, programIco)){ return; }
-
-    stale.ifPresent(s->eradicate(s, belongsToFamily));
+    if (!locked.isEmpty()){ throw userLocked.apply(locked); }
+    var foreign= new LinkedHashMap<String,List<String>>();
+    extensions.stream().map(Icon::extension).filter(e->!Icon.system(e)).forEach(e->foreign.put(e, held(e, belongsToFamily)));
+    foreign.values().removeIf(List::isEmpty);
+    if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
+    if (alreadyMatches(existing, identity, command, extensions, programIco)){ return; }
+    existing.forEach(s->eradicate(s, belongsToFamily));
     if (!extensions.isEmpty()){
       extensions.forEach(icon->forgetOpenWithHistory(icon.extension(), belongsToFamily));
       Shell.req(importReg(regFile(identity, command, extensions, programIco)), halfDone);
@@ -80,19 +72,17 @@ public final class WindowsAssociations{
   private static Optional<String> userChoiceLatest(String ext){
     return regValue(hkcu(fileExts+ext+"\\UserChoiceLatest\\ProgId"), "ProgId");
   }
-  private static List<String> claimants(String ext){
-    var res= new ArrayList<String>();
-    regValue(hkcu(classes)+ext, "").ifPresent(res::add);
-    res.addAll(regValues(hkcu(classes)+ext+"\\OpenWithProgids").keySet());
-    return List.copyOf(res);
+  private static List<String> held(String ext, Predicate<String> belongsToFamily){
+    var progIds= Stream.concat(regValue(hkcu(classes)+ext, "").stream(), regValues(hkcu(classes)+ext+"\\OpenWithProgids").keySet().stream());
+    return progIds.distinct().filter(p->!belongsToFamily.test(owner(p, ext))).toList();
   }
   private static String owner(String progId, String ext){
     var suffix= "."+ext.substring(1);
     return progId.endsWith(suffix) ? progId.substring(0, progId.length()-suffix.length()) : progId;
   }
-  private static boolean alreadyMatches(Optional<String> stale, String identity, Path command, List<Icon> extensions, Path programIco){
-    if (extensions.isEmpty()){ return stale.isEmpty(); }
-    if (stale.isEmpty() || !stale.get().equals(identity)){ return false; }
+  private static boolean alreadyMatches(List<String> existing, String identity, Path command, List<Icon> extensions, Path programIco){
+    if (extensions.isEmpty()){ return existing.isEmpty(); }
+    if (!existing.equals(List.of(identity))){ return false; }
     var declared= regValues(hkcu(fileAssociations(identity)));
     if (declared.size() != extensions.size()){ return false; }
     for (var icon: extensions){
