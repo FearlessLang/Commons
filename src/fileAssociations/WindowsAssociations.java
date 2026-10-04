@@ -15,9 +15,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import tools.Fs;
 import utils.Bug;
@@ -41,10 +41,8 @@ public final class WindowsAssociations{
       .filter(e->userChoice(e).isPresent() || userChoiceLatest(e).isPresent()).toList();
     if (!locked.isEmpty()){ throw userLocked.apply(locked); }
     var foreign= new LinkedHashMap<String,List<String>>();
-    for (var icon: extensions.stream().filter(i->!i.system()).toList()){
-      var held= claimants(icon.extension()).stream().filter(p->!belongsToFamily.test(owner(p, icon.extension()))).toList();
-      if (!held.isEmpty()){ foreign.put(icon.extension(), held); }
-    }
+    extensions.stream().map(Icon::extension).filter(e->!Icon.system(e)).forEach(e->foreign.put(e, held(e, belongsToFamily)));
+    foreign.values().removeIf(List::isEmpty);
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
     if (alreadyMatches(existing, identity, command, extensions, programIco)){ return; }
     existing.forEach(s->eradicate(s, belongsToFamily));
@@ -74,11 +72,9 @@ public final class WindowsAssociations{
   private static Optional<String> userChoiceLatest(String ext){
     return regValue(hkcu(fileExts+ext+"\\UserChoiceLatest\\ProgId"), "ProgId");
   }
-  private static Set<String> claimants(String ext){
-    var res= new LinkedHashSet<String>();
-    regValue(hkcu(classes)+ext, "").ifPresent(res::add);
-    res.addAll(regValues(hkcu(classes)+ext+"\\OpenWithProgids").keySet());
-    return Collections.unmodifiableSet(res);
+  private static List<String> held(String ext, Predicate<String> belongsToFamily){
+    var progIds= Stream.concat(regValue(hkcu(classes)+ext, "").stream(), regValues(hkcu(classes)+ext+"\\OpenWithProgids").keySet().stream());
+    return progIds.distinct().filter(p->!belongsToFamily.test(owner(p, ext))).toList();
   }
   private static String owner(String progId, String ext){
     var suffix= "."+ext.substring(1);

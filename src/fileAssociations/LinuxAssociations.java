@@ -60,14 +60,12 @@ public final class LinuxAssociations{
     if (existing.size() > 1){ throw ambiguous.apply(String.join("\n", existing)); }
     var globs= globs(belongsToFamily);
     var openers= openers().stream().filter(o->!belongsToFamily.test(o.program())).toList();
-    var locked= extensions.stream().filter(Icon::system).map(Icon::extension)
+    var locked= extensions.stream().map(Icon::extension).filter(Icon::system)
       .filter(e->openers.stream().anyMatch(o->o.section().equals(defaults) && o.type().equals(typeOf(e)))).toList();
     if (!locked.isEmpty()){ throw userLocked.apply(locked); }
     var foreign= new LinkedHashMap<String,List<String>>();
-    for (var icon: extensions.stream().filter(i->!i.system()).toList()){
-      var held= held(icon.extension(), globs, openers);
-      if (!held.isEmpty()){ foreign.put(icon.extension(), held); }
-    }
+    extensions.stream().map(Icon::extension).filter(e->!Icon.system(e)).forEach(e->foreign.put(e, held(e, globs, openers)));
+    foreign.values().removeIf(List::isEmpty);
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
     var unwritable= registrations().stream().filter(f->existing.contains(baseName(f)) && !Files.isWritable(f));
     var targets= extensions.isEmpty() && existing.isEmpty() ? Stream.<Path>of()
@@ -184,7 +182,7 @@ public final class LinuxAssociations{
   }
   private static Path home(String folder){ return Xdg.dataHome().resolve(folder); }
   private static Path iconDir(String kind){ return home("icons/hicolor/"+iconSide+"x"+iconSide).resolve(kind); }
-  private static String typeOf(String ext){ return "application/x-fearless"+(ext.equals(".fearless") ? "" : "-"+ext.substring(1)); }
+  public static String typeOf(String ext){ return "application/x-fearless"+(ext.equals(".fearless") ? "" : "-"+ext.substring(1)); }
   private static byte[] desktopPng(Path png){
     return Ico.png(Ico.scaled(Objects.requireNonNull(Fs.of(()->ImageIO.read(png.toFile()))), iconSide));
   }
