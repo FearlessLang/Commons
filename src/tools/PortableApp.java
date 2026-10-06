@@ -3,6 +3,7 @@ package tools;
 import java.lang.module.ModuleFinder;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 import utils.OneOr;
 
@@ -26,8 +27,11 @@ public record PortableApp(
     var stdLib= prepareAppContent(tmp);
     JavacTool.jpackage(out, packaging, appName, versionId, moduleMain, stdLib);
     if(!Fs.isLinux()){ return; }
-    var mimeLoc= out.resolve(appName).resolve("bin").resolve("fearless-mime.xml");
-    Fs.writeUtf8(mimeLoc, mime);
+    var app= out.resolve(appName);
+    Fs.writeUtf8(app.resolve("bin").resolve("fearless-mime.xml"), mime);
+    var launcher= app.resolve(appName+".desktop");
+    Fs.writeUtf8(launcher, desktop.formatted(appName));
+    Fs.ofV(()->Files.setPosixFilePermissions(launcher, PosixFilePermissions.fromString("rwxr-xr-x")));
   }
   private static void removeOtherPlatformSkijaJars(Path modsDir){
     var currentTag= (Fs.isWindows()? "windows" : Fs.isMac()? "macos" : "linux")
@@ -60,6 +64,13 @@ public record PortableApp(
     Fs.copyFresh(packaging.resolve("linux").resolve("icon.png"), app.resolve("icon.png"));
     return app;
   }
+  private static final String desktop="""
+[Desktop Entry]
+Type=Application
+Name=%1$s
+Exec=sh -c 'exec "$(dirname "$(readlink -f "$0")")/bin/%1$s" "$@"' %%k %%F
+Terminal=false
+""";
   //need to be saved in fearless-mime.xml near fearless and fearlessw
   private static final String mime="""
 <?xml version="1.0" encoding="UTF-8"?>
