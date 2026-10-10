@@ -1,12 +1,10 @@
-package utils;
+package tools;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
-
-import tools.Fs;
 
 public final class UriSort{
   public static <X> List<X> byFolderThenFile(List<X> xs, Function<X,URI> toUri){
