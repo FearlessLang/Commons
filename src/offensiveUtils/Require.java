@@ -7,7 +7,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public final class Require {
+public final class Require{
   //pattern: the methods return a boolean so we can use them as
   //assert check.., but the method take control of the error to report if any.
   //in this way, we can disable all those checks while disabling assertions.

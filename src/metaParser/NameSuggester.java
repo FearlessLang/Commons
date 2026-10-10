@@ -4,7 +4,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import utils.Range;
 
-public final class NameSuggester {
+public final class NameSuggester{
   private static final int maxScopeToList= 12;
   private static final double strongSimilarity= 0.68;
   private static final double margin= 0.08;
