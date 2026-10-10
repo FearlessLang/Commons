@@ -21,7 +21,7 @@ public final class Message{
   public static String of(Function<URI,String> loader, List<Frame> frames, String msg){
     try{ return _of(loader,frames,msg); }
     catch(Throwable e){
-      String locs= frames.stream().map(f -> f.s().toString()).collect(Collectors.joining("\n"));
+      String locs= frames.stream().map(f->f.s().toString()).collect(Collectors.joining("\n"));
       throw new Error("Exception while formatting the following error:\n" + locs + "\n" + msg, e);
     }
   }

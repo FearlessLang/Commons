@@ -17,13 +17,13 @@ public final class NameSuggester{
     if (candidates.contains(name)){ return Optional.of(name); }
     var base= stripQuotes(name);
     if (!base.equals(name) && candidates.contains(base)){ return Optional.of(base); }
-    return suggest(name, candidates, (_, _, best) -> best);
+    return suggest(name, candidates, (_,_,best)->best);
   }
 
   public static String suggest(String name, List<String> candidates){
-    return suggest(name, candidates, (_, cs, best) -> {
+    return suggest(name, candidates, (_,cs,best)->{
       StringBuilder out= new StringBuilder();
-      best.ifPresent(b -> out
+      best.ifPresent(b->out
         .append("Did you mean ")
         .append(Message.displayString(b))
         .append(" ?\n"));
@@ -40,7 +40,7 @@ public final class NameSuggester{
     assert !name.isEmpty();
     assert !candidates.isEmpty();
     assert candidates.equals(candidates.stream().distinct().sorted().toList()): candidates;
-    assert candidates.stream().allMatch(s -> !s.isEmpty());
+    assert candidates.stream().allMatch(s->!s.isEmpty());
     assert !candidates.contains(name);
     var best= pickBest(name, candidates);
     return renderer.render(name, candidates, best);
@@ -61,10 +61,10 @@ public final class NameSuggester{
     }
 
     scored.sort(Comparator
-      .<Suggestion>comparingDouble(s -> -s.score)
-      .thenComparingInt(s -> Math.abs(s.scoreName.length() - tScore.length()))
-      .thenComparingInt(s -> s.value.length())
-      .thenComparing(s -> s.value));
+      .<Suggestion>comparingDouble(s->-s.score)
+      .thenComparingInt(s->Math.abs(s.scoreName.length() - tScore.length()))
+      .thenComparingInt(s->s.value.length())
+      .thenComparing(s->s.value));
 
     var top= scored.get(0);
     double topScore= top.score;
