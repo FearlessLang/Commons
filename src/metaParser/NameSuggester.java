@@ -2,6 +2,7 @@ package metaParser;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import utils.Range;
 
 public final class NameSuggester {
@@ -47,17 +48,12 @@ public final class NameSuggester {
   }
 
   private static Optional<String> pickBest(String t, List<String> candidates){
-    var tBase= stripQuotes(t);
-    var tScore= simpleName(tBase);
-    var tKind= kindOf(tScore);
-    var tToks= splitCamel(tScore);
+    var tScore= simpleName(stripQuotes(t));
 
     List<Suggestion> scored= new ArrayList<>(candidates.size());
     for (String c: candidates){
-      var cBase= stripQuotes(c);
-      var cScore= simpleName(cBase);
-      double s= score(tScore, tKind, tToks, cScore);
-      scored.add(new Suggestion(c, cScore, s));
+      var cScore= simpleName(stripQuotes(c));
+      scored.add(new Suggestion(c, cScore, score(tScore, cScore)));
     }
 
     scored.sort(Comparator
@@ -75,16 +71,10 @@ public final class NameSuggester {
     return Optional.of(top.value);
   }
 
-  private static double score(String tScore, Kind tKind, List<String> tToks, String cScore){
-    var cKind= kindOf(cScore);
-    var cToks= splitCamel(cScore);
+  private static double score(String tScore, String cScore){
+    double score= 0.55 * componentScore(splitCamel(tScore), splitCamel(cScore)) + 0.45 * wholeScore(tScore, cScore);
 
-    double whole= wholeScore(tScore, cScore);
-    double comp= componentScore(tToks, cToks);
-
-    double score= 0.55 * comp + 0.45 * whole;
-
-    if (kindsCompatible(tKind, cKind)){ score += 0.03; }
+    if (kindsCompatible(kindOf(tScore), kindOf(cScore))){ score += 0.03; }
     else { score -= 0.10; }
 
     return Math.clamp(score, 0, 1);
@@ -130,22 +120,18 @@ public final class NameSuggester {
   }
 
   private static double tokenScore(String a, String b){
-    if (a.equals(b)){ return 1.0; }
-    String al= a.toLowerCase(Locale.ROOT);
-    String bl= b.toLowerCase(Locale.ROOT);
-
-    if (aliases.stream().anyMatch(g->g.contains(al) && g.contains(bl))){ return 0.96; }
-    if (al.equals(bl)){ return 0.92; }
-    return normalizedLevenshtein(al, bl);
+    var al= a.toLowerCase(Locale.ROOT);
+    var bl= b.toLowerCase(Locale.ROOT);
+    var alias= !a.equals(b) && aliases.stream().anyMatch(g->g.contains(al) && g.contains(bl));
+    return alias ? 0.96 : wholeScore(a, b);
   }
 
   private record Suggestion(String value, String scoreName, double score){}
 
   private static String stripQuotes(String s){
-    int i= s.length();
-    while (i > 0 && s.charAt(i - 1) == '\''){ i--; }
-    assert i > 0: s;
-    return (i == s.length()) ? s : s.substring(0, i);
+    var res= s.replaceFirst("'+\\z", "");
+    assert !res.isEmpty(): s;
+    return res;
   }
 
   private static String simpleName(String s){
@@ -160,45 +146,8 @@ public final class NameSuggester {
     * Also splits on non-letters.
     */
   private static List<String> splitCamel(String s){
-    int n= s.length();
-
-    if (s.chars().noneMatch(c->isAsciiLetter((char)c))){ return List.of(s); }
-
-    List<String> out= new ArrayList<>();
-    int start= 0;
-
-    for (int i : Range.of(1,n)){
-      char p= s.charAt(i - 1), c= s.charAt(i);
-
-      if (!isAsciiLetter(p)){
-        start= i;
-        continue;
-      }
-      if (!isAsciiLetter(c)){
-        if (start < i){ out.add(s.substring(start, i)); }
-        start= i + 1;
-        continue;
-      }
-
-      boolean boundary= false;
-      if (isAsciiLower(p) && isAsciiUpper(c)){ boundary= true; }
-      else if (isAsciiUpper(p) && isAsciiUpper(c) && i + 1 < n){
-        char nx= s.charAt(i + 1);
-        if (isAsciiLetter(nx) && isAsciiLower(nx)){ boundary= true; }
-      }
-
-      if (boundary){
-        out.add(s.substring(start, i));
-        start= i;
-      }
-    }
-
-    if (start < n){
-      int end= n;
-      while (end > start && !isAsciiLetter(s.charAt(end - 1))){ end--; }
-      if (start < end){ out.add(s.substring(start, end)); }
-    }
-    return List.copyOf(out);
+    if (s.matches("[^A-Za-z]*")){ return List.of(s); }
+    return Stream.of(s.split("(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|[^A-Za-z]+")).filter(t->!t.isEmpty()).toList();
   }
 
   private static double normalizedLevenshtein(String a, String b){
@@ -231,7 +180,6 @@ public final class NameSuggester {
 
   private static boolean isAsciiUpper(char c){ return c >= 'A' && c <= 'Z'; }
   private static boolean isAsciiLower(char c){ return c >= 'a' && c <= 'z'; }
-  private static boolean isAsciiLetter(char c){ return isAsciiUpper(c) || isAsciiLower(c); }
 
   private static final List<Set<String>> aliases= aliases();
   private static List<Set<String>> aliases(){
