@@ -33,7 +33,7 @@ record TreeDiagnostics<
     return error(open, stop, opener > closer ? LikelyCause.StrayOpener : LikelyCause.StrayCloser);
   }
   private E error(T open, T stop, LikelyCause l){
-    return tz.errFactory().groupHalt(open, stop, closersForOpener(open.kind()),l, tz.self());
+    return tz.errFactory().groupHalt(open, stop, closersForOpener(open.kind()), l, tz.self());
   }
   private List<TK> openerForCloser(TK closer){
     return spec.openClose.entrySet().stream()
@@ -44,16 +44,16 @@ record TreeDiagnostics<
     return spec.openClose.get(opener).keySet().stream().sorted(Comparator.comparing(TK::priority)).toList();
   }
   private Optional<E> tryEatenBetween(T open, T stop, boolean onOpen){
-    var expect= !onOpen?closersForOpener(open.kind()):openerForCloser(stop.kind());
+    var expect= !onOpen ? closersForOpener(open.kind()) : openerForCloser(stop.kind());
     for (var e : expect){
-      var eater= (onOpen?spec.openerEaters:spec.closerEaters).get(e);
+      var eater= (onOpen ? spec.openerEaters : spec.closerEaters).get(e);
       if (eater == null){ continue; }
-      var ts= betweenExclusive(open, stop,tz.allTokens());
-      for (var tok : onOpen?ts.reversed():ts){
+      var ts= betweenExclusive(open, stop, tz.allTokens());
+      for (var tok : onOpen ? ts.reversed() : ts){
         Optional<T> frag= eater.apply(tok);
         if (frag.isPresent()){ return Optional.of(onOpen
-          ?tz.errFactory().eatenOpenerBetween(open, stop, expect, frag.get(), tok, tz.self())
-          :tz.errFactory().eatenCloserBetween(open, stop, expect, frag.get(), tok, tz.self()));
+          ? tz.errFactory().eatenOpenerBetween(open, stop, expect, frag.get(), tok, tz.self())
+          : tz.errFactory().eatenCloserBetween(open, stop, expect, frag.get(), tok, tz.self()));
         }
       }
     }
@@ -61,14 +61,14 @@ record TreeDiagnostics<
   }
   @SuppressWarnings("unchecked")
   private int ofRemoval(T remove){
-    if (remove.is(tz.sof(),tz.eof())){ return -1; }
+    if (remove.is(tz.sof(), tz.eof())){ return -1; }
     return ofRecovery(tz.tokensForTree().stream().filter(t->t!=remove).toList());
   }
   private int ofRecovery(List<T> tokens){
     var li= tokens.listIterator();
     try{ new TokenTrees<T,TK,E,Tokenizer,Parser,Err>(spec, tz){
-      @Override E diagOnBadCloser(T open,T stop){ throw new Out(); }
-      @Override E diagOnBadBarrier(T open,T stop){ throw new Out(); }
+      @Override E diagOnBadCloser(T open, T stop){ throw new Out(); }
+      @Override E diagOnBadBarrier(T open, T stop){ throw new Out(); }
     }.of(li);}
     catch(Out _){/*eated*/ return li.previousIndex(); }
     return li.nextIndex();
