@@ -74,22 +74,15 @@ public final class NameSuggester {
   private static double score(String tScore, String cScore){
     double score= 0.55 * componentScore(splitCamel(tScore), splitCamel(cScore)) + 0.45 * wholeScore(tScore, cScore);
 
-    if (kindsCompatible(kindOf(tScore), kindOf(cScore))){ score += 0.03; }
+    if (kindsCompatible(tScore, cScore)){ score += 0.03; }
     else { score -= 0.10; }
 
     return Math.clamp(score, 0, 1);
   }
 
-  private static boolean kindsCompatible(Kind a, Kind b){
-    return a == Kind.OTHER || b == Kind.OTHER || a == b;
-  }
-
-  private enum Kind{ TYPE, VALUE, OTHER }
-  private static Kind kindOf(String s){
-    char c= s.charAt(0);
-    if (isAsciiUpper(c)){ return Kind.TYPE; }
-    if (isAsciiLower(c)){ return Kind.VALUE; }
-    return Kind.OTHER;
+  private static boolean kindsCompatible(String a, String b){
+    char x= a.charAt(0), y= b.charAt(0);
+    return !(isAsciiUpper(x) && isAsciiLower(y)) && !(isAsciiLower(x) && isAsciiUpper(y));
   }
 
   private static double wholeScore(String a, String b){
