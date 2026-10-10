@@ -21,7 +21,7 @@ public final class Message{
   public static String of(Function<URI,String> loader, List<Frame> frames, String msg){
     try{ return _of(loader,frames,msg); }
     catch(Throwable e){
-      String locs = frames.stream().map(f -> f.s().toString()).collect(Collectors.joining("\n"));
+      String locs= frames.stream().map(f -> f.s().toString()).collect(Collectors.joining("\n"));
       throw new Error("Exception while formatting the following error:\n" + locs + "\n" + msg, e);
     }
   }
@@ -52,21 +52,21 @@ public final class Message{
     return padLineNum(lineNum, width) + '|' + ' ' + display;
   }
   private static List<Frame> ensureContainment(List<Frame> fs){
-    ArrayList<Frame> out = new ArrayList<>(fs);
+    ArrayList<Frame> out= new ArrayList<>(fs);
     for (int i : Range.of(0,out.size() - 1)){
-      Span inner = out.get(i).s();
-      Span outer = out.get(i+1).s();
+      Span inner= out.get(i).s();
+      Span outer= out.get(i+1).s();
       out.set(i+1, new Frame(out.get(i+1).name(), union(inner, outer)));
     }
     return List.copyOf(out);
   }
   private static Span union(Span a, Span b){
-    int startLine = Math.min(a.startLine(), b.startLine());
+    int startLine= Math.min(a.startLine(), b.startLine());
     int endLine   = Math.max(a.endLine(),   b.endLine());
-    int startCol = (a.startLine() == startLine && b.startLine() == startLine)
+    int startCol= (a.startLine() == startLine && b.startLine() == startLine)
         ? Math.min(a.startCol(), b.startCol())
         : (a.startLine() == startLine ? a.startCol() : b.startCol());
-    int endCol = (a.endLine() == endLine && b.endLine() == endLine)
+    int endCol= (a.endLine() == endLine && b.endLine() == endLine)
         ? Math.max(a.endCol(), b.endCol())
         : (a.endLine() == endLine ? a.endCol() : b.endCol());
     return new Span(a.fileName(), startLine, startCol, endLine, endCol);
@@ -82,10 +82,10 @@ public final class Message{
     return new Span(s.fileName(), a.line, a.col, b.line, b.col);
   }
   private static Pos nextVisible(String[] lines, Pos p, Pos limit){
-    int line= Math.clamp(p.line, 1, lines.length), col = Math.max(1, p.col);
+    int line= Math.clamp(p.line, 1, lines.length), col= Math.max(1, p.col);
     while (beforeOrEqual(line, col, limit)){
       String ln= get(lines, line);
-      if (col > ln.length()){ line++; col = 1; continue; }
+      if (col > ln.length()){ line++; col= 1; continue; }
       char ch= ln.charAt(col - 1);
       if (isVisible(ch)){ return new Pos(line, col); }
       col++;
@@ -103,7 +103,7 @@ public final class Message{
       if (col >= 1){ continue; }
       line--;
       if (line < start.line){ return new Pos(start.line, start.col); }
-      col = Math.max(1, get(lines, line).length());
+      col= Math.max(1, get(lines, line).length());
     }
     return new Pos(start.line, start.col);
   }
@@ -130,7 +130,7 @@ public final class Message{
       if (!spans.get(i).isSingleLine()){ firstMulti = spans.get(i); break; }
     }
 
-    int caretLine = !chosenSingles.isEmpty() ? chosenSingles.getLast().startLine()
+    int caretLine= !chosenSingles.isEmpty() ? chosenSingles.getLast().startLine()
                    : (firstMulti != null ? firstMulti.startLine() : spans.getLast().startLine());
 
     return new Grouping(file, chosenSingles, firstMulti, caretLine);
@@ -162,12 +162,12 @@ public final class Message{
   /** Expand tabs into spaces (tab stops every TAB_WIDTH columns). */
   private static String expandTabs(String s){
     if (s.indexOf('\t') < 0){ return s; }
-    StringBuilder out = new StringBuilder(s.length() + 8);
-    int col = 1; // 1-based
+    StringBuilder out= new StringBuilder(s.length() + 8);
+    int col= 1; // 1-based
     for (int i : Range.of(0,s.length())){
-      char ch = s.charAt(i);
+      char ch= s.charAt(i);
       if (ch == '\t'){
-        int spaces = tabWidth - ((col - 1) % tabWidth);
+        int spaces= tabWidth - ((col - 1) % tabWidth);
         out.append(" ".repeat(spaces));
         col += spaces;
       }else{
@@ -371,12 +371,12 @@ public final class Message{
   }
 
   private static String makeCaretLine(String[] lines, Grouping g, int width){
-    String raw = get(lines, g.caretLine());
+    String raw= get(lines, g.caretLine());
     // Only the caret-bearing line is sanitized for display;
     // geometry (columns/lengths) is computed from RAW with tab math.
-    String safeDisplay = sanitizeForCaret(expandTabs(raw));
+    String safeDisplay= sanitizeForCaret(expandTabs(raw));
     // decide marks so a single span uses '^'
-    List<Span> sps = g.singles();
+    List<Span> sps= g.singles();
     int n = sps.size();
     char[] marks = switch(n){
       case 1 -> new char[]{'^'};
@@ -384,21 +384,21 @@ public final class Message{
       default -> new char[]{'-','~','^'};
     };
     // find rightmost visual column we will draw (1-based), clamp to caret-line length
-    int rightMost = 0;
+    int rightMost= 0;
     for (int i : Range.of(0,n)){
-      Span s = sps.get(i);
-      int aVis = visualCol(raw, s.startCol());
+      Span s= sps.get(i);
+      int aVis= visualCol(raw, s.startCol());
       int len  = visualDelta(raw, s.startCol(), s.endCol());
-      int bVis = aVis + Math.max(1, len) - 1; // ensure at least 1 column
-      rightMost = Math.max(rightMost, bVis);
+      int bVis= aVis + Math.max(1, len) - 1; // ensure at least 1 column
+      rightMost= Math.max(rightMost, bVis);
     }
-    rightMost = Math.min(rightMost, safeDisplay.length()); // belt-and-braces
-    char[] carr = " ".repeat(rightMost).toCharArray();
+    rightMost= Math.min(rightMost, safeDisplay.length()); // belt-and-braces
+    char[] carr= " ".repeat(rightMost).toCharArray();
     for (int i : Range.of(0,n)){
-      Span s = sps.get(i);
-      int aVis = visualCol(raw, s.startCol());
+      Span s= sps.get(i);
+      int aVis= visualCol(raw, s.startCol());
       int len  = visualDelta(raw, s.startCol(), s.endCol());
-      int b = Math.max(aVis, Math.min(aVis + Math.max(1, len) - 1, rightMost));
+      int b= Math.max(aVis, Math.min(aVis + Math.max(1, len) - 1, rightMost));
       for (int c : Range.of(aVis,b+1)){
         int idx = c - 1;
         if (idx < carr.length){ carr[idx] = marks[i]; }
@@ -450,13 +450,13 @@ public final class Message{
     }
   }
   private static String renderMulti(String[] lines, Grouping g, int width, Optional<String> caretLine){
-    Span group = g.multiLine();
-    int start = group.startLine();
+    Span group= g.multiLine();
+    int start= group.startLine();
     int end   = group.endLine();
-    int caret = g.caretLine();
-    int beforeCount = caret - start - 1;  // lines strictly between start..caret
+    int caret= g.caretLine();
+    int beforeCount= caret - start - 1;  // lines strictly between start..caret
     int afterCount  = end   - caret - 1;  // lines strictly between caret..end
-    ArrayList<String> out = new ArrayList<>();
+    ArrayList<String> out= new ArrayList<>();
     if (caret != start){
       out.add(numbered(lines, start, width));
       addElision(out, lines, width, beforeCount, caret - 1);

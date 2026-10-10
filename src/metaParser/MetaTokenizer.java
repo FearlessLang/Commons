@@ -36,10 +36,10 @@ public abstract class MetaTokenizer<
   public abstract T make(TK kind, String text, int line, int col, List<T> tokens);
 
   private <R> R withFrozen(Supplier<R> body){
-    boolean prev = frozen;
-    frozen = true;
+    boolean prev= frozen;
+    frozen= true;
     try{ return body.get(); }
-    finally { frozen = prev; }
+    finally { frozen= prev; }
   }
   private final RuntimeException error(){
     return withFrozen(()->errFactory().unrecognizedTextAt(new Span(fileName,line,col,line,col),"",self()));
@@ -64,9 +64,9 @@ public abstract class MetaTokenizer<
         .thenComparingInt(t->-t.kind().priority()));
   }
   static String normalizeSource(String s){
-    if (s.startsWith("\uFEFF")){ s = s.substring(1); } // Drop BOM if present at start
-    s = s.replace("\r\n", "\n").replace('\r', '\n'); // Normalize common newline variants to '\n' CRLF -> LF, lone CR -> LF
-    s = s.replace('\u2028', '\n').replace('\u2029', '\n').replace('\u0085', '\n'); // Unicode separators to LF (LS, PS, NEL)
+    if (s.startsWith("\uFEFF")){ s= s.substring(1); } // Drop BOM if present at start
+    s= s.replace("\r\n", "\n").replace('\r', '\n'); // Normalize common newline variants to '\n' CRLF -> LF, lone CR -> LF
+    s= s.replace('\u2028', '\n').replace('\u2029', '\n').replace('\u0085', '\n'); // Unicode separators to LF (LS, PS, NEL)
     return s;
   }
   public Tokenizer input(URI fileName, String input){
@@ -102,7 +102,7 @@ public abstract class MetaTokenizer<
     int l= 1, c= 1;
     for (int cp : input.codePoints().toArray()){
       if (whiteList.indexOf(cp) < 0){ var at= new Span(fileName, l, c, l, c); throw withFrozen(()->errFactory().illegalCharAt(at, cp, self())); }
-      if (cp == '\n'){ l++; c = 1; } else { c++; }
+      if (cp == '\n'){ l++; c= 1; } else { c++; }
     }
     return self();
   }
@@ -117,7 +117,7 @@ public abstract class MetaTokenizer<
     tmp.add(make(sof,"", line, col,List.of()));
     withFrozen(()->{
       while (pos < input.length()){
-        var best = findNext().orElseThrow(this::error);
+        var best= findNext().orElseThrow(this::error);
         assert !best.content().isEmpty() : "lexer produced a zero-length token for " + best.kind();
         tmp.add(best);
         advance(best.content());
@@ -142,7 +142,7 @@ public abstract class MetaTokenizer<
     var tmp= tokensForTree();
     assert tmp.getFirst().kind() == sof : "first token must be SOF";
     assert tmp.getLast().kind() == eof : "last token must be EOF";
-    tree = withFrozen(()->new TokenTrees<T,TK,E,Tokenizer,Parser,Err>(spec, self()).of(tmp.listIterator()).tokens());
+    tree= withFrozen(()->new TokenTrees<T,TK,E,Tokenizer,Parser,Err>(spec, self()).of(tmp.listIterator()).tokens());
     return self();
   }
   public URI fileName(){ return Objects.requireNonNull(fileName); }
@@ -153,12 +153,12 @@ public abstract class MetaTokenizer<
   public List<T> tokenTree(){ return Objects.requireNonNull(tree); }
   public List<T> allTokens(){ return Objects.requireNonNull(allTokens); }
   private void assertMonotonic(List<T> toks){
-    int prevLine = -1, prevCol = -1;
+    int prevLine= -1, prevCol= -1;
     for (var tok : toks){
-      int l = tok.line(), c = tok.column();
+      int l= tok.line(), c= tok.column();
       assert (l > prevLine) || (l == prevLine && c >= prevCol)
         : "tokens out of order at " + l + ":" + c;
-      prevLine = l; prevCol = c;
+      prevLine= l; prevCol= c;
     }
   }
 }

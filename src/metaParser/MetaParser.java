@@ -126,11 +126,11 @@ public abstract class MetaParser<
   public Span spanAround(int low, int high){
     if (ts.isEmpty()){ return span; }
     if (low == ts.size()){ low -= 1; }
-    if (high == ts.size() || high < 0){ high = ts.size() - 1; }
-    if (low > high){ low = high; }
+    if (high == ts.size() || high < 0){ high= ts.size() - 1; }
+    if (low > high){ low= high; }
     assert low >= 0 && low < ts.size();
     assert high >= 0 && high < ts.size();
-    var here = span(ts.get(low),ts.get(high));
+    var here= span(ts.get(low),ts.get(high));
     if (here.isPresent()){ return here.get(); }
     int startLine= this.span.startLine();
     int  startCol= this.span.startCol();
@@ -139,7 +139,7 @@ public abstract class MetaParser<
     for (int i= low ; i >= 0; i--){//starts with low in case high was the failure point
       var s= span(ts.get(i));
       if (s.isPresent()){
-        startLine = s.get().endLine();
+        startLine= s.get().endLine();
         startCol  = s.get().endCol();
         break;
       }
@@ -147,7 +147,7 @@ public abstract class MetaParser<
     for (int i : Range.of(high,ts.size())){//starts with high in case low was the failure point
       var s= span(ts.get(i));
       if (s.isPresent()){
-        endLine = s.get().startLine();
+        endLine= s.get().startLine();
         endCol  = s.get().startCol();
         break;
       }
@@ -160,7 +160,7 @@ public abstract class MetaParser<
     if (tsIn.isEmpty()){ throw Bug.of("Expected at least one remaining token."); }
     var nested= make(s,tsIn);
     var res= nested.parseAll(frameName, r);
-    index = limit;
+    index= limit;
     return res;
   }
 
