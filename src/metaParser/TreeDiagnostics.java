@@ -2,6 +2,7 @@ package metaParser;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import metaParser.ErrFactory.LikelyCause;
@@ -38,7 +39,7 @@ record TreeDiagnostics<
   private List<TK> openerForCloser(TK closer){
     return spec.openClose.entrySet().stream()
       .filter(e->e.getValue().containsKey(closer))
-      .map(e->e.getKey()).toList();
+      .map(Map.Entry::getKey).toList();
   }
   private List<TK> closersForOpener(TK opener){
     return spec.openClose.get(opener).keySet().stream().sorted(Comparator.comparing(TK::priority)).toList();
