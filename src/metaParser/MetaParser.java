@@ -116,7 +116,7 @@ public abstract class MetaParser<
   //ParseSplitters
   public <R> R parseGroup(String frameName, Rule<T,TK,E,Tokenizer,Parser,Err,R> r){
     var tsIn= ts.get(index).tokens();
-    if(tsIn.isEmpty()){ throw Bug.of("Expected a grouped token (with children), got "+PrettyToken.show(ts.get(index))+"."); }
+    if(tsIn.isEmpty()){ throw Bug.of("Expected a grouped token (with children), got "+show(ts.get(index))+"."); }
     var nested= make(spanAround(index,index),tsIn);
     var res= nested.parseAll(frameName,r);
     index++;
@@ -313,7 +313,7 @@ public abstract class MetaParser<
     sb.append('[');
     for(int i : Range.of(from,to)){
       if(i>from){ sb.append(", "); }
-      sb.append(PrettyToken.show(ts.get(i)));
+      sb.append(show(ts.get(i)));
     }
     sb.append(']');
   }
@@ -322,6 +322,11 @@ public abstract class MetaParser<
     if (t.tokens().isEmpty()){ return Optional.of(t); }
     var ts= first ? t.tokens() : t.tokens().reversed();
     return ts.stream().flatMap(c->leaf(c,first).stream()).findFirst();
+  }
+  private String show(T t){
+    if(!t.tokens().isEmpty()){ return t.kind()+"@"+t.line()+":"+t.column(); }
+    var s= t.content().replace("\n","\\n").replace("\r","\\r").replace("\t","\\t");
+    return t.kind()+"\""+(s.length()<=24 ? s : s.substring(0,21)+"...")+"\"@"+t.line()+":"+t.column();
   }
   public Span span(){ return span; }
   public Span spanLast(){
