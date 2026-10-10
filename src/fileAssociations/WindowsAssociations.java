@@ -88,8 +88,10 @@ public final class WindowsAssociations{
     for (var icon: extensions){
       var progId= progId(identity, icon.extension());
       if (!progId.equals(declared.get(icon.extension()))){ return false; }
-      if (!regValue(hkcu(classes)+progId+"\\DefaultIcon", "").equals(Optional.of(icon.ico()+",0"))){ return false; }
-      if (!regValue(hkcu(classes)+progId+"\\shell\\open\\command", "").equals(Optional.of(openCommand(command)))){ return false; }
+      var sameIcon= regValue(hkcu(classes)+progId+"\\DefaultIcon", "").equals(Optional.of(icon.ico()+",0"));
+      if (!sameIcon){ return false; }
+      var sameCommand= regValue(hkcu(classes)+progId+"\\shell\\open\\command", "").equals(Optional.of(openCommand(command)));
+      if (!sameCommand){ return false; }
     }
     return regValue(hkcu(capabilities(identity)), "ApplicationIcon").equals(Optional.of(programIco+",0"));
   }

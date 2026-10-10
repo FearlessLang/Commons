@@ -36,7 +36,8 @@ public record ReadZip(
     if(bad){ throw badNameErr.apply(n); }
     var sub= keyOf(n);
     for(var seg: sub.split("/", -1)){
-      if(seg.isEmpty() || seg.equals(".") || seg.equals("..")){ throw badNameErr.apply(n); }
+      var badSeg= seg.isEmpty() || seg.equals(".") || seg.equals("..");
+      if(badSeg){ throw badNameErr.apply(n); }
     }
   }
   private byte[] readEntryBytes(String name, ZipInputStream zin){
@@ -45,9 +46,8 @@ public record ReadZip(
   }
   private Map<String,byte[]> cleanUp(LinkedHashMap<String,byte[]> map){
     for (var e: map.entrySet()){
-      if (e.getValue() == null && map.keySet().stream().noneMatch(k -> k.startsWith(e.getKey()+"/"))){
-        throw emptyDirErr.apply(e.getKey());
-      }
+      var emptyDir= e.getValue() == null && map.keySet().stream().noneMatch(k -> k.startsWith(e.getKey()+"/"));
+      if (emptyDir){ throw emptyDirErr.apply(e.getKey()); }
     }
     map.values().removeIf(v -> v == null);
     return Collections.unmodifiableMap(map);//to keep the order instead of Map.copyOf undocumented behaviour exactly here
