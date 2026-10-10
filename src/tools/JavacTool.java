@@ -109,7 +109,7 @@ public final class JavacTool{
     var jmods= javaHome.resolve("jmods");
     Fs.reqDir(jmods, "the jmods of a full JDK (a JRE has none)");
     var appModules= ModuleFinder.of(modsDir).findAll();
-    var appModuleNames= appModules.stream().map(m->m.descriptor().name()).collect(Collectors.toSet());
+    var appModuleNames= appModules.stream().map(m->m.descriptor().name()).collect(Collectors.toUnmodifiableSet());
     var platformModules= appModules.stream()
       .flatMap(m->m.descriptor().requires().stream())
       .filter(r->!r.modifiers().contains(Requires.Modifier.STATIC))

@@ -126,7 +126,7 @@ public final class LinuxAssociations{
   private static Predicate<String> keep(Path dir, Predicate<String> belongsToFamily){
     var packages= listed(dir.resolve("packages"), ".xml").stream().collect(Collectors.partitioningBy(f->belongsToFamily.test(baseName(f))));
     var family= packages.get(true).stream().flatMap(f->lines(f).stream()).filter(l->l.contains("<glob "))
-      .map(declared::matcher).filter(Matcher::find).map(m->m.group(1)).collect(Collectors.toSet());
+      .map(declared::matcher).filter(Matcher::find).map(m->m.group(1)).collect(Collectors.toUnmodifiableSet());
     if (!dir.equals(home("mime"))){ return t->!family.contains(t); }
     var others= packages.get(false).stream().map(f->String.join("\n", lines(f))).collect(Collectors.joining("\n"));
     return t->!family.contains(t) && (others.contains("\""+t+"\"") || others.contains("'"+t+"'"));
