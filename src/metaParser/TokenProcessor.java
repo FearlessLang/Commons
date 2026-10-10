@@ -14,7 +14,7 @@ public interface TokenProcessor<
     Err extends ErrFactory<T,TK,E,Tokenizer,Parser,Err>
   >{
   Stream<T> process(int index, T token, Tokenizer tokenizer);
-  class Map<
+  final class Map<
       T extends Token<T,TK>,
       TK extends TokenKind,
       E extends RuntimeException & HasFrames<E>,

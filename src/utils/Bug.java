@@ -1,7 +1,7 @@
 package utils;
 
 @SuppressWarnings("serial")
-public class Bug extends RuntimeException{
+public final class Bug extends RuntimeException{
   public Bug() {super();}
   public Bug(Throwable cause) {super(cause);}
   public Bug(String msg) {super(msg);}

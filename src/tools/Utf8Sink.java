@@ -8,7 +8,7 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 
-public class Utf8Sink extends OutputStream{
+public final class Utf8Sink extends OutputStream{
   private final Consumer<String> out;
   private final CharsetDecoder decoder= StandardCharsets.UTF_8.newDecoder()
     .onMalformedInput(CodingErrorAction.REPLACE)
