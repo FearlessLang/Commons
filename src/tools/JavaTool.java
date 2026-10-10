@@ -2,11 +2,12 @@ package tools;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
+import utils.Push;
 
 public final class JavaTool{
   public static String runMain(List<String> jvmArgs, Path classesDir, Path libs, String mainClass, String... mainArgs) throws InterruptedException{
@@ -21,10 +22,7 @@ public final class JavaTool{
   }
   private static ChildJvm start(List<String> jvmArgs,String classPath,String mainClass,Consumer<String> out,String... mainArgs){
     assert !classPath.isEmpty();
-    var args= new ArrayList<>(jvmArgs);
-    args.add("-cp"); args.add(classPath); args.add(mainClass);
-    args.addAll(List.of(mainArgs));
-    return ChildJvm.start(args, out);
+    return ChildJvm.start(Push.of(List.of(jvmArgs, List.of("-cp", classPath, mainClass), List.of(mainArgs))), out);
   }
   private static String _runMain(List<String> jvmArgs,String classPath,String mainClass,String... mainArgs) throws InterruptedException{
     var sb= new StringBuilder();
