@@ -31,7 +31,7 @@ public record NativeOverrides(Set<String> pairs, Set<String> fileNames){
     var fileNames= files.stream().map(p->p.getFileName().toString()).map(n->n.substring(0, n.length()-".java".length())).collect(Collectors.toUnmodifiableSet());
     return new NativeOverrides(Set.copyOf(pairs), fileNames);
   }
-  private static void scanUnit(CompilationUnitTree cu, Set<String> pairs){
+  private static void scanUnit(CompilationUnitTree cu, HashSet<String> pairs){
     new TreeScanner<Void,Void>(){
       @Override public Void visitClass(ClassTree c, Void p){
         for (var i: c.getImplementsClause()){

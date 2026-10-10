@@ -269,7 +269,7 @@ public final class Message{
     return cp >= 0x20 && cp <= 0x7E;
   }
 
-  private static void flushLiteral(List<String> out, StringBuilder lit){
+  private static void flushLiteral(ArrayList<String> out, StringBuilder lit){
     if (lit.isEmpty()){ return; }
     out.add(quoteLiteral(lit.toString()));
     lit.setLength(0);
@@ -442,7 +442,7 @@ public final class Message{
     return out.toString();
   }
   //helper: push either an elision counter or the single in-between line
-  private static void addElision(List<String> out, String[] lines, int width, int count, int oneLineNum){
+  private static void addElision(ArrayList<String> out, String[] lines, int width, int count, int oneLineNum){
     if (count == 1){
       out.add(numbered(lines, oneLineNum, width));
     } else if (count > 1){
