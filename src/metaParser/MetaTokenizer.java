@@ -38,7 +38,7 @@ public abstract class MetaTokenizer<
   private <R> R withFrozen(Supplier<R> body){
     boolean prev = frozen;
     frozen = true;
-    try { return body.get(); }
+    try{ return body.get(); }
     finally { frozen = prev; }
   }
   private final RuntimeException error(){
