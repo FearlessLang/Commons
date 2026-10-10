@@ -170,7 +170,7 @@ public final class WindowsAssociations{
     var raw= Shell.exec(cmd).filter(ran->ran.code() == 0)
       .flatMap(ran->ran.out().lines().map(String::strip).filter(l->l.contains("REG_")).findFirst())
       .map(WindowsAssociations::regQueried);
-    if (!raw.filter(v->v.equals(valueNotSet)).isPresent()){ return raw; }
+    if (raw.filter(v->v.equals(valueNotSet)).isEmpty()){ return raw; }
     var del= name.isEmpty() ? List.of("reg","delete",key,"/ve","/f") : List.of("reg","delete",key,"/v",name,"/f");
     Shell.exec(del);
     return Optional.empty();
