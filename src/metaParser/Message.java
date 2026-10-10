@@ -342,11 +342,7 @@ public final class Message{
     // decide marks so a single span uses '^'
     List<Span> sps = g.singles();
     int n = sps.size();
-    char[] marks = switch(n){
-      case 1 -> new char[]{'^'};
-      case 2 -> new char[]{'-','^'};
-      default -> new char[]{'-','~','^'};
-    };
+    String marks = n == 1 ? "^" : n == 2 ? "-^" : "-~^";
     // find rightmost visual column we will draw (1-based), clamp to caret-line length
     int rightMost = 0;
     for (int i : Range.of(0,n)){
@@ -365,7 +361,7 @@ public final class Message{
       int b = Math.max(aVis, Math.min(aVis + Math.max(1, len) - 1, rightMost));
       for (int c : Range.of(aVis,b+1)){
         int idx = c - 1;
-        if (idx < carr.length){ carr[idx] = marks[i]; }
+        if (idx < carr.length){ carr[idx] = marks.charAt(i); }
       }
     }
     return " ".repeat(width) + '|' + ' ' + new String(carr);
@@ -384,9 +380,7 @@ public final class Message{
    */
   private static String sanitizeForCaret(String s){
     StringBuilder out = new StringBuilder(s.length());
-    for (int i = 0; i < s.length(); ){
-      int cp = s.codePointAt(i);
-      i += Character.charCount(cp);
+    for (int cp : s.codePoints().toArray()){
       if (cp >= 0x20 && cp <= 0x7E){ // printable ASCII
         out.append((char)cp);
         continue;
