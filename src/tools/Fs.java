@@ -39,7 +39,7 @@ public final class Fs{
   public static void ensureDir(Path p){ ofV(()->Files.createDirectories(p)); }
   public static void cleanDirContents(Path p){
     reqDir(p, "cleaning");
-    var xs= walk(p, s-> s
+    var xs= walk(p, s->s
       .filter(x->!x.equals(p))
       .sorted(Comparator.reverseOrder())
       .toList()

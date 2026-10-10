@@ -21,14 +21,14 @@ public final class TokenTreeSpec<
 
   public TokenTreeSpec<T, TK> addOpenClose(TK opener, TK closer, TK groupKind){
     assert Require.nonNull(opener, closer, groupKind);
-    openClose.computeIfAbsent(opener, _ -> new LinkedHashMap<>()).put(closer, groupKind);
+    openClose.computeIfAbsent(opener, _->new LinkedHashMap<>()).put(closer, groupKind);
     closers.add(closer);
     return this;
   }
   public TokenTreeSpec<T, TK> addBarriers(TK opener, Set<TK> bs){
     assert Require.nonNull(opener, bs);
     if (bs.isEmpty()){ return this; }
-    barriers.computeIfAbsent(opener, _ -> new LinkedHashSet<>()).addAll(bs);
+    barriers.computeIfAbsent(opener, _->new LinkedHashSet<>()).addAll(bs);
     return this;
   }
   public TokenTreeSpec<T, TK> addCloserEater(TK closer, Function<T, Optional<T>> f){

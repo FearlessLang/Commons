@@ -45,10 +45,10 @@ public record ReadZip(
   }
   private Map<String,byte[]> cleanUp(LinkedHashMap<String,byte[]> map){
     for (var e : map.entrySet()){
-      var emptyDir= e.getValue() == null && map.keySet().stream().noneMatch(k -> k.startsWith(e.getKey()+"/"));
+      var emptyDir= e.getValue() == null && map.keySet().stream().noneMatch(k->k.startsWith(e.getKey()+"/"));
       if (emptyDir){ throw emptyDirErr.apply(e.getKey()); }
     }
-    map.values().removeIf(v -> v == null);
+    map.values().removeIf(v->v == null);
     return Collections.unmodifiableMap(map);//to keep the order instead of Map.copyOf undocumented behaviour exactly here
   }
 }
