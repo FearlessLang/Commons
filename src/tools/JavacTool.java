@@ -15,6 +15,21 @@ import utils.Push;
 
 public final class JavacTool{
   private static final String javacArgFile="_javac.args";
+  public static final String launcherKey= "app.launcher";
+  public static final String appDirKey= "app.dir";
+  public static final String versionIdKey= "app.versionId";
+  public static final String consoleKey= "console";
+  public static final String winKey= "w";
+  //--enable-native-access needed to coordinator (example, forcing english language)
+  public static final List<String> javaOptions= List.of("-ea","--enable-native-access=Commons,Coordinator","-D"+appDirKey+"=$APPDIR");
+  // Local build-time staging dir we hand to `jpackage --module-path`, holding
+  // the module jars (Commons/FearlessFrontend/Coordinator + external jars).
+  public static final String buildModsDirName= "_mods";
+  // jpackage's own app-image convention: it copies the `--module-path` content
+  // into a dir named exactly this, inside the produced app (e.g. on Linux,
+  // <dest>/<name>/lib/app/mods). We don't choose this name, jpackage does
+  public static final String deployedModsDirName= "mods";
+  public static final List<String> javacArgs= List.of("-encoding","UTF-8","-Xlint:all,-auxiliaryclass,-missing-explicit-ctor","-Werror");
 
   public static String compileTree(Path srcRoot, Path classesDir, Runnable postProcess, Path jarPath, List<Path> extraClasspathDirs){
     var srcs= javaSourcesUnder(srcRoot);
@@ -58,12 +73,6 @@ public final class JavacTool{
 
   private static String argToken(String s){ return "\""+s.replace("\\","\\\\").replace("\"","\\\"")+"\""; }
 
-  public static final String launcherKey= "app.launcher";
-  public static final String appDirKey= "app.dir";
-  public static final String versionIdKey= "app.versionId";
-  public static final String consoleKey= "console";
-  public static final String winKey= "w";
-
   public static Path reqAppDir(Supplier<? extends RuntimeException> onMissing){
     var launcher= System.getProperty(launcherKey);
     var appDir= System.getProperty(appDirKey);
@@ -77,17 +86,6 @@ public final class JavacTool{
     if (versionId == null){ throw onMissing.get(); }
     return versionId;
   }
-  //--enable-native-access needed to coordinator (example, forcing english language)
-  public static final List<String> javaOptions= List.of("-ea","--enable-native-access=Commons,Coordinator","-D"+appDirKey+"=$APPDIR");
-
-  // Local build-time staging dir we hand to `jpackage --module-path`, holding
-  // the module jars (Commons/FearlessFrontend/Coordinator + external jars).
-  public static final String buildModsDirName= "_mods";
-  // jpackage's own app-image convention: it copies the `--module-path` content
-  // into a dir named exactly this, inside the produced app (e.g. on Linux,
-  // <dest>/<name>/lib/app/mods). We don't choose this name, jpackage does
-  public static final String deployedModsDirName= "mods";
-
   public static String dataDirNameFor(String versionId){ return "fearless"+versionId; }
 
   public static void jpackage(Path dest, Path packaging, String appName, String versionId, String moduleMain, Path appContent){
@@ -180,8 +178,6 @@ public final class JavacTool{
     xs.add("-D"+versionIdKey+"="+versionId);
     return xs;
   }
-
-  public static final List<String> javacArgs= List.of("-encoding","UTF-8","-Xlint:all,-auxiliaryclass,-missing-explicit-ctor","-Werror");
 
   public static void javac(List<Path> srcs, Path classesDir, Path modsDir){
     javac(srcs, classesDir, modsDir, List.of());
