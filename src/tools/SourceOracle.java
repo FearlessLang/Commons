@@ -51,7 +51,7 @@ public interface SourceOracle{
     return OneOr.of("Expected one source for "+uri, allFiles().stream().filter(f->f.fearURI().equals(uri))).loadString();
   }
   static URI defaultDbgFearPath(int index){
-    return URI.create("fear:/___DBG___/"+(index==0 ? "_rank_app999.fear" : "in_memory"+index+".fear"));
+    return URI.create(root+"___DBG___/"+(index==0 ? "_rank_app999.fear" : "in_memory"+index+".fear"));
   }
   default SourceOracle withFallback(SourceOracle fb){
     var all= Push.of(allFiles(), fb.allFiles());
