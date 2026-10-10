@@ -118,7 +118,7 @@ public abstract class MetaTokenizer<
     withFrozen(()->{
       while (pos < input.length()){
         var best = findNext().orElseThrow(this::error);
-        assert best.content().length() > 0 : "lexer produced a zero-length token for " + best.kind();
+        assert !best.content().isEmpty() : "lexer produced a zero-length token for " + best.kind();
         tmp.add(best);
         advance(best.content());
       }return null;});
