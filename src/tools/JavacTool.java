@@ -18,7 +18,7 @@ public final class JavacTool{
 
   public static String compileTree(Path srcRoot, Path classesDir, Runnable postProcess, Path jarPath, List<Path> extraClasspathDirs){
     var srcs= javaSourcesUnder(srcRoot);
-    Fs.of(()->Files.deleteIfExists(jarPath));
+    Fs.ofV(()->Files.deleteIfExists(jarPath));
     check(!srcs.isEmpty(), "Expected .java files under "+srcRoot);
     var args= new ArrayList<String>(10+srcs.size());
     args.add("-encoding"); args.add("UTF-8");
