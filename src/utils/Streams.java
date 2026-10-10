@@ -19,11 +19,11 @@ public final class Streams {
 
   public static <A,B> Zipper2<A,B> zip(List<A> as, List<B> bs){
     assert as.size() == bs.size();
-    return new ListZipper<>(as,bs);
+    return new ListZipper2<>(as,bs);
   }
   public static <A,B> Zipper2<A,B> zip(A[] as, B[] bs){ return zip(Arrays.asList(as), Arrays.asList(bs)); }
 
-  private record ListZipper<A,B>(List<A> as, List<B> bs) implements Zipper2<A,B>{
+  private record ListZipper2<A,B>(List<A> as, List<B> bs) implements Zipper2<A,B>{
     @Override public void forEach(BiConsumer<A,B> f){
       IntStream.range(0, as.size()).forEach(i->f.accept(as.get(i), bs.get(i)));
     }
@@ -47,7 +47,7 @@ public final class Streams {
       IntStream.range(0, as.size())
         .filter(i->f.test(as.get(i), bs.get(i)))
         .forEachOrdered(i->{ asi.add(as.get(i)); bsi.add(bs.get(i)); });
-      return new ListZipper<>(asi, bsi);
+      return new ListZipper2<>(asi, bsi);
     }
     @Override public <R> R fold(Acc2<R,A,B> folder, R initial){
       Box<R> acc= new Box<>(initial);
