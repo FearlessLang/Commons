@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
@@ -127,7 +126,6 @@ public final class Fs{
     return pb;
   }
   ///Returns the filename with extension (the substring after the last '/').
-  public static String fileNameWithExtension(URI s){ return fileNameWithExtension(s.toString()); } 
   public static String fileNameWithExtension(String s){
     var res= s.substring(lastSlashIndex(s)+1);
     assert !res.isEmpty();
@@ -148,7 +146,6 @@ public final class Fs{
   }
   ///Returns the path without the filename
   public static String removeFileName(String s){ return s.substring(0,lastSlashIndex(s)); }
-  public static String removeFileNameAllowTop(URI s){ return removeFileNameAllowTop(s.toString()); } 
   public static String removeFileNameAllowTop(String s){
     int i= s.lastIndexOf('/');
     if (i == -1){ return ""; }
