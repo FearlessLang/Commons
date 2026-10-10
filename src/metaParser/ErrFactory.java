@@ -33,8 +33,6 @@ public interface ErrFactory<
     Unknown,
     StrayOpener,   //Dropping the opener ('open') makes parsing advance significantly.
     StrayCloser,   //Dropping the closer ('stop') makes parsing advance significantly.
-    MissingCloser, //Inserting an expected closer for 'open' just before 'stop' makes parsing advance significantly.
-    MissingOpener, //Inserting the matching opener somewhere before the closer ('stop') makes parsing advance significantly.
   }
 
   ///The expected closer for 'open' appears hidden inside another token
