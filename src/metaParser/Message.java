@@ -319,7 +319,7 @@ public final class Message{
       "Unit Separator"
     };
     for (int i : Range.of(0,c0.length)) {
-      named.put(i, c0[i] + " 0x" + String.format(java.util.Locale.ROOT, "%02X", i));
+      named.put(i, c0[i] + " 0x" + String.format(Locale.ROOT, "%02X", i));
     }
     // DEL and a couple C1s commonly seen
     named.put(0x7F,"Delete 0x7F");
