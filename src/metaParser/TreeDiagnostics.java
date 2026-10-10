@@ -57,7 +57,7 @@ record TreeDiagnostics<
         }
       }
     }
-    return Optional.empty();    
+    return Optional.empty();
   }
   @SuppressWarnings("unchecked")
   private int ofRemoval(T remove){
