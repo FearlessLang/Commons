@@ -59,35 +59,20 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
   }
   private static void waitForUninterruptibly(Process p, long millis){
     boolean interrupted= false;
-    try{
-      if (millis > 0){
-        long end= System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(millis);
-        while(p.isAlive()){
-          long left= end - System.nanoTime();
-          if (left <= 0){ return; }
-          try{
-            if (p.waitFor(TimeUnit.NANOSECONDS.toMillis(left),TimeUnit.MILLISECONDS)){ return; }
-          }
-          catch(InterruptedException e){ interrupted= true; }
-        }
-        return;
-      }
-      while(p.isAlive()){
-        try{ p.waitFor(); }
-        catch(InterruptedException e){ interrupted= true; }
-      }
+    long end= System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(millis);
+    while(p.isAlive() && (millis == 0 || end - System.nanoTime() > 0)){
+      try{ if (millis == 0){ p.waitFor(); } else { p.waitFor(end - System.nanoTime(),TimeUnit.NANOSECONDS); } }
+      catch(InterruptedException e){ interrupted= true; }
     }
-    finally{ if (interrupted){ Thread.currentThread().interrupt(); } }
+    if (interrupted){ Thread.currentThread().interrupt(); }
   }
   private static void joinUninterruptibly(Thread t){
     boolean interrupted= false;
-    try{
-      while(t.isAlive()){
-        try{ t.join(); }
-        catch(InterruptedException e){ interrupted= true; }
-      }
+    while(t.isAlive()){
+      try{ t.join(); }
+      catch(InterruptedException e){ interrupted= true; }
     }
-    finally{ if (interrupted){ Thread.currentThread().interrupt(); } }
+    if (interrupted){ Thread.currentThread().interrupt(); }
   }
   private static void closeQuietly(Closeable c){
     try{ c.close(); }
