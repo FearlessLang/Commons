@@ -21,7 +21,7 @@ final class Shell{
     var pb= Fs.processBuilder(cmd).redirectErrorStream(true);
     Process p;
     try { p= pb.start(); }
-    catch(IOException e){ return Optional.empty(); }
+    catch(IOException _){ return Optional.empty(); }
     var out= Fs.of(()->new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8));
     return Optional.of(new Ran(waitFor(p), out));
   }
