@@ -44,11 +44,8 @@ public abstract class MetaTokenizer<
   private final RuntimeException error(){ 
     return withFrozen(()->errFactory().unrecognizedTextAt(new Span(fileName,line,col,line,col),"",self()));
   }
-  private void advanceSingle(int cp){
-    if (cp == '\n'){ line++; col = 1; } else { col++; }
-  }
   private void advance(String matched){
-    matched.codePoints().forEach(this::advanceSingle);
+    for (int cp : matched.codePoints().toArray()){ if (cp == '\n'){ line++; col = 1; } else { col++; } }
     pos += matched.length();
   }
   private Optional<T> current(TK kind){
