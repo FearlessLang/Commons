@@ -59,7 +59,7 @@ public final class Fs{
     }
   }
   private static void sleepBriefly(){
-    try{ Thread.sleep(25); } catch(InterruptedException e){ Thread.currentThread().interrupt(); }
+    try{ Thread.sleep(25); } catch(InterruptedException _){ Thread.currentThread().interrupt(); }
   }
   public static void writeUtf8(Path file, String content){
     ensureDir(file.getParent());

@@ -41,7 +41,7 @@ public record ReadZip(
   }
   private byte[] readEntryBytes(String name, ZipInputStream zin){
     try{ return Fs.of(zin::readAllBytes); }
-    catch(OutOfMemoryError oom){ throw tooLargeErr.apply(name); }
+    catch(OutOfMemoryError _){ throw tooLargeErr.apply(name); }
   }
   private Map<String,byte[]> cleanUp(LinkedHashMap<String,byte[]> map){
     for (var e: map.entrySet()){
