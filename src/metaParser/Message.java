@@ -169,10 +169,10 @@ public final class Message{
       if (ch == '\t'){
         int spaces= tabWidth - ((col - 1) % tabWidth);
         out.append(" ".repeat(spaces));
-        col += spaces;
+        col+= spaces;
       }else{
         out.append(ch);
-        col += 1;
+        col+= 1;
       }
     }
     return out.toString();
@@ -184,9 +184,9 @@ public final class Message{
       char ch= rawLine.charAt(i);
       if (ch == '\t'){
         int spaces= tabWidth - (vis % tabWidth);
-        vis += spaces;
+        vis+= spaces;
       }else{
-        vis += 1;
+        vis+= 1;
       }
     }
     return vis;

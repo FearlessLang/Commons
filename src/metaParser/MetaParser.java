@@ -125,7 +125,7 @@ public abstract class MetaParser<
   }
   public Span spanAround(int low, int high){
     if (ts.isEmpty()){ return span; }
-    if (low == ts.size()){ low -= 1; }
+    if (low == ts.size()){ low-= 1; }
     if (high == ts.size() || high < 0){ high= ts.size() - 1; }
     if (low > high){ low= high; }
     assert low >= 0 && low < ts.size();
