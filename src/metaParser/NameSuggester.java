@@ -66,7 +66,7 @@ public final class NameSuggester{
       .thenComparingInt(s->s.value.length())
       .thenComparing(s->s.value));
 
-    var top= scored.get(0);
+    var top= scored.getFirst();
     double topScore= top.score;
     double runnerUp= scored.size() > 1 ? scored.get(1).score : -1;
     boolean strongEnough= topScore >= strongSimilarity;
