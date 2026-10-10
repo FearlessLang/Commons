@@ -100,7 +100,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
     t.start();
   }
   private static void readTillEof(){
-    try{ while(System.in.read() != -1){} }
+    try{ while (System.in.read() != -1){} }
     catch(IOException _){}
     Runtime.getRuntime().halt(121);
   }

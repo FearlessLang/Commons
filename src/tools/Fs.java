@@ -48,7 +48,7 @@ public final class Fs{
   }
   private static void forceDelete(Path p) throws IOException{
     if (isWindows()){ Files.setAttribute(p, "dos:readonly", false, LinkOption.NOFOLLOW_LINKS); }
-    for(int attempt= 0; ; attempt++){
+    for (int attempt= 0; ; attempt++){
       try{ Files.deleteIfExists(p); return; }
       catch(AccessDeniedException e){
         if (!isWindows() || attempt >= 9){ throw e; }
@@ -82,7 +82,7 @@ public final class Fs{
   }
   // Writes (overwriting if needed) and guarantees mtime > minExclusiveMillis. Returns the actual mtime.
   public static long writeUtf8(Path file, String content, long minExclusiveMillis){
-    for(;;){
+    for (;;){
       writeUtf8(file, content);
       var m= lastModified(file);
       if (m > minExclusiveMillis){ return m; }

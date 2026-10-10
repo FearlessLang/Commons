@@ -27,7 +27,7 @@ public final class Utf8Sink extends OutputStream{
   @Override public synchronized void close(){
     inBuf.flip();
     decodeLoop(true);
-    while(true){
+    while (true){
       outBuf.clear();
       var r= decoder.flush(outBuf);
       drainOutput();
@@ -36,7 +36,7 @@ public final class Utf8Sink extends OutputStream{
     inBuf.clear();
   }
   private void decodeLoop(boolean end){
-    while(true){
+    while (true){
       outBuf.clear();
       var r= decoder.decode(inBuf, outBuf, end);
       drainOutput();

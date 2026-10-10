@@ -33,7 +33,7 @@ public abstract class MetaParser<
       if (!frameName.isEmpty() && t instanceof HasFrames<?> f){ f.addFrame(new Frame(frameName,span())); }
       throw t;
     }
-    if(index != limit){ throw errFactory().extraContent(remainingSpan(), "", List.of(),self()); }
+    if (index != limit){ throw errFactory().extraContent(remainingSpan(), "", List.of(),self()); }
     return res;
   }
   public boolean end(){ return limit == index; }
@@ -157,7 +157,7 @@ public abstract class MetaParser<
   public <R> R parseRemaining(String frameName, Rule<T,TK,E,Tokenizer,Parser,Err,R> r){
     var tsIn= ts.subList(index, limit);
     var s= spanAround(index,limit-1);
-    if(tsIn.isEmpty()){ throw Bug.of("Expected at least one remaining token."); }
+    if (tsIn.isEmpty()){ throw Bug.of("Expected at least one remaining token."); }
     var nested= make(s,tsIn);
     var res= nested.parseAll(frameName, r);
     index = limit;
@@ -240,7 +240,7 @@ public abstract class MetaParser<
     int drop= probe.cutAt(splitterParser);
     int end= splitterParser.index();
     ((MetaParser<T,TK,E,Tokenizer,Parser,Err>)splitterParser).checkProbeErrorFront(emptyAllowed,start, end, drop, frameName);
-    if(splitterParser.end()){ return Optional.empty(); }//split not found
+    if (splitterParser.end()){ return Optional.empty(); }//split not found
     var firstS= splitterParser.spanAround(0,(end-1)-drop);
     Parser firstParser= make(firstS,List.copyOf(slice.subList(0, end-drop)));
     var res= firstParser.parseAll(frameName, first);
@@ -263,7 +263,7 @@ public abstract class MetaParser<
     int end= splitterParser.limit();
     ((MetaParser<T,TK,E,Tokenizer,Parser,Err>)splitterParser).checkProbeErrorFront(emptyAllowed,end, start, drop, frameName);
     //TODO: test if the errors make sense by just swapping start/end    
-    if(splitterParser.end()){ return Optional.empty(); }//split not found
+    if (splitterParser.end()){ return Optional.empty(); }//split not found
     var lastS= splitterParser.spanAround(end + drop, start - 1);
     Parser firstParser= make(lastS,List.copyOf(slice.subList(end + drop, start)));
     var res= firstParser.parseAll(frameName, first);
@@ -289,7 +289,7 @@ public abstract class MetaParser<
   public int splitOn(SplitMode split, TK k){ return splitOn(split,t->t.is(k)); }
   public int splitOn(SplitMode split, Predicate<T> p){
     fwdIf(index() != 0 && !end() && split == SplitMode.Right);
-    while(!end()){
+    while (!end()){
       var t= expectAny("");
       if (!p.test(t)){ continue; }
       return switch(split){
@@ -340,7 +340,7 @@ public abstract class MetaParser<
     return span(ts.get(limit - 1)).orElse(span);
   }
   public Span remainingSpan(){
-    if(end()){ return spanLast(); }
+    if (end()){ return spanLast(); }
     return span(ts.get(index),ts.get(limit-1)).orElse(span);
   }
   public Optional<Span> span(T low, T high){//not equal to span(List.of(low,high))
