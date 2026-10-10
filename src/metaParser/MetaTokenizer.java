@@ -142,8 +142,8 @@ public abstract class MetaTokenizer<
     assert !frozen : "cannot call .buildTokenTree during .tokenize, .postTokenize, .buildTokenTree";
     assert !allTokens.isEmpty(): "call method .buildTokenTree after .tokenize";
     var tmp= tokensForTree();
-    assert tmp.get(0).kind() == sof : "first token must be SOF";
-    assert tmp.get(tmp.size()-1).kind() == eof : "last token must be EOF";
+    assert tmp.getFirst().kind() == sof : "first token must be SOF";
+    assert tmp.getLast().kind() == eof : "last token must be EOF";
     tree = withFrozen(() -> new TokenTrees<T,TK,E,Tokenizer,Parser,Err>(spec, self()).of(tmp.listIterator()).tokens());
     return self();
   }
