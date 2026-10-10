@@ -104,35 +104,26 @@ public final class NameSuggester {
 
   private static double wholeScore(String a, String b){
     if (a.equals(b)){ return 1.0; }
-    String al= lowerAscii(a);
-    String bl= lowerAscii(b);
+    String al= a.toLowerCase(Locale.ROOT);
+    String bl= b.toLowerCase(Locale.ROOT);
     if (al.equals(bl)){ return 0.92; }
     return normalizedLevenshtein(al, bl);
   }
 
   private static double componentScore(List<String> a, List<String> b){
     if (a.equals(b)){ return 1.0; }
-    int n= a.size(), m= b.size();
-    if (n == 0 || m == 0){ return 0.0; }
+    if (a.isEmpty() || b.isEmpty()){ return 0.0; }
+    if (a.size() <= b.size()){ return window(a, b, 0.04, 0.02, 0.0); }
+    return window(b, a, 0.10, 0.08, 0.12);
+  }
 
-    if (n <= m){
-      double best= 0.0;
-      for (int start= 0; start <= m - n; start++){
-        double sum= 0.0;
-        for (int i : Range.of(0,n)){ sum += tokenScore(a.get(i), b.get(start + i)); }
-        double avg= sum / n;
-        double penalty= 0.04 * start + 0.02 * (m - (start + n));
-        best= Math.max(best, avg - penalty);
-      }
-      return Math.clamp(best, 0, 1);
-    }
-
+  private static double window(List<String> small, List<String> big, double front, double back, double extra){
     double best= 0.0;
-    for (int start= 0; start <= n - m; start++){
+    for (int start= 0; start <= big.size() - small.size(); start++){
       double sum= 0.0;
-      for (int i : Range.of(0,m)){ sum += tokenScore(a.get(start + i), b.get(i)); }
-      double avg= sum / m;
-      double penalty= 0.10 * start + 0.08 * (n - (start + m)) + 0.12 * (n - m);
+      for (int i : Range.of(small)){ sum += tokenScore(small.get(i), big.get(start + i)); }
+      double avg= sum / small.size();
+      double penalty= front * start + back * (big.size() - (start + small.size())) + extra * (big.size() - small.size());
       best= Math.max(best, avg - penalty);
     }
     return Math.clamp(best, 0, 1);
@@ -140,8 +131,8 @@ public final class NameSuggester {
 
   private static double tokenScore(String a, String b){
     if (a.equals(b)){ return 1.0; }
-    String al= lowerAscii(a);
-    String bl= lowerAscii(b);
+    String al= a.toLowerCase(Locale.ROOT);
+    String bl= b.toLowerCase(Locale.ROOT);
 
     if (aliases.stream().anyMatch(g->g.contains(al) && g.contains(bl))){ return 0.96; }
     if (al.equals(bl)){ return 0.92; }
@@ -242,29 +233,11 @@ public final class NameSuggester {
   private static boolean isAsciiLower(char c){ return c >= 'a' && c <= 'z'; }
   private static boolean isAsciiLetter(char c){ return isAsciiUpper(c) || isAsciiLower(c); }
 
-  /** Locale-free ASCII fold; allocates only if needed. */
-  private static String lowerAscii(String s){
-    int n= s.length();
-    for (int i= 0; i < n; i++){
-      char c= s.charAt(i);
-      if (isAsciiUpper(c)){
-        char[] cs= s.toCharArray();
-        cs[i]= (char)(c + ('a' - 'A'));
-        for (i++; i < n; i++){
-          c= cs[i];
-          if (isAsciiUpper(c)){ cs[i]= (char)(c + ('a' - 'A')); }
-        }
-        return new String(cs);
-      }
-    }
-    return s;
-  }
-
   private static final List<Set<String>> aliases= aliases();
   private static List<Set<String>> aliases(){
     var res= new ArrayList<Set<String>>();
     aliasGroups.lines().map(l->l.replaceFirst("#.*","").strip()).filter(l->!l.isEmpty())
-      .forEach(l->connect(res, new HashSet<>(List.of(lowerAscii(l).split("\\s+")))));
+      .forEach(l->connect(res, new HashSet<>(List.of(l.toLowerCase(Locale.ROOT).split("\\s+")))));
     return List.copyOf(res);
   }
   private static void connect(ArrayList<Set<String>> groups, HashSet<String> group){
