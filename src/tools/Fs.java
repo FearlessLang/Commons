@@ -138,14 +138,6 @@ public final class Fs{
     assert dot > slash + 1 && dot + 1 < s.length();
     return s.substring(slash + 1, dot);
   }
-  /// Returns the extension including the leading '.' Example: "fear:/a/b/c.tar.gz" -> ".tar.gz"; but also /a.b/c.z -> .z
-  public static String extensionWithDot(String s){
-    int dot= s.indexOf('.', lastSlashIndex(s) + 1); // first dot after last slash
-    assert dot >= 0 && dot + 1 < s.length();
-    return s.substring(dot);
-  }
-  ///Returns the path without the filename
-  public static String removeFileName(String s){ return s.substring(0,lastSlashIndex(s)); }
   public static String removeFileNameAllowTop(String s){
     int i= s.lastIndexOf('/');
     if (i == -1){ return ""; }
