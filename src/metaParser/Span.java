@@ -10,7 +10,7 @@ public record Span(URI fileName, int startLine, int startCol, int endLine, int e
     .thenComparingInt(Span::startLine).thenComparingInt(Span::startCol);
   public Span{
     Objects.requireNonNull(fileName);
-    assert startLine < endLine || ( startLine == endLine  && startCol <= endCol )
+    assert startLine < endLine || (startLine == endLine && startCol <= endCol)
     :"startLine="+startLine+", endLine="+endLine+", startCol="+startCol+", endCol="+endCol;
   }
   @Override public String toString(){
