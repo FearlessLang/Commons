@@ -77,7 +77,7 @@ public abstract class MetaTokenizer<
   }
   public Tokenizer tokenKinds(List<TK> tks, TK sof, TK eof){
     assert !frozen : "cannot call .tokenKinds during .tokenize, .postTokenize, .buildTokenTree";
-    assert tks != null && !tks.isEmpty() : "kinds list cannot be empty";
+    assert !tks.isEmpty() : "kinds list cannot be empty";
     assert !tks.contains(sof) && !tks.contains(eof) : "do not include SOF/EOF in kinds";
     this.sof= Objects.requireNonNull(sof);
     this.eof= Objects.requireNonNull(eof);
