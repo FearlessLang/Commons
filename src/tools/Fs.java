@@ -167,11 +167,11 @@ public final class Fs{
   public interface Run<T>{T run() throws IOException;}
   public interface WalkVoid{void walk(Stream<Path> p) throws IOException;}
   public interface Walk<T>{T walk(Stream<Path> p) throws IOException;}
-  public static void ofV(RunVoid f) {
+  public static void ofV(RunVoid f){
     try{ f.run(); }
     catch(IOException io){ throw new UncheckedIOException(io); }
   }
-  public static <T> T of(Run<T> f) {
+  public static <T> T of(Run<T> f){
     try{ return f.run(); }
     catch(IOException io){ throw new UncheckedIOException(io); }
   }

@@ -103,7 +103,7 @@ public abstract class MetaParser<
       .allMatch(Optional::isPresent);
   }
   public <R> R back(R v){
-    if (index == 0) { throw Bug.of("Can not go back since already at start"); }
+    if (index == 0){ throw Bug.of("Can not go back since already at start"); }
     index--;
     return v;
     }
@@ -131,7 +131,7 @@ public abstract class MetaParser<
     assert low >= 0 && low < ts.size();
     assert high >= 0 && high < ts.size();
     var here = span(ts.get(low),ts.get(high));
-    if (here.isPresent()) { return here.get(); }
+    if (here.isPresent()){ return here.get(); }
     int startLine= this.span.startLine();
     int  startCol= this.span.startCol();
     int   endLine= this.span.endLine();
