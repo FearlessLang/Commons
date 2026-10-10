@@ -19,8 +19,7 @@ import java.util.spi.ToolProvider;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static offensiveUtils.Require.*;
-
+import offensiveUtils.Require;
 import utils.Bug;
 
 public final class Fs{
@@ -91,7 +90,7 @@ public final class Fs{
       catch(InterruptedException ie){ Thread.currentThread().interrupt(); throw Bug.of(ie); }
     }
   }
-  public static void reqDir(Path p, String what){ check(Files.isDirectory(p), "Expected a directory for "+what+": "+p); }
+  public static void reqDir(Path p, String what){ Require.check(Files.isDirectory(p), "Expected a directory for "+what+": "+p); }
   public static void cleanDir(Path p){
     if (!Files.exists(p)){ ensureDir(p); return; }
     cleanDirContents(p);
@@ -114,7 +113,7 @@ public final class Fs{
     return out;
   }
   static void checkTool(String tool, int rc, List<String> args, String out){
-    check(rc == 0,
+    Require.check(rc == 0,
       "Tool error: "+tool+
       "\nExit code: "+rc+
       "\nArgs:\n"+String.join("\n",args)+
@@ -194,7 +193,7 @@ public final class Fs{
       .entrySet().stream()
       .filter(e->e.getValue().size() > 1)
       .toList();
-    check(duplicates.isEmpty(), "Expected distinct file names to flatten "+from+" into "+to+", found:\n"+duplicates);
+    Require.check(duplicates.isEmpty(), "Expected distinct file names to flatten "+from+" into "+to+", found:\n"+duplicates);
     ensureDir(to);
     files.forEach(src->ofV(()->copyFlat(to, src)));
   }

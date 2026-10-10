@@ -7,7 +7,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import static offensiveUtils.Require.*;
+
+import offensiveUtils.Require;
 import utils.OneOr;
 import utils.Push;
 
@@ -60,13 +61,13 @@ public interface SourceOracle{
   static Builder debugBuilder(){ return new Builder(); }
   final class Builder{
     private record DebugRef(String fearPath, byte[] loadBytes,String loadString) implements Ref{
-      DebugRef{ assert nonNull(fearPath,loadBytes); }
+      DebugRef{ assert Require.nonNull(fearPath,loadBytes); }
       @Override public long lastModified(){ return System.currentTimeMillis(); }
       @Override public String toString(){ return fearPath; }
     }
     private record Debug(List<Ref> allFiles) implements SourceOracle{//should be private inside builder?
       Debug{
-        assert unmodifiable(allFiles,"Debug.fileList");//still should be guaranteed by builder?
+        assert Require.unmodifiable(allFiles,"Debug.fileList");//still should be guaranteed by builder?
         assert allFiles.stream().map(e->e.fearPath()).distinct().count()== allFiles.size();
       }
     }
