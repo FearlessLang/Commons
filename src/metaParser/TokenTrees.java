@@ -14,7 +14,7 @@ class TokenTrees<
     Parser extends MetaParser<T,TK,E,Tokenizer,Parser,Err>,
     Err extends ErrFactory<T,TK,E,Tokenizer,Parser,Err>
   >{
-  TokenTreeSpec<T,TK> spec; Tokenizer tokenizer;
+  final TokenTreeSpec<T,TK> spec; final Tokenizer tokenizer;
   TokenTrees(TokenTreeSpec<T,TK> spec, Tokenizer tokenizer){
     this.spec= spec; this.tokenizer= tokenizer;
   }
