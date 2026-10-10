@@ -18,7 +18,7 @@ import utils.Push;
  */
 
 public interface SourceOracle{
-  public static final String root="fear:/";
+  static final String root="fear:/";
 
   interface Ref extends RefParent{
     byte[] loadBytes();
@@ -49,7 +49,7 @@ public interface SourceOracle{
   default String loadString(URI uri){
     return OneOr.of("Expected one source for "+uri, allFiles().stream().filter(f->f.fearURI().equals(uri))).loadString();
   }
-  public static URI defaultDbgFearPath(int index){
+  static URI defaultDbgFearPath(int index){
     return URI.create("fear:/___DBG___/"+(index==0 ? "_rank_app999.fear" : "in_memory"+index+".fear"));
   }
   default SourceOracle withFallback(SourceOracle fb){
@@ -57,8 +57,8 @@ public interface SourceOracle{
     assert all.stream().map(e->e.fearPath()).distinct().count()== all.size();
     return ()->all;
   }
-  public static Builder debugBuilder(){ return new Builder(); }
-  public static final class Builder{
+  static Builder debugBuilder(){ return new Builder(); }
+  final class Builder{
     private record DebugRef(String fearPath, byte[] loadBytes,String loadString) implements Ref{
       DebugRef{ assert nonNull(fearPath,loadBytes); }
       @Override public long lastModified(){ return System.currentTimeMillis(); }
