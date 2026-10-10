@@ -64,7 +64,7 @@ public final class WindowsAssociations{
   private static List<String> existingIdentities(Predicate<String> belongsToFamily){
     var res= new LinkedHashSet<String>();
     res.addAll(regValues(hkcu(registeredApplications)).keySet());
-    for (var name: listSubkeys(hkcu(softwareRoot))){
+    for (var name : listSubkeys(hkcu(softwareRoot))){
       if (keyExists(hkcu(softwareRoot)+"\\"+name+"\\Capabilities")){ res.add(name); }
     }
     return res.stream().filter(belongsToFamily).sorted().toList();
@@ -87,7 +87,7 @@ public final class WindowsAssociations{
     if (!existing.equals(List.of(identity))){ return false; }
     var declared= regValues(hkcu(fileAssociations(identity)));
     if (declared.size() != extensions.size()){ return false; }
-    for (var icon: extensions){
+    for (var icon : extensions){
       var progId= progId(identity, icon.extension());
       if (!progId.equals(declared.get(icon.extension()))){ return false; }
       var sameIcon= regValue(hkcu(classes)+progId+"\\DefaultIcon", "").equals(Optional.of(icon.ico()+",0"));

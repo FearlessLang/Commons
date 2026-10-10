@@ -25,7 +25,7 @@ public record NativeOverrides(Set<String> pairs, Set<String> fileNames){
       try (StandardJavaFileManager fm= compiler.getStandardFileManager(null,null,null)){
         var units= fm.getJavaFileObjectsFromPaths(files);
         var task= (JavacTask)compiler.getTask(null,fm,null,null,null,units);
-        for (var cu: task.parse()){ scanUnit(cu, pairs); }
+        for (var cu : task.parse()){ scanUnit(cu, pairs); }
       }
     });
     var fileNames= files.stream().map(p->p.getFileName().toString()).map(n->n.substring(0, n.length()-".java".length())).collect(Collectors.toUnmodifiableSet());
@@ -34,8 +34,8 @@ public record NativeOverrides(Set<String> pairs, Set<String> fileNames){
   private static void scanUnit(CompilationUnitTree cu, HashSet<String> pairs){
     new TreeScanner<Void,Void>(){
       @Override public Void visitClass(ClassTree c, Void p){
-        for (var i: c.getImplementsClause()){
-          for (var mem: c.getMembers()){
+        for (var i : c.getImplementsClause()){
+          for (var mem : c.getMembers()){
             if (mem instanceof MethodTree mt){ pairs.add(i+"#"+mt.getName()); }
           }
         }

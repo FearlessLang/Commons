@@ -35,7 +35,7 @@ public record ReadZip(
     var bad= n.isEmpty() || n.startsWith("/") || n.indexOf('\0') >= 0;
     if (bad){ throw badNameErr.apply(n); }
     var sub= keyOf(n);
-    for (var seg: sub.split("/", -1)){
+    for (var seg : sub.split("/", -1)){
       var badSeg= seg.isEmpty() || seg.equals(".") || seg.equals("..");
       if (badSeg){ throw badNameErr.apply(n); }
     }
@@ -45,7 +45,7 @@ public record ReadZip(
     catch(OutOfMemoryError _){ throw tooLargeErr.apply(name); }
   }
   private Map<String,byte[]> cleanUp(LinkedHashMap<String,byte[]> map){
-    for (var e: map.entrySet()){
+    for (var e : map.entrySet()){
       var emptyDir= e.getValue() == null && map.keySet().stream().noneMatch(k -> k.startsWith(e.getKey()+"/"));
       if (emptyDir){ throw emptyDirErr.apply(e.getKey()); }
     }
