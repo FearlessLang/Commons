@@ -30,7 +30,7 @@ public interface TokenProcessor<
       return this;
     }
     public Map<T,TK,E,Tokenizer,Parser,Err> putStr(TK kind, Function<String,E> f, String str, String frame){
-      return put(kind, (_,t,tz) -> {
+      return put(kind, (_,t,tz)->{
         String head= t.content().isBlank()
           ? "Unrecognized text."
           : "Unrecognized text " + Message.displayString(t.content()) + ".";

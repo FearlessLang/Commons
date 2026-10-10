@@ -18,7 +18,7 @@ public final class PrettyFileName{
   }
   public static String sanitizeAscii(String s){
     var sb= new StringBuilder(s.length());
-    s.codePoints().forEach(cp-> sb.append(cp >= 0x20 && cp <= 0x7E ? (char)cp : '?'));
+    s.codePoints().forEach(cp->sb.append(cp >= 0x20 && cp <= 0x7E ? (char)cp : '?'));
     return sb.toString();
   }
 }
