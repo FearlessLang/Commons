@@ -20,9 +20,7 @@ public interface Token<T extends Token<T,TK>, TK extends TokenKind> {
   static Span makeSpan(URI fileName, Token<?,?> first, Token<?,?> last){
     int l = last.line();
     int c = last.column();
-    for (int i = 0; i < last.content().length();) {
-      int cp= last.content().codePointAt(i);
-      i += Character.charCount(cp);
+    for (int cp : last.content().codePoints().toArray()){
       if (cp == '\n'){ l += 1; c = 1; } else { c += 1; }
     }
     int minCol= first.line() == l ? first.column() : 1;

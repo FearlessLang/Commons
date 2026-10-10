@@ -100,9 +100,7 @@ public abstract class MetaTokenizer<
     assert errFactory!=null: "call method .errFactory before tokenize";
     assert input!=null:      "call method .input before tokenize";
     int l= 1, c= 1;
-    for (int i= 0; i < input.length(); ){
-      int cp= input.codePointAt(i);
-      i += Character.charCount(cp);
+    for (int cp : input.codePoints().toArray()){
       if (whiteList.indexOf(cp) < 0){ var at= new Span(fileName, l, c, l, c); throw withFrozen(()->errFactory().illegalCharAt(at, cp, self())); }
       if (cp == '\n'){ l++; c = 1; } else { c++; }
     }
