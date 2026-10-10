@@ -140,7 +140,7 @@ public abstract class MetaParser<
       var s= span(ts.get(i));
       if (s.isPresent()){
         startLine= s.get().endLine();
-        startCol  = s.get().endCol();
+        startCol= s.get().endCol();
         break;
       }
     }
@@ -148,7 +148,7 @@ public abstract class MetaParser<
       var s= span(ts.get(i));
       if (s.isPresent()){
         endLine= s.get().startLine();
-        endCol  = s.get().startCol();
+        endCol= s.get().startCol();
         break;
       }
     }

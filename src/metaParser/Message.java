@@ -62,7 +62,7 @@ public final class Message{
   }
   private static Span union(Span a, Span b){
     int startLine= Math.min(a.startLine(), b.startLine());
-    int endLine   = Math.max(a.endLine(),   b.endLine());
+    int endLine= Math.max(a.endLine(), b.endLine());
     int startCol= (a.startLine() == startLine && b.startLine() == startLine)
         ? Math.min(a.startCol(), b.startCol())
         : (a.startLine() == startLine ? a.startCol() : b.startCol());
@@ -388,7 +388,7 @@ public final class Message{
     for (int i : Range.of(0,n)){
       Span s= sps.get(i);
       int aVis= visualCol(raw, s.startCol());
-      int len  = visualDelta(raw, s.startCol(), s.endCol());
+      int len= visualDelta(raw, s.startCol(), s.endCol());
       int bVis= aVis + Math.max(1, len) - 1; // ensure at least 1 column
       rightMost= Math.max(rightMost, bVis);
     }
@@ -397,7 +397,7 @@ public final class Message{
     for (int i : Range.of(0,n)){
       Span s= sps.get(i);
       int aVis= visualCol(raw, s.startCol());
-      int len  = visualDelta(raw, s.startCol(), s.endCol());
+      int len= visualDelta(raw, s.startCol(), s.endCol());
       int b= Math.max(aVis, Math.min(aVis + Math.max(1, len) - 1, rightMost));
       for (int c : Range.of(aVis,b+1)){
         int idx = c - 1;
@@ -452,10 +452,10 @@ public final class Message{
   private static String renderMulti(String[] lines, Grouping g, int width, Optional<String> caretLine){
     Span group= g.multiLine();
     int start= group.startLine();
-    int end   = group.endLine();
+    int end= group.endLine();
     int caret= g.caretLine();
     int beforeCount= caret - start - 1;  // lines strictly between start..caret
-    int afterCount  = end   - caret - 1;  // lines strictly between caret..end
+    int afterCount= end - caret - 1;  // lines strictly between caret..end
     ArrayList<String> out= new ArrayList<>();
     if (caret != start){
       out.add(numbered(lines, start, width));
