@@ -9,7 +9,7 @@ public interface ErrFactory<
     E extends RuntimeException & HasFrames<E>,
     Tokenizer extends MetaTokenizer<T,TK,E,Tokenizer,Parser,Err>,
     Parser extends MetaParser<T,TK,E,Tokenizer,Parser,Err>,
-    Err extends ErrFactory<T,TK,E,Tokenizer,Parser,Err>  
+    Err extends ErrFactory<T,TK,E,Tokenizer,Parser,Err>
   >{
   // == Lexer / general ========================================================
 
@@ -29,7 +29,7 @@ public interface ErrFactory<
     T open, T stop, Collection<TK> expectedClosers,
     LikelyCause likely,
     Tokenizer tokenizer);
-  public enum LikelyCause {
+  enum LikelyCause{
     Unknown,
     StrayOpener,   //Dropping the opener ('open') makes parsing advance significantly.
     StrayCloser,   //Dropping the closer ('stop') makes parsing advance significantly.
@@ -45,7 +45,7 @@ public interface ErrFactory<
     T open, T stop, Collection<TK> expectedClosers,
     T hiddenFragment, T hiddenContainer,
     Tokenizer tokenizer);
-  
+
   ///The expected opener for 'stop' appears hidden inside another token 
   ///(example: string or comment) between 'open' and 'stop'.
   ///hiddenContainer is the whole hidden token; hiddenFragment pinpoints the slice

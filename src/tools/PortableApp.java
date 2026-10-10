@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
+
 import utils.OneOr;
 
 public record PortableApp(
@@ -16,17 +17,17 @@ public record PortableApp(
     Fs.cleanDir(out);
     var tmp= out.resolve("_tmp"); Fs.ensureDir(tmp);
     var modsDir= out.resolve(JavacTool.buildModsDirName);
-    try{ build0(tmp, modsDir); }
+    try{ _build(tmp, modsDir); }
     finally{ Fs.rmTree(tmp); Fs.rmTree(modsDir); }
   }
-  private void build0(Path tmp, Path modsDir){
+  private void _build(Path tmp, Path modsDir){
     Fs.cleanDir(modsDir);
     Fs.copyTreeFlat(depJar, modsDir);
     removeOtherPlatformSkijaJars(modsDir);
     modules.forEach(m->compileMod(m, modsDir, tmp));
     var stdLib= prepareAppContent(tmp);
     JavacTool.jpackage(out, packaging, appName, versionId, moduleMain, stdLib);
-    if(!Fs.isLinux()){ return; }
+    if (!Fs.isLinux()){ return; }
     var app= out.resolve(appName);
     Fs.writeUtf8(app.resolve("bin").resolve("fearless-mime.xml"), mime);
     var launcher= app.resolve(appName+".desktop");
@@ -64,7 +65,7 @@ public record PortableApp(
     Fs.copyFresh(packaging.resolve("linux").resolve("icon.png"), app.resolve("icon.png"));
     return app;
   }
-  private static final String desktop="""
+  private static final String desktop= """
 [Desktop Entry]
 Type=Application
 Name=%1$s
@@ -72,7 +73,7 @@ Exec=sh -c 'exec "$(dirname "$(readlink -f "$0")")/bin/%1$s" "$@"' %%k %%F
 Terminal=false
 """;
   //need to be saved in fearless-mime.xml near fearless and fearlessw
-  private static final String mime="""
+  private static final String mime= """
 <?xml version="1.0" encoding="UTF-8"?>
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
   <mime-type type="application/x-fearless">

@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
+
 import utils.Bug;
 import utils.Range;
 
@@ -28,11 +29,11 @@ public abstract class MetaParser<
   public MetaParser(Span span, List<T> ts){ this.span= span; this.ts= ts; this.limit= ts.size(); }
   public <R> R parseAll(String frameName, Rule<T,TK,E,Tokenizer,Parser,Err,R> r){
     R res; try{ res= r.parse(this.self()); }
-    catch(RuntimeException|Error t){ 
+    catch(RuntimeException|Error t){
       if (!frameName.isEmpty() && t instanceof HasFrames<?> f){ f.addFrame(new Frame(frameName,span())); }
       throw t;
     }
-    if(index != limit){ throw errFactory().extraContent(remainingSpan(), "", List.of(),self()); }
+    if (index != limit){ throw errFactory().extraContent(remainingSpan(), "", List.of(),self()); }
     return res;
   }
   public boolean end(){ return limit == index; }
@@ -46,7 +47,7 @@ public abstract class MetaParser<
   }
   public Optional<T> peek(int la){ return peekAbs(index + la); }
   public Optional<T> peekLast(){ return peekAbs(limit-1); }
-  
+
   @SafeVarargs @SuppressWarnings("varargs")
   public final boolean peek(TK... kinds){
     assert kinds.length > 0;
@@ -102,7 +103,7 @@ public abstract class MetaParser<
       .allMatch(Optional::isPresent);
   }
   public <R> R back(R v){
-    if (index == 0) { throw Bug.of("Can not go back since already at start"); }
+    if (index == 0){ throw Bug.of("Can not go back since already at start"); }
     index--;
     return v;
     }
@@ -124,13 +125,13 @@ public abstract class MetaParser<
   }
   public Span spanAround(int low, int high){
     if (ts.isEmpty()){ return span; }
-    if (low == ts.size()){ low -= 1; }
-    if (high == ts.size() || high < 0){ high = ts.size() - 1; }
-    if (low > high){ low = high; }
+    if (low == ts.size()){ low-= 1; }
+    if (high == ts.size() || high < 0){ high= ts.size() - 1; }
+    if (low > high){ low= high; }
     assert low >= 0 && low < ts.size();
     assert high >= 0 && high < ts.size();
-    var here = span(ts.get(low),ts.get(high));
-    if (here.isPresent()) { return here.get(); }
+    var here= span(ts.get(low),ts.get(high));
+    if (here.isPresent()){ return here.get(); }
     int startLine= this.span.startLine();
     int  startCol= this.span.startCol();
     int   endLine= this.span.endLine();
@@ -138,31 +139,31 @@ public abstract class MetaParser<
     for (int i= low ; i >= 0; i--){//starts with low in case high was the failure point
       var s= span(ts.get(i));
       if (s.isPresent()){
-        startLine = s.get().endLine();
-        startCol  = s.get().endCol();
+        startLine= s.get().endLine();
+        startCol= s.get().endCol();
         break;
       }
     }
     for (int i : Range.of(high,ts.size())){//starts with high in case low was the failure point
       var s= span(ts.get(i));
-      if (s.isPresent()){ 
-        endLine = s.get().startLine();
-        endCol  = s.get().startCol();
+      if (s.isPresent()){
+        endLine= s.get().startLine();
+        endCol= s.get().startCol();
         break;
       }
     }
-    return new Span(span.fileName(), startLine, startCol, endLine, endCol);   
+    return new Span(span.fileName(), startLine, startCol, endLine, endCol);
   }
   public <R> R parseRemaining(String frameName, Rule<T,TK,E,Tokenizer,Parser,Err,R> r){
     var tsIn= ts.subList(index, limit);
     var s= spanAround(index,limit-1);
-    if(tsIn.isEmpty()){ throw Bug.of("Expected at least one remaining token."); }
+    if (tsIn.isEmpty()){ throw Bug.of("Expected at least one remaining token."); }
     var nested= make(s,tsIn);
     var res= nested.parseAll(frameName, r);
-    index = limit;
+    index= limit;
     return res;
   }
-  
+
   ///Must advance p.index() by >= 1; will be called until p.end() holds
   ///Returns the amount of last consumed token to drop as separators
   public interface NextCut<
@@ -223,7 +224,7 @@ public abstract class MetaParser<
     var res= parseFront(frameName, true, probe, first);
     if (res.isPresent()){ return res.get(); }
     return parseAll(frameName,first);
-  }  
+  }
   ///Suitable to divide two non empty lists of tokens, especially if
   ///the division can not be easily located by looking at a few tokens forward.
   ///Parses a (non empty) list of tokens from the start of this parser.
@@ -239,7 +240,7 @@ public abstract class MetaParser<
     int drop= probe.cutAt(splitterParser);
     int end= splitterParser.index();
     ((MetaParser<T,TK,E,Tokenizer,Parser,Err>)splitterParser).checkProbeErrorFront(emptyAllowed,start, end, drop, frameName);
-    if(splitterParser.end()){ return Optional.empty(); }//split not found
+    if (splitterParser.end()){ return Optional.empty(); }//split not found
     var firstS= splitterParser.spanAround(0,(end-1)-drop);
     Parser firstParser= make(firstS,List.copyOf(slice.subList(0, end-drop)));
     var res= firstParser.parseAll(frameName, first);
@@ -262,7 +263,7 @@ public abstract class MetaParser<
     int end= splitterParser.limit();
     ((MetaParser<T,TK,E,Tokenizer,Parser,Err>)splitterParser).checkProbeErrorFront(emptyAllowed,end, start, drop, frameName);
     //TODO: test if the errors make sense by just swapping start/end    
-    if(splitterParser.end()){ return Optional.empty(); }//split not found
+    if (splitterParser.end()){ return Optional.empty(); }//split not found
     var lastS= splitterParser.spanAround(end + drop, start - 1);
     Parser firstParser= make(lastS,List.copyOf(slice.subList(end + drop, start)));
     var res= firstParser.parseAll(frameName, first);
@@ -288,13 +289,13 @@ public abstract class MetaParser<
   public int splitOn(SplitMode split, TK k){ return splitOn(split,t->t.is(k)); }
   public int splitOn(SplitMode split, Predicate<T> p){
     fwdIf(index() != 0 && !end() && split == SplitMode.Right);
-    while(!end()){
+    while (!end()){
       var t= expectAny("");
       if (!p.test(t)){ continue; }
       return switch(split){
-        case Skipped-> 1;
-        case Left-> 0;
-        case Right-> back(0);
+        case Skipped -> 1;
+        case Left -> 0;
+        case Right -> back(0);
       };
     }
     return 0;
@@ -336,11 +337,11 @@ public abstract class MetaParser<
   public Span span(){ return span; }
   public Span spanLast(){
     if (limit - 1 < 0){ return span; }
-    return span(ts.get(limit - 1)).orElse(span); 
+    return span(ts.get(limit - 1)).orElse(span);
   }
   public Span remainingSpan(){
-    if(end()){ return spanLast(); }
-    return span(ts.get(index),ts.get(limit-1)).orElse(span); 
+    if (end()){ return spanLast(); }
+    return span(ts.get(index),ts.get(limit-1)).orElse(span);
   }
   public Optional<Span> span(T low, T high){//not equal to span(List.of(low,high))
     return firstLeaf(low)

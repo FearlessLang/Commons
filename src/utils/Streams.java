@@ -11,7 +11,7 @@ import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public final class Streams {
+public final class Streams{
   @SafeVarargs @SuppressWarnings("varargs")
   public static <T> Stream<T> of(Stream<T>...ss){ return Stream.of(ss).flatMap(s->s); }
   @SafeVarargs @SuppressWarnings("varargs")
@@ -19,11 +19,11 @@ public final class Streams {
 
   public static <A,B> Zipper2<A,B> zip(List<A> as, List<B> bs){
     assert as.size() == bs.size();
-    return new ListZipper<>(as,bs);
+    return new ListZipper2<>(as,bs);
   }
   public static <A,B> Zipper2<A,B> zip(A[] as, B[] bs){ return zip(Arrays.asList(as), Arrays.asList(bs)); }
 
-  private record ListZipper<A,B>(List<A> as, List<B> bs) implements Zipper2<A,B>{
+  private record ListZipper2<A,B>(List<A> as, List<B> bs) implements Zipper2<A,B>{
     @Override public void forEach(BiConsumer<A,B> f){
       IntStream.range(0, as.size()).forEach(i->f.accept(as.get(i), bs.get(i)));
     }
@@ -47,7 +47,7 @@ public final class Streams {
       IntStream.range(0, as.size())
         .filter(i->f.test(as.get(i), bs.get(i)))
         .forEachOrdered(i->{ asi.add(as.get(i)); bsi.add(bs.get(i)); });
-      return new ListZipper<>(asi, bsi);
+      return new ListZipper2<>(asi, bsi);
     }
     @Override public <R> R fold(Acc2<R,A,B> folder, R initial){
       Box<R> acc= new Box<>(initial);
@@ -64,10 +64,10 @@ public final class Streams {
       return IntStream.range(0, as.size()).parallel().allMatch(i->test.test(as.get(i), bs.get(i)));
     }
   }
-  public static <T> Optional<Integer> firstPos(List<T> xs, Predicate<Integer> p) {
+  public static <T> Optional<Integer> firstPos(List<T> xs, Predicate<Integer> p){
     return firstPos(0, xs, p);
   }
-  public static <T> Optional<Integer> firstPos(int start, List<T> xs, Predicate<Integer> p) {
+  public static <T> Optional<Integer> firstPos(int start, List<T> xs, Predicate<Integer> p){
     assert start <= xs.size();
     return IntStream.range(start, xs.size()).boxed()
       .filter(p)
@@ -75,7 +75,7 @@ public final class Streams {
   }
   public interface Acc2<R,A,B> { R apply(R acc, A a, B b); }
   public interface Acc3<R,A,B,C>{ R apply(R acc, A a, B b, C c); }
-  
+
   public static <A,B> Zipper3<Integer,A,B> zipI(List<A> as, List<B> bs){
     assert as.size() == bs.size();
     return new ListZipper3<>(IntStream.range(0, as.size()).boxed().toList(), as, bs);

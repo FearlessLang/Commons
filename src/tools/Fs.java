@@ -19,8 +19,7 @@ import java.util.spi.ToolProvider;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static offensiveUtils.Require.*;
-
+import offensiveUtils.Require;
 import utils.Bug;
 
 public final class Fs{
@@ -37,10 +36,10 @@ public final class Fs{
   public static boolean isExtSeg(String s){
     return !s.isEmpty() && s.length() <= maxExtSeg && s.chars().allMatch(c->isExtSegChar((char)c));
   }
-  public static void ensureDir(Path p){ of(()->Files.createDirectories(p)); }
+  public static void ensureDir(Path p){ ofV(()->Files.createDirectories(p)); }
   public static void cleanDirContents(Path p){
     reqDir(p, "cleaning");
-    var xs= walk(p, s-> s
+    var xs= walk(p, s->s
       .filter(x->!x.equals(p))
       .sorted(Comparator.reverseOrder())
       .toList()
@@ -49,7 +48,7 @@ public final class Fs{
   }
   private static void forceDelete(Path p) throws IOException{
     if (isWindows()){ Files.setAttribute(p, "dos:readonly", false, LinkOption.NOFOLLOW_LINKS); }
-    for(int attempt= 0; ; attempt++){
+    for (int attempt= 0; ; attempt++){
       try{ Files.deleteIfExists(p); return; }
       catch(AccessDeniedException e){
         if (!isWindows() || attempt >= 9){ throw e; }
@@ -59,7 +58,7 @@ public final class Fs{
     }
   }
   private static void sleepBriefly(){
-    try{ Thread.sleep(25); } catch(InterruptedException e){ Thread.currentThread().interrupt(); }
+    try{ Thread.sleep(25); } catch(InterruptedException _){ Thread.currentThread().interrupt(); }
   }
   public static void writeUtf8(Path file, String content){
     ensureDir(file.getParent());
@@ -83,7 +82,7 @@ public final class Fs{
   }
   // Writes (overwriting if needed) and guarantees mtime > minExclusiveMillis. Returns the actual mtime.
   public static long writeUtf8(Path file, String content, long minExclusiveMillis){
-    for(;;){
+    for (;;){
       writeUtf8(file, content);
       var m= lastModified(file);
       if (m > minExclusiveMillis){ return m; }
@@ -91,7 +90,7 @@ public final class Fs{
       catch(InterruptedException ie){ Thread.currentThread().interrupt(); throw Bug.of(ie); }
     }
   }
-  public static void reqDir(Path p, String what){ check(Files.isDirectory(p), "Expected a directory for "+what+": "+p); }
+  public static void reqDir(Path p, String what){ Require.check(Files.isDirectory(p), "Expected a directory for "+what+": "+p); }
   public static void cleanDir(Path p){
     if (!Files.exists(p)){ ensureDir(p); return; }
     cleanDirContents(p);
@@ -114,7 +113,7 @@ public final class Fs{
     return out;
   }
   static void checkTool(String tool, int rc, List<String> args, String out){
-    check(rc == 0,
+    Require.check(rc == 0,
       "Tool error: "+tool+
       "\nExit code: "+rc+
       "\nArgs:\n"+String.join("\n",args)+
@@ -154,7 +153,7 @@ public final class Fs{
     if (i == -1){ return ""; }
     int j= s.indexOf(":/");
     return i == j+1 ? s.substring(0,i+1) : s.substring(0,i);
-  }  
+  }
   private static int lastSlashIndex(String s){
     int i= s.lastIndexOf('/');
     assert i >= 0 && i + 1 < s.length();
@@ -168,12 +167,12 @@ public final class Fs{
   public interface Run<T>{T run() throws IOException;}
   public interface WalkVoid{void walk(Stream<Path> p) throws IOException;}
   public interface Walk<T>{T walk(Stream<Path> p) throws IOException;}
-  public static void ofV(RunVoid f) {
-    try { f.run(); }
+  public static void ofV(RunVoid f){
+    try{ f.run(); }
     catch(IOException io){ throw new UncheckedIOException(io); }
   }
-  public static <T> T of(Run<T> f) {
-    try { return f.run(); }
+  public static <T> T of(Run<T> f){
+    try{ return f.run(); }
     catch(IOException io){ throw new UncheckedIOException(io); }
   }
   public static void walkV(Path p, WalkVoid f){
@@ -194,7 +193,7 @@ public final class Fs{
       .entrySet().stream()
       .filter(e->e.getValue().size() > 1)
       .toList();
-    check(duplicates.isEmpty(), "Expected distinct file names to flatten "+from+" into "+to+", found:\n"+duplicates);
+    Require.check(duplicates.isEmpty(), "Expected distinct file names to flatten "+from+" into "+to+", found:\n"+duplicates);
     ensureDir(to);
     files.forEach(src->ofV(()->copyFlat(to, src)));
   }

@@ -27,6 +27,8 @@ public final class WindowsAssociations{
   private static final String registeredApplications= "HKEY_CURRENT_USER\\Software\\RegisteredApplications";
   private static final String softwareRoot= "HKEY_CURRENT_USER\\Software";
   private static final String fileExts= "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\";
+  private static final String valueNotSet= "(value not set)";
+  private static final int assocChanged= 0x08000000;
 
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programIco,
@@ -62,7 +64,7 @@ public final class WindowsAssociations{
   private static List<String> existingIdentities(Predicate<String> belongsToFamily){
     var res= new LinkedHashSet<String>();
     res.addAll(regValues(hkcu(registeredApplications)).keySet());
-    for (var name: listSubkeys(hkcu(softwareRoot))){
+    for (var name : listSubkeys(hkcu(softwareRoot))){
       if (keyExists(hkcu(softwareRoot)+"\\"+name+"\\Capabilities")){ res.add(name); }
     }
     return res.stream().filter(belongsToFamily).sorted().toList();
@@ -85,11 +87,13 @@ public final class WindowsAssociations{
     if (!existing.equals(List.of(identity))){ return false; }
     var declared= regValues(hkcu(fileAssociations(identity)));
     if (declared.size() != extensions.size()){ return false; }
-    for (var icon: extensions){
+    for (var icon : extensions){
       var progId= progId(identity, icon.extension());
       if (!progId.equals(declared.get(icon.extension()))){ return false; }
-      if (!regValue(hkcu(classes)+progId+"\\DefaultIcon", "").equals(Optional.of(icon.ico()+",0"))){ return false; }
-      if (!regValue(hkcu(classes)+progId+"\\shell\\open\\command", "").equals(Optional.of(openCommand(command)))){ return false; }
+      var sameIcon= regValue(hkcu(classes)+progId+"\\DefaultIcon", "").equals(Optional.of(icon.ico()+",0"));
+      if (!sameIcon){ return false; }
+      var sameCommand= regValue(hkcu(classes)+progId+"\\shell\\open\\command", "").equals(Optional.of(openCommand(command)));
+      if (!sameCommand){ return false; }
     }
     return regValue(hkcu(capabilities(identity)), "ApplicationIcon").equals(Optional.of(programIco+",0"));
   }
@@ -159,7 +163,6 @@ public final class WindowsAssociations{
     return "\r\n["+key+"]\r\n"+shown+"=\""+regData(data)+"\"\r\n";
   }
   private static String regData(String data){ return data.replace("\\","\\\\").replace("\"","\\\""); }
-  private static final String valueNotSet= "(value not set)";
   private static Optional<String> regValue(String key, String name){
     var cmd= name.isEmpty()
       ? List.of("reg","query",key,"/ve")
@@ -167,7 +170,7 @@ public final class WindowsAssociations{
     var raw= Shell.exec(cmd).filter(ran->ran.code() == 0)
       .flatMap(ran->ran.out().lines().map(String::strip).filter(l->l.contains("REG_")).findFirst())
       .map(WindowsAssociations::regQueried);
-    if (!raw.filter(v->v.equals(valueNotSet)).isPresent()){ return raw; }
+    if (raw.filter(v->v.equals(valueNotSet)).isEmpty()){ return raw; }
     var del= name.isEmpty() ? List.of("reg","delete",key,"/ve","/f") : List.of("reg","delete",key,"/v",name,"/f");
     Shell.exec(del);
     return Optional.empty();
@@ -212,5 +215,4 @@ public final class WindowsAssociations{
     }
     catch(Throwable t){ throw Bug.of(t); }
   }
-  private static final int assocChanged= 0x08000000;
 }

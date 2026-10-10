@@ -4,7 +4,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import utils.Range;
 
-public final class NameSuggester {
+public final class NameSuggester{
   private static final int maxScopeToList= 12;
   private static final double strongSimilarity= 0.68;
   private static final double margin= 0.08;
@@ -17,13 +17,13 @@ public final class NameSuggester {
     if (candidates.contains(name)){ return Optional.of(name); }
     var base= stripQuotes(name);
     if (!base.equals(name) && candidates.contains(base)){ return Optional.of(base); }
-    return suggest(name, candidates, (_, _, best) -> best);
+    return suggest(name, candidates, (_,_,best)->best);
   }
 
   public static String suggest(String name, List<String> candidates){
-    return suggest(name, candidates, (_, cs, best) -> {
+    return suggest(name, candidates, (_,cs,best)->{
       StringBuilder out= new StringBuilder();
-      best.ifPresent(b -> out
+      best.ifPresent(b->out
         .append("Did you mean ")
         .append(Message.displayString(b))
         .append(" ?\n"));
@@ -40,7 +40,7 @@ public final class NameSuggester {
     assert !name.isEmpty();
     assert !candidates.isEmpty();
     assert candidates.equals(candidates.stream().distinct().sorted().toList()): candidates;
-    assert candidates.stream().allMatch(s -> !s.isEmpty());
+    assert candidates.stream().allMatch(s->!s.isEmpty());
     assert !candidates.contains(name);
     var best= pickBest(name, candidates);
     return renderer.render(name, candidates, best);
@@ -61,12 +61,12 @@ public final class NameSuggester {
     }
 
     scored.sort(Comparator
-      .<Suggestion>comparingDouble(s -> -s.score)
-      .thenComparingInt(s -> Math.abs(s.scoreName.length() - tScore.length()))
-      .thenComparingInt(s -> s.value.length())
-      .thenComparing(s -> s.value));
+      .<Suggestion>comparingDouble(s->-s.score)
+      .thenComparingInt(s->Math.abs(s.scoreName.length() - tScore.length()))
+      .thenComparingInt(s->s.value.length())
+      .thenComparing(s->s.value));
 
-    var top= scored.get(0);
+    var top= scored.getFirst();
     double topScore= top.score;
     double runnerUp= scored.size() > 1 ? scored.get(1).score : -1;
     boolean strongEnough= topScore >= strongSimilarity;

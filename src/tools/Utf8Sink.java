@@ -8,7 +8,7 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 
-public class Utf8Sink extends OutputStream{
+public final class Utf8Sink extends OutputStream{
   private final Consumer<String> out;
   private final CharsetDecoder decoder= StandardCharsets.UTF_8.newDecoder()
     .onMalformedInput(CodingErrorAction.REPLACE)
@@ -27,7 +27,7 @@ public class Utf8Sink extends OutputStream{
   @Override public synchronized void close(){
     inBuf.flip();
     decodeLoop(true);
-    while(true){
+    while (true){
       outBuf.clear();
       var r= decoder.flush(outBuf);
       drainOutput();
@@ -36,7 +36,7 @@ public class Utf8Sink extends OutputStream{
     inBuf.clear();
   }
   private void decodeLoop(boolean end){
-    while(true){
+    while (true){
       outBuf.clear();
       var r= decoder.decode(inBuf, outBuf, end);
       drainOutput();

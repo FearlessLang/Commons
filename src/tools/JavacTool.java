@@ -9,17 +9,32 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import static offensiveUtils.Require.*;
 
+import offensiveUtils.Require;
 import utils.Push;
 
 public final class JavacTool{
-  private static final String javacArgFile="_javac.args";
+  private static final String javacArgFile= "_javac.args";
+  public static final String launcherKey= "app.launcher";
+  public static final String appDirKey= "app.dir";
+  public static final String versionIdKey= "app.versionId";
+  public static final String consoleKey= "console";
+  public static final String winKey= "w";
+  //--enable-native-access needed to coordinator (example, forcing english language)
+  public static final List<String> javaOptions= List.of("-ea","--enable-native-access=Commons,Coordinator","-D"+appDirKey+"=$APPDIR");
+  // Local build-time staging dir we hand to `jpackage --module-path`, holding
+  // the module jars (Commons/FearlessFrontend/Coordinator + external jars).
+  public static final String buildModsDirName= "_mods";
+  // jpackage's own app-image convention: it copies the `--module-path` content
+  // into a dir named exactly this, inside the produced app (e.g. on Linux,
+  // <dest>/<name>/lib/app/mods). We don't choose this name, jpackage does
+  public static final String deployedModsDirName= "mods";
+  public static final List<String> javacArgs= List.of("-encoding","UTF-8","-Xlint:all,-auxiliaryclass,-missing-explicit-ctor","-Werror");
 
   public static String compileTree(Path srcRoot, Path classesDir, Runnable postProcess, Path jarPath, List<Path> extraClasspathDirs){
     var srcs= javaSourcesUnder(srcRoot);
-    Fs.of(()->Files.deleteIfExists(jarPath));
-    check(!srcs.isEmpty(), "Expected .java files under "+srcRoot);
+    Fs.ofV(()->Files.deleteIfExists(jarPath));
+    Require.check(!srcs.isEmpty(), "Expected .java files under "+srcRoot);
     var args= new ArrayList<String>(10+srcs.size());
     args.add("-encoding"); args.add("UTF-8");
     args.add("-d"); args.add(abs(classesDir));
@@ -58,12 +73,6 @@ public final class JavacTool{
 
   private static String argToken(String s){ return "\""+s.replace("\\","\\\\").replace("\"","\\\"")+"\""; }
 
-  public static final String launcherKey= "app.launcher";
-  public static final String appDirKey= "app.dir";
-  public static final String versionIdKey= "app.versionId";
-  public static final String consoleKey= "console";
-  public static final String winKey= "w";
-
   public static Path reqAppDir(Supplier<? extends RuntimeException> onMissing){
     var launcher= System.getProperty(launcherKey);
     var appDir= System.getProperty(appDirKey);
@@ -77,22 +86,11 @@ public final class JavacTool{
     if (versionId == null){ throw onMissing.get(); }
     return versionId;
   }
-  //--enable-native-access needed to coordinator (example, forcing english language)
-  public static final List<String> javaOptions= List.of("-ea","--enable-native-access=Commons,Coordinator","-D"+appDirKey+"=$APPDIR");
-
-  // Local build-time staging dir we hand to `jpackage --module-path`, holding
-  // the module jars (Commons/FearlessFrontend/Coordinator + external jars).
-  public static final String buildModsDirName= "_mods";
-  // jpackage's own app-image convention: it copies the `--module-path` content
-  // into a dir named exactly this, inside the produced app (e.g. on Linux,
-  // <dest>/<name>/lib/app/mods). We don't choose this name, jpackage does
-  public static final String deployedModsDirName= "mods";
-
   public static String dataDirNameFor(String versionId){ return "fearless"+versionId; }
 
   public static void jpackage(Path dest, Path packaging, String appName, String versionId, String moduleMain, Path appContent){
     var slash= moduleMain.indexOf('/');
-    check(slash > 0, "Expected moduleMain of the form Module/pkg.Main: "+moduleMain);
+    Require.check(slash > 0, "Expected moduleMain of the form Module/pkg.Main: "+moduleMain);
     Fs.reqDir(packaging, "packaging");
     Fs.reqDir(appContent, "app content");
     var modsDir= dest.resolve(buildModsDirName);
@@ -109,7 +107,7 @@ public final class JavacTool{
     var jmods= javaHome.resolve("jmods");
     Fs.reqDir(jmods, "the jmods of a full JDK (a JRE has none)");
     var appModules= ModuleFinder.of(modsDir).findAll();
-    var appModuleNames= appModules.stream().map(m->m.descriptor().name()).collect(Collectors.toSet());
+    var appModuleNames= appModules.stream().map(m->m.descriptor().name()).collect(Collectors.toUnmodifiableSet());
     var platformModules= appModules.stream()
       .flatMap(m->m.descriptor().requires().stream())
       .filter(r->!r.modifiers().contains(Requires.Modifier.STATIC))
@@ -132,9 +130,9 @@ public final class JavacTool{
       .filter(Files::isDirectory)
       .filter(p->p.getFileName().toString().equals(deployedModsDirName))
       .toList());
-    check(found.size() == 1, "Expected exactly one '"+deployedModsDirName+"' dir under "+dest+" after jpackage, found: "+found);
+    Require.check(found.size() == 1, "Expected exactly one '"+deployedModsDirName+"' dir under "+dest+" after jpackage, found: "+found);
     var jars= Fs.walk(found.getFirst(), s->s.filter(p->p.toString().endsWith(".jar")).toList());
-    check(!jars.isEmpty(), "Expected jars in the '"+deployedModsDirName+"' dir made by jpackage: "+found.getFirst());
+    Require.check(!jars.isEmpty(), "Expected jars in the '"+deployedModsDirName+"' dir made by jpackage: "+found.getFirst());
   }
 
   private static void jpBody(Path dest, String name, String versionId, String moduleMain, Path modsDir, Path appContent, Path runtimeImage, Path tmp, Path packaging){
@@ -160,7 +158,7 @@ public final class JavacTool{
 
   private static Path iconFile(Path packaging, String osDir, String file){
     var p= packaging.resolve(osDir).resolve(file);
-    check(Files.isRegularFile(p), "Expected an icon file: "+p);
+    Require.check(Files.isRegularFile(p), "Expected an icon file: "+p);
     return p.toAbsolutePath().normalize();
   }
 
@@ -181,8 +179,6 @@ public final class JavacTool{
     return xs;
   }
 
-  public static final List<String> javacArgs= List.of("-encoding","UTF-8","-Xlint:all,-auxiliaryclass,-missing-explicit-ctor","-Werror");
-
   public static void javac(List<Path> srcs, Path classesDir, Path modsDir){
     javac(srcs, classesDir, modsDir, List.of());
   }
@@ -196,8 +192,8 @@ public final class JavacTool{
       .map(src->src.resolve("module-info.java"))
       .filter(Files::exists)
       .toList();
-    check(mi.size() == 1, "Expected exactly one module-info.java in the source roots "+srcs+", found: "+mi);
-    var args= new ArrayList<String>(javacArgs);
+    Require.check(mi.size() == 1, "Expected exactly one module-info.java in the source roots "+srcs+", found: "+mi);
+    var args= new ArrayList<>(javacArgs);
     extraLintDisables.forEach(l->args.add("-Xlint:"+l));
     args.add("-d"); args.add(abs(classesDir));
     args.add("--module-path"); args.add(abs(modsDir));

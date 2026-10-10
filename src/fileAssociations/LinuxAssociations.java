@@ -36,7 +36,7 @@ public final class LinuxAssociations{
   record Glob(String type, String pattern, boolean cs){
     boolean is(String ext){
       var regex= new StringBuilder();
-      for (var c: (cs ? pattern : pattern.toLowerCase(Locale.ROOT)).replace("[!", "[^").toCharArray()){ regex.append(wildcard(c)); }
+      for (var c : (cs ? pattern : pattern.toLowerCase(Locale.ROOT)).replace("[!", "[^").toCharArray()){ regex.append(wildcard(c)); }
       return ("*"+ext).matches(regex.toString());
     }
     private static String wildcard(char c){
@@ -110,7 +110,7 @@ public final class LinuxAssociations{
   private static List<Glob> globs(Predicate<String> belongsToFamily){
     var res= new ArrayList<Glob>();
     var cleared= new HashSet<String>();
-    for (var dir: mimeDirs()){
+    for (var dir : mimeDirs()){
       var keep= keep(dir, belongsToFamily);
       var here= fields(dir.resolve("globs2")).filter(f->f.size() > 2 && keep.test(f.get(1)) && !cleared.contains(f.get(1))).toList();
       here.stream().filter(f->!f.get(2).equals("__NOGLOBS__"))
@@ -126,7 +126,7 @@ public final class LinuxAssociations{
   private static Predicate<String> keep(Path dir, Predicate<String> belongsToFamily){
     var packages= listed(dir.resolve("packages"), ".xml").stream().collect(Collectors.partitioningBy(f->belongsToFamily.test(baseName(f))));
     var family= packages.get(true).stream().flatMap(f->lines(f).stream()).filter(l->l.contains("<glob "))
-      .map(declared::matcher).filter(Matcher::find).map(m->m.group(1)).collect(Collectors.toSet());
+      .map(declared::matcher).filter(Matcher::find).map(m->m.group(1)).collect(Collectors.toUnmodifiableSet());
     if (!dir.equals(home("mime"))){ return t->!family.contains(t); }
     var others= packages.get(false).stream().map(f->String.join("\n", lines(f))).collect(Collectors.joining("\n"));
     return t->!family.contains(t) && (others.contains("\""+t+"\"") || others.contains("'"+t+"'"));
@@ -140,7 +140,7 @@ public final class LinuxAssociations{
   private static List<Opener> chosen(Path file){
     var res= new ArrayList<Opener>();
     var section= "";
-    for (var line: lines(file)){
+    for (var line : lines(file)){
       if (line.startsWith("[")){ section= line.strip(); continue; }
       var eq= line.indexOf('=');
       if (eq < 0 || !List.of(defaults, added).contains(section)){ continue; }
@@ -155,7 +155,7 @@ public final class LinuxAssociations{
   private static Map<Path,byte[]> wanted(String identity, Path command, List<Icon> extensions, Path programPng, List<Glob> globs){
     var res= new LinkedHashMap<Path,byte[]>();
     var body= new StringBuilder();
-    for (var icon: extensions){
+    for (var icon : extensions){
       var bytes= desktopPng(icon.png());
       var name= identity+"-"+hash(bytes);
       res.put(iconDir("mimetypes").resolve(name+".png"), bytes);
@@ -172,7 +172,8 @@ public final class LinuxAssociations{
     return Collections.unmodifiableMap(res);
   }
   private static boolean alreadyMatches(List<String> existing, String identity, Map<Path,byte[]> wanted){
-    if (!existing.stream().allMatch(identity::equals) || !Set.copyOf(owned(identity::equals)).equals(wanted.keySet())){ return false; }
+    var exactlyWanted= existing.stream().allMatch(identity::equals) && Set.copyOf(owned(identity::equals)).equals(wanted.keySet());
+    if (!exactlyWanted){ return false; }
     return wanted.entrySet().stream().allMatch(e->Arrays.equals(Fs.of(()->Files.readAllBytes(e.getKey())), e.getValue()));
   }
   private static void rebuild(Function<String,RuntimeException> halfDone){
@@ -189,7 +190,7 @@ public final class LinuxAssociations{
   private static byte[] utf8(String text){ return text.getBytes(StandardCharsets.UTF_8); }
   public static String hash(byte[] bytes){
     var h= 0xcbf29ce484222325L;
-    for (var b: bytes){ h= (h ^ (b & 0xff))*0x100000001b3L; }
+    for (var b : bytes){ h= (h ^ (b & 0xff))*0x100000001b3L; }
     return Long.toHexString(h);
   }
   private static String mimeType(String identity, String ext, String icon, List<String> supertypes){
