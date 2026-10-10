@@ -23,8 +23,8 @@ public record ReadZip(
         var n= e.getName();
         reqZipNameOk(n);
         var key= keyOf(n);
-        if(out.containsKey(key)){ throw dupNameErr.apply(key); }
-        if(n.endsWith("/")){ out.put(key, null); }
+        if (out.containsKey(key)){ throw dupNameErr.apply(key); }
+        if (n.endsWith("/")){ out.put(key, null); }
         else{ out.put(key, readEntryBytes(key,zin)); }
       }
       finally{ Fs.ofV(zin::closeEntry); }
@@ -33,11 +33,11 @@ public record ReadZip(
   private static String keyOf(String n){ return n.endsWith("/") ? n.substring(0, n.length()-1) : n; }
   private void reqZipNameOk(String n){
     var bad= n.isEmpty() || n.startsWith("/") || n.indexOf('\0') >= 0;
-    if(bad){ throw badNameErr.apply(n); }
+    if (bad){ throw badNameErr.apply(n); }
     var sub= keyOf(n);
-    for(var seg: sub.split("/", -1)){
+    for (var seg: sub.split("/", -1)){
       var badSeg= seg.isEmpty() || seg.equals(".") || seg.equals("..");
-      if(badSeg){ throw badNameErr.apply(n); }
+      if (badSeg){ throw badNameErr.apply(n); }
     }
   }
   private byte[] readEntryBytes(String name, ZipInputStream zin){

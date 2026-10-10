@@ -18,8 +18,8 @@ public interface Token<T extends Token<T,TK>, TK extends TokenKind> {
   default boolean is(TK k){ return kind().equals(k); }
   default Span span(URI fileName){ return Token.makeSpan(fileName,this,this); }
   static Span makeSpan(URI fileName, Token<?,?> first, Token<?,?> last){
-    int l = last.line();
-    int c = last.column();
+    int l= last.line();
+    int c= last.column();
     for (int cp : last.content().codePoints().toArray()){
       if (cp == '\n'){ l += 1; c = 1; } else { c += 1; }
     }

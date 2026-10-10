@@ -70,7 +70,7 @@ public interface SourceOracle{
         assert allFiles.stream().map(e->e.fearPath()).distinct().count()== allFiles.size();
       }
     }
-    ArrayList<Ref> allFiles = new ArrayList<>();
+    ArrayList<Ref> allFiles= new ArrayList<>();
     public Builder putURI(URI uri, String content){ allFiles.add(new DebugRef(uri.normalize().toString(),content.getBytes(),content)); return this; }
     public Builder put(String pathLike, String content){ return putURI(Path.of(pathLike).toAbsolutePath().normalize().toUri(), content); }
     public Builder put(int index,String content){ return putURI(defaultDbgFearPath(index), content); }

@@ -26,7 +26,7 @@ public record PortableApp(
     modules.forEach(m->compileMod(m, modsDir, tmp));
     var stdLib= prepareAppContent(tmp);
     JavacTool.jpackage(out, packaging, appName, versionId, moduleMain, stdLib);
-    if(!Fs.isLinux()){ return; }
+    if (!Fs.isLinux()){ return; }
     var app= out.resolve(appName);
     Fs.writeUtf8(app.resolve("bin").resolve("fearless-mime.xml"), mime);
     var launcher= app.resolve(appName+".desktop");
