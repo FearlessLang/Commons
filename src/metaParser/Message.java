@@ -20,9 +20,9 @@ public final class Message{
 
   public static String of(Function<URI,String> loader, List<Frame> frames, String msg){
     try{ return _of(loader,frames,msg); }
-    catch(Throwable e){ 
+    catch(Throwable e){
       String locs = frames.stream().map(f -> f.s().toString()).collect(Collectors.joining("\n"));
-      throw new Error("Exception while formatting the following error:\n" + locs + "\n" + msg, e); 
+      throw new Error("Exception while formatting the following error:\n" + locs + "\n" + msg, e);
     }
   }
   private static String _of(Function<URI,String> loader, List<Frame> frames, String msg){
@@ -55,7 +55,7 @@ public final class Message{
     ArrayList<Frame> out = new ArrayList<>(fs);
     for (int i : Range.of(0,out.size() - 1)){
       Span inner = out.get(i).s();
-      Span outer = out.get(i+1).s();      
+      Span outer = out.get(i+1).s();
       out.set(i+1, new Frame(out.get(i+1).name(), union(inner, outer)));
     }
     return List.copyOf(out);
@@ -97,7 +97,7 @@ public final class Message{
     int col= Math.max(1, p.col);
     while (afterOrEqual(line, col, start)){
       String ln= get(lines, line);
-      var visible= col <= ln.length() && isVisible(ln.charAt(col - 1)); 
+      var visible= col <= ln.length() && isVisible(ln.charAt(col - 1));
       if (visible){ return new Pos(line, col); }
       col--;
       if (col >= 1){ continue; }
@@ -136,7 +136,7 @@ public final class Message{
     return new Grouping(file, chosenSingles, firstMulti, caretLine);
   }
   // ===== Phase 4: caret line construction =======================================
-  
+
   // ===== Phase 5: final rendering ===============================================
 
   // ----- numbered code line helpers ---------------------------------------------
@@ -280,7 +280,7 @@ public final class Message{
     if (s.indexOf('`') < 0){ return "`"+s+"`"; }
     throw Bug.of("Unsplit literal containing both delimiters: "+s);
   }
-  
+
   private static final HashMap<Integer,String> named= new HashMap<>();
   static{
     // C0 controls

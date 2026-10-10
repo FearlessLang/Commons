@@ -31,17 +31,17 @@ public abstract class MetaTokenizer<
   private Span base;
   private Err errFactory;
   private boolean frozen= false;
-  
+
   public abstract Tokenizer self();
   public abstract T make(TK kind, String text, int line, int col, List<T> tokens);
-  
+
   private <R> R withFrozen(Supplier<R> body){
     boolean prev = frozen;
     frozen = true;
     try { return body.get(); }
     finally { frozen = prev; }
   }
-  private final RuntimeException error(){ 
+  private final RuntimeException error(){
     return withFrozen(()->errFactory().unrecognizedTextAt(new Span(fileName,line,col,line,col),"",self()));
   }
   private void advanceSingle(int cp){
@@ -94,7 +94,7 @@ public abstract class MetaTokenizer<
     assert !frozen : "cannot call .setErrFactory during .tokenize, .postTokenize, .buildTokenTree";
     this.errFactory= Objects.requireNonNull(errFactory);
     return self();
-  }  
+  }
   public Tokenizer whiteList(String whiteList){
     assert !frozen : "cannot call .whiteList during .tokenize, .postTokenize, .buildTokenTree";
     assert errFactory!=null: "call method .errFactory before tokenize";
@@ -136,7 +136,7 @@ public abstract class MetaTokenizer<
       .flatMap(i->map.process(i,allTokens.get(i),self())).toList());
     assertMonotonic(postTokens);
     return self();
-  } 
+  }
   List<T> tokensForTree(){ return postTokens == null ? allTokens : postTokens; }
   public Tokenizer buildTokenTree(TokenTreeSpec<T,TK> spec){
     assert !frozen : "cannot call .buildTokenTree during .tokenize, .postTokenize, .buildTokenTree";

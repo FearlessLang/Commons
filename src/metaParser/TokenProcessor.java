@@ -32,7 +32,7 @@ public interface TokenProcessor<
         String head= t.content().isBlank()
           ? "Unrecognized text."
           : "Unrecognized text " + Message.displayString(t.content()) + ".";
-        throw f.apply(head+"\n"+str).addFrame(frame,t.span(tz.fileName())); 
+        throw f.apply(head+"\n"+str).addFrame(frame,t.span(tz.fileName()));
         });
     }
 
