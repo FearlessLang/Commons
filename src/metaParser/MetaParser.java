@@ -293,9 +293,9 @@ public abstract class MetaParser<
       var t= expectAny("");
       if (!p.test(t)){ continue; }
       return switch(split){
-        case Skipped-> 1;
-        case Left-> 0;
-        case Right-> back(0);
+        case Skipped -> 1;
+        case Left -> 0;
+        case Right -> back(0);
       };
     }
     return 0;
