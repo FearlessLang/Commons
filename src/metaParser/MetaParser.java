@@ -29,7 +29,7 @@ public abstract class MetaParser<
   public MetaParser(Span span, List<T> ts){ this.span= span; this.ts= ts; this.limit= ts.size(); }
   public <R> R parseAll(String frameName, Rule<T,TK,E,Tokenizer,Parser,Err,R> r){
     R res; try{ res= r.parse(this.self()); }
-    catch(RuntimeException|Error t){ 
+    catch(RuntimeException|Error t){
       if (!frameName.isEmpty() && t instanceof HasFrames<?> f){ f.addFrame(new Frame(frameName,span())); }
       throw t;
     }
@@ -47,7 +47,7 @@ public abstract class MetaParser<
   }
   public Optional<T> peek(int la){ return peekAbs(index + la); }
   public Optional<T> peekLast(){ return peekAbs(limit-1); }
-  
+
   @SafeVarargs @SuppressWarnings("varargs")
   public final boolean peek(TK... kinds){
     assert kinds.length > 0;
@@ -146,13 +146,13 @@ public abstract class MetaParser<
     }
     for (int i : Range.of(high,ts.size())){//starts with high in case low was the failure point
       var s= span(ts.get(i));
-      if (s.isPresent()){ 
+      if (s.isPresent()){
         endLine = s.get().startLine();
         endCol  = s.get().startCol();
         break;
       }
     }
-    return new Span(span.fileName(), startLine, startCol, endLine, endCol);   
+    return new Span(span.fileName(), startLine, startCol, endLine, endCol);
   }
   public <R> R parseRemaining(String frameName, Rule<T,TK,E,Tokenizer,Parser,Err,R> r){
     var tsIn= ts.subList(index, limit);
@@ -163,7 +163,7 @@ public abstract class MetaParser<
     index = limit;
     return res;
   }
-  
+
   ///Must advance p.index() by >= 1; will be called until p.end() holds
   ///Returns the amount of last consumed token to drop as separators
   public interface NextCut<
@@ -224,7 +224,7 @@ public abstract class MetaParser<
     var res= parseFront(frameName, true, probe, first);
     if (res.isPresent()){ return res.get(); }
     return parseAll(frameName,first);
-  }  
+  }
   ///Suitable to divide two non empty lists of tokens, especially if
   ///the division can not be easily located by looking at a few tokens forward.
   ///Parses a (non empty) list of tokens from the start of this parser.
@@ -337,11 +337,11 @@ public abstract class MetaParser<
   public Span span(){ return span; }
   public Span spanLast(){
     if (limit - 1 < 0){ return span; }
-    return span(ts.get(limit - 1)).orElse(span); 
+    return span(ts.get(limit - 1)).orElse(span);
   }
   public Span remainingSpan(){
     if(end()){ return spanLast(); }
-    return span(ts.get(index),ts.get(limit-1)).orElse(span); 
+    return span(ts.get(index),ts.get(limit-1)).orElse(span);
   }
   public Optional<Span> span(T low, T high){//not equal to span(List.of(low,high))
     return firstLeaf(low)

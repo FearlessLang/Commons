@@ -153,7 +153,7 @@ public final class Fs{
     if (i == -1){ return ""; }
     int j= s.indexOf(":/");
     return i == j+1 ? s.substring(0,i+1) : s.substring(0,i);
-  }  
+  }
   private static int lastSlashIndex(String s){
     int i= s.lastIndexOf('/');
     assert i >= 0 && i + 1 < s.length();
