@@ -15,7 +15,7 @@ record TreeDiagnostics<
     Err extends ErrFactory<T,TK,E,Tokenizer,Parser,Err>
   >(TokenTreeSpec<T,TK> spec, Tokenizer tz){
 
-  public E onBadCloser(T open, T badCloser){
+  E onBadCloser(T open, T badCloser){
     return tryEatenBetween(open, badCloser, false)
       .or(()->tryEatenBetween(open, badCloser, true))
       .orElseGet(()->onStray(open, badCloser));
