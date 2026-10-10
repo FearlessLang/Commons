@@ -11,7 +11,7 @@ public final class Require {
   //pattern: the methods return a boolean so we can use them as
   //assert check.., but the method take control of the error to report if any.
   //in this way, we can disable all those checks while disabling assertions.
-  private static final List<String> jdkUmodLists = List.of(
+  private static final List<String> jdkUmodLists= List.of(
     "java.util.ImmutableCollections$List12",
     "java.util.ImmutableCollections$ListN",
     "java.util.ImmutableCollections$SubList",
@@ -48,6 +48,6 @@ public final class Require {
     return true;
   }
   public static void check(boolean ok, String msg){
-    if(!ok){ throw new IllegalArgumentException(msg); }
+    if (!ok){ throw new IllegalArgumentException(msg); }
   }
 }

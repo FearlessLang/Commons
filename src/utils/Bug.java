@@ -2,9 +2,9 @@ package utils;
 
 @SuppressWarnings("serial")
 public final class Bug extends RuntimeException{
-  public Bug() {super();}
-  public Bug(Throwable cause) {super(cause);}
-  public Bug(String msg) {super(msg);}
+  public Bug(){ super(); }
+  public Bug(Throwable cause){ super(cause); }
+  public Bug(String msg){ super(msg); }
   public static Bug of(){ return new Bug(); }
   public static Bug of(Throwable cause){ return new Bug(cause); }
   public static Bug of(String msg){ return new Bug(msg); }

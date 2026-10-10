@@ -64,10 +64,10 @@ public final class Streams {
       return IntStream.range(0, as.size()).parallel().allMatch(i->test.test(as.get(i), bs.get(i)));
     }
   }
-  public static <T> Optional<Integer> firstPos(List<T> xs, Predicate<Integer> p) {
+  public static <T> Optional<Integer> firstPos(List<T> xs, Predicate<Integer> p){
     return firstPos(0, xs, p);
   }
-  public static <T> Optional<Integer> firstPos(int start, List<T> xs, Predicate<Integer> p) {
+  public static <T> Optional<Integer> firstPos(int start, List<T> xs, Predicate<Integer> p){
     assert start <= xs.size();
     return IntStream.range(start, xs.size()).boxed()
       .filter(p)
