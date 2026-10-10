@@ -183,12 +183,6 @@ public abstract class MetaParser<
       R> { R parse(Parser p); }
   
   public <R> List<R> splitBy(String frameName, NextCut<T,TK,E,Tokenizer,Parser,Err> probe, Rule<T,TK,E,Tokenizer,Parser,Err,R> elem){
-    var parts= _splitBy(frameName, probe);
-    var res= parts.stream().map(p -> p.parseAll(frameName, elem)).toList();
-    index = limit;//only update outer parser if no failures
-    return res;
-  }
-  private final List<Parser> _splitBy(String frameName, NextCut<T,TK,E,Tokenizer,Parser,Err> probe){
     var slice= ts.subList(index, limit);
     var s= spanAround(index,Math.max(index,limit-1));
     Parser splitterParser= make(s,slice);
@@ -202,7 +196,9 @@ public abstract class MetaParser<
       var si= splitterParser.spanAround(start,(end-1)-drop);
       parts.add(make(si,tsi));
     }
-    return List.copyOf(parts);
+    var res= parts.stream().map(p -> p.parseAll(frameName, elem)).toList();
+    index = limit;//only update outer parser if no failures
+    return res;
   }
   public <R> List<R> parseGroupSep(String frameNameOut, String frameNameIn, Rule<T,TK,E,Tokenizer,Parser,Err,R> r,TK open, TK close, NextCut<T,TK,E,Tokenizer,Parser,Err> probe){
     String label= frameNameOut.isEmpty()?frameNameIn:frameNameOut;
