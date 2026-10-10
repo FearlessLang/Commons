@@ -9,11 +9,11 @@ public final class TokenTreeSpec<
     T  extends Token<T, TK>,
     TK extends TokenKind
 >{
-  final Map<TK, Map<TK, TK>> openClose= new LinkedHashMap<>();
-  final Set<TK> closers= new LinkedHashSet<>();
-  final Map<TK, Set<TK>>     barriers= new LinkedHashMap<>();
-  final Map<TK, Function<T, Optional<T>>> closerEaters= new LinkedHashMap<>();
-  final Map<TK, Function<T, Optional<T>>> openerEaters= new LinkedHashMap<>();
+  final LinkedHashMap<TK, Map<TK, TK>> openClose= new LinkedHashMap<>();
+  final LinkedHashSet<TK> closers= new LinkedHashSet<>();
+  final LinkedHashMap<TK, Set<TK>> barriers= new LinkedHashMap<>();
+  final LinkedHashMap<TK, Function<T, Optional<T>>> closerEaters= new LinkedHashMap<>();
+  final LinkedHashMap<TK, Function<T, Optional<T>>> openerEaters= new LinkedHashMap<>();
   
   public TokenTreeSpec<T, TK> addOpenClose(TK opener, TK closer, TK groupKind){
     assert Require.nonNull(opener, closer, groupKind);
