@@ -185,9 +185,6 @@ public final class Fs{
       .toList();
     check(duplicates.isEmpty(), "Expected distinct file names to flatten "+from+" into "+to+", found:\n"+duplicates);
     ensureDir(to);
-    files.forEach(src->ofV(()->copyFlat(to, src)));
+    files.forEach(src->ofV(()->Files.copy(src, to.resolve(src.getFileName()), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)));
   }
-  private static void copyFlat(Path toRoot, Path src) throws IOException{
-    Files.copy(src, toRoot.resolve(src.getFileName()), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
-  } 
 }
