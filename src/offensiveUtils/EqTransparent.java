@@ -5,7 +5,7 @@ package offensiveUtils;
 public class EqTransparent<T>{
   public T inner;
   public EqTransparent(T inner){ this.inner= inner; }
-  @Override final public boolean equals(Object o){ return o instanceof EqTransparent<?>; }
-  @Override final public int hashCode(){ return 0; }
-  @Override final public String toString(){ return inner.toString(); }
+  @Override public final boolean equals(Object o){ return o instanceof EqTransparent<?>; }
+  @Override public final int hashCode(){ return 0; }
+  @Override public final String toString(){ return inner.toString(); }
 }
