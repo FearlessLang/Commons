@@ -9,8 +9,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import static offensiveUtils.Require.*;
 
+import offensiveUtils.Require;
 import utils.Push;
 
 public final class JavacTool{
@@ -19,7 +19,7 @@ public final class JavacTool{
   public static String compileTree(Path srcRoot, Path classesDir, Runnable postProcess, Path jarPath, List<Path> extraClasspathDirs){
     var srcs= javaSourcesUnder(srcRoot);
     Fs.ofV(()->Files.deleteIfExists(jarPath));
-    check(!srcs.isEmpty(), "Expected .java files under "+srcRoot);
+    Require.check(!srcs.isEmpty(), "Expected .java files under "+srcRoot);
     var args= new ArrayList<String>(10+srcs.size());
     args.add("-encoding"); args.add("UTF-8");
     args.add("-d"); args.add(abs(classesDir));
@@ -92,7 +92,7 @@ public final class JavacTool{
 
   public static void jpackage(Path dest, Path packaging, String appName, String versionId, String moduleMain, Path appContent){
     var slash= moduleMain.indexOf('/');
-    check(slash > 0, "Expected moduleMain of the form Module/pkg.Main: "+moduleMain);
+    Require.check(slash > 0, "Expected moduleMain of the form Module/pkg.Main: "+moduleMain);
     Fs.reqDir(packaging, "packaging");
     Fs.reqDir(appContent, "app content");
     var modsDir= dest.resolve(buildModsDirName);
@@ -132,9 +132,9 @@ public final class JavacTool{
       .filter(Files::isDirectory)
       .filter(p->p.getFileName().toString().equals(deployedModsDirName))
       .toList());
-    check(found.size() == 1, "Expected exactly one '"+deployedModsDirName+"' dir under "+dest+" after jpackage, found: "+found);
+    Require.check(found.size() == 1, "Expected exactly one '"+deployedModsDirName+"' dir under "+dest+" after jpackage, found: "+found);
     var jars= Fs.walk(found.getFirst(), s->s.filter(p->p.toString().endsWith(".jar")).toList());
-    check(!jars.isEmpty(), "Expected jars in the '"+deployedModsDirName+"' dir made by jpackage: "+found.getFirst());
+    Require.check(!jars.isEmpty(), "Expected jars in the '"+deployedModsDirName+"' dir made by jpackage: "+found.getFirst());
   }
 
   private static void jpBody(Path dest, String name, String versionId, String moduleMain, Path modsDir, Path appContent, Path runtimeImage, Path tmp, Path packaging){
@@ -160,7 +160,7 @@ public final class JavacTool{
 
   private static Path iconFile(Path packaging, String osDir, String file){
     var p= packaging.resolve(osDir).resolve(file);
-    check(Files.isRegularFile(p), "Expected an icon file: "+p);
+    Require.check(Files.isRegularFile(p), "Expected an icon file: "+p);
     return p.toAbsolutePath().normalize();
   }
 
@@ -196,7 +196,7 @@ public final class JavacTool{
       .map(src->src.resolve("module-info.java"))
       .filter(Files::exists)
       .toList();
-    check(mi.size() == 1, "Expected exactly one module-info.java in the source roots "+srcs+", found: "+mi);
+    Require.check(mi.size() == 1, "Expected exactly one module-info.java in the source roots "+srcs+", found: "+mi);
     var args= new ArrayList<String>(javacArgs);
     extraLintDisables.forEach(l->args.add("-Xlint:"+l));
     args.add("-d"); args.add(abs(classesDir));
