@@ -14,7 +14,7 @@ import offensiveUtils.Require;
 import utils.Push;
 
 public final class JavacTool{
-  private static final String javacArgFile="_javac.args";
+  private static final String javacArgFile= "_javac.args";
   public static final String launcherKey= "app.launcher";
   public static final String appDirKey= "app.dir";
   public static final String versionIdKey= "app.versionId";

@@ -19,7 +19,7 @@ import utils.Push;
  */
 
 public interface SourceOracle{
-  static final String root="fear:/";
+  static final String root= "fear:/";
 
   interface Ref extends RefParent{
     byte[] loadBytes();
