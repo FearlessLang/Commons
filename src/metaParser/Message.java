@@ -27,29 +27,19 @@ public final class Message{
   }
   private static String _of(Function<URI,String> loader, List<Frame> frames, String msg){
     if (frames.isEmpty()){ return msg; }
-    List<Frame> contained= ensureContainment(frames);
-    List<Frame> visible= trimInvisible(loader, contained);
-    Grouping g= group(visible);
-    String src= Objects.requireNonNull(loader.apply(g.file()));
-    String[] lines= splitLines(src);
-    int width= lineNumberWidth(lines.length);
+    Grouping g= group(trimInvisible(loader, ensureContainment(frames)));
+    String[] lines= splitLines(Objects.requireNonNull(loader.apply(g.file())));
+    int width= Math.max(minLineWidth, String.valueOf(lines.length).length());
     Optional<String> caretLine= g.singles().isEmpty() ? Optional.empty() : Optional.of(makeCaretLine(lines, g, width));
     String body= (g.multiLine() != null)
       ? renderMulti(lines, g, width, caretLine)
       : numberedCaret(lines, g.caretLine(), width) + "\n" + caretLine.orElse("");
-    String header= "In file: " + PrettyFileName.displayFileName(g.file());
-    String framesLine= "While inspecting " + frames.stream()
-      .filter(f->!f.name().isBlank()).map(Frame::name)
-      .collect(Collectors.joining(" > "));
-    if (framesLine.length() == "While inspecting ".length()){
-      framesLine= "While inspecting the file";
-    }
-    return header + "\n\n" + body + "\n\n" + framesLine + "\n" + msg;
+    var names= frames.stream().filter(f->!f.name().isBlank()).map(Frame::name).collect(Collectors.joining(" > "));
+    String framesLine= names.isEmpty() ? "While inspecting the file" : "While inspecting " + names;
+    return "In file: " + PrettyFileName.displayFileName(g.file()) + "\n\n" + body + "\n\n" + framesLine + "\n" + msg;
   }
   private static String numbered(String[] lines, int lineNum, int width){
-    String raw = get(lines, lineNum);
-    String display = expandTabs(raw);
-    return padLineNum(lineNum, width) + '|' + ' ' + display;
+    return padLineNum(lineNum, width) + "| " + expandTabs(get(lines, lineNum));
   }
   private static List<Frame> ensureContainment(List<Frame> fs){
     ArrayList<Frame> out = new ArrayList<>(fs);
@@ -114,21 +104,14 @@ public final class Message{
   private static Grouping group(List<Frame> fs){
     List<Span> spans= fs.stream().map(Frame::s).toList();
     URI file= spans.getLast().fileName();
-    ArrayList<Span> leadingSingles= new ArrayList<>();
-    for (Span s : spans){ if (s.isSingleLine()){ leadingSingles.add(s); } else { break; } }
-    if (!leadingSingles.isEmpty()){
-      int targetLine = leadingSingles.getLast().startLine();
-      leadingSingles.removeIf(s -> s.startLine() != targetLine);
-    }
+    List<Span> leadingSingles= spans.stream().takeWhile(Span::isSingleLine).toList();
+    int targetLine= leadingSingles.isEmpty() ? 0 : leadingSingles.getLast().startLine();
 
     // If <=3, keep all; else keep first, a middle near avg size, and last  -  sort outer..inner by length.
-    List<Span> chosenSingles = leadingSingles.stream().distinct().limit(3).toList().reversed();
+    List<Span> chosenSingles = leadingSingles.stream().filter(s -> s.startLine() == targetLine).distinct().limit(3).toList().reversed();
 
     // First multiline after singles (if any)
-    Span firstMulti = null;
-    for (int i : Range.of(leadingSingles.size(), spans.size())){
-      if (!spans.get(i).isSingleLine()){ firstMulti = spans.get(i); break; }
-    }
+    Span firstMulti = spans.stream().filter(s -> !s.isSingleLine()).findFirst().orElse(null);
 
     int caretLine = !chosenSingles.isEmpty() ? chosenSingles.getLast().startLine()
                    : (firstMulti != null ? firstMulti.startLine() : spans.getLast().startLine());
@@ -149,14 +132,8 @@ public final class Message{
     return lines[oneBased-1];
   }
 
-  private static int lineNumberWidth(int totalLines){
-    int digits = String.valueOf(Math.max(1, totalLines)).length();
-    return Math.max(minLineWidth, digits);
-  }
   private static String padLineNum(int n, int w){
-    String s = Integer.toString(Math.max(0, n));
-    int k = Math.max(0, w - s.length());
-    return "0".repeat(k) + s;
+    return String.format(Locale.ROOT, "%0"+w+"d", Math.max(0, n));
   }
 
   /** Expand tabs into spaces (tab stops every TAB_WIDTH columns). */
@@ -237,28 +214,15 @@ public final class Message{
     ArrayList<String> out= new ArrayList<>();
     StringBuilder lit= new StringBuilder();
 
-    for (int i= 0; i < s.length(); ){
-      int cp= s.codePointAt(i);
-      i += Character.charCount(cp);
-
-      if (cp == '\n'){
-        flushLiteral(out, lit);
-        out.add("|");
-        continue;
-      }
-      if (literalChar(cp)){
-        char c= (char)cp;
-        if ((c == '"' && lit.indexOf("`") >= 0) || (c == '`' && lit.indexOf("\"") >= 0)){
-          flushLiteral(out, lit);
-          out.add(displayChar(cp));
-        } else {
-          lit.append(c);
-        }
+    for (int cp : s.codePoints().toArray()){
+      boolean clash= (cp == '"' && lit.indexOf("`") >= 0) || (cp == '`' && lit.indexOf("\"") >= 0);
+      if (literalChar(cp) && !clash){
+        lit.append((char)cp);
         continue;
       }
 
       flushLiteral(out, lit);
-      out.add(displayChar(cp));
+      out.add(cp == '\n' ? "|" : displayChar(cp));
     }
 
     flushLiteral(out, lit);
@@ -409,9 +373,7 @@ public final class Message{
   //Numbered line used specifically for the caret-bearing line:
   //identical to numbered(), except we sanitize the display to be monospace-safe.
   private static String numberedCaret(String[] lines, int lineNum, int width){
-    String raw = get(lines, lineNum);
-    String display = sanitizeForCaret(expandTabs(raw));
-    return padLineNum(lineNum, width) + '|' + ' ' + display;
+    return padLineNum(lineNum, width) + "| " + sanitizeForCaret(expandTabs(get(lines, lineNum)));
   }
   /**
    * Make the caret-bearing source line monospace-safe without external deps:
