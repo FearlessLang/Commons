@@ -27,6 +27,8 @@ public final class WindowsAssociations{
   private static final String registeredApplications= "HKEY_CURRENT_USER\\Software\\RegisteredApplications";
   private static final String softwareRoot= "HKEY_CURRENT_USER\\Software";
   private static final String fileExts= "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\";
+  private static final String valueNotSet= "(value not set)";
+  private static final int assocChanged= 0x08000000;
 
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programIco,
@@ -161,7 +163,6 @@ public final class WindowsAssociations{
     return "\r\n["+key+"]\r\n"+shown+"=\""+regData(data)+"\"\r\n";
   }
   private static String regData(String data){ return data.replace("\\","\\\\").replace("\"","\\\""); }
-  private static final String valueNotSet= "(value not set)";
   private static Optional<String> regValue(String key, String name){
     var cmd= name.isEmpty()
       ? List.of("reg","query",key,"/ve")
@@ -214,5 +215,4 @@ public final class WindowsAssociations{
     }
     catch(Throwable t){ throw Bug.of(t); }
   }
-  private static final int assocChanged= 0x08000000;
 }
