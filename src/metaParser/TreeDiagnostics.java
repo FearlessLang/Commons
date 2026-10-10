@@ -80,5 +80,6 @@ record TreeDiagnostics<
     assert start < end;
     return tokens.subList(start + 1, end);
   }
-  @SuppressWarnings("serial") private static final class Out extends RuntimeException{}
+  @SuppressWarnings("serial")
+  private static final class Out extends RuntimeException{}
 }
