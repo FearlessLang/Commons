@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import utils.Bug;
 import utils.Range;
@@ -257,10 +258,7 @@ public abstract class MetaParser<
    *  - Represent a failed check by throwing E
    */
   public void guard(Consumer<Parser> check){
-    var slice= ts.subList(index, limit);
-    var s= spanAround(index, limit-1);
-    Parser shadow= make(s, slice);
-    check.accept(shadow);
+    check.accept(make(spanAround(index, limit-1), ts.subList(index, limit)));
   }
   private void checkProbeErrorFront(boolean emptyAllowed, int start, int end, int drop, String frameName){
     if (drop < 0 || start > end - drop){ throw errFactory().badProbeDropIn(frameName, spanAround(start, start), start, end, drop,self()); }
@@ -283,25 +281,16 @@ public abstract class MetaParser<
   }
   @Override
   public String toString(){
-    StringBuilder sb = new StringBuilder(128);
     // [0..index)
-    appendRange(sb, 0, index);
-    sb.append('(').append(index).append(')');
+    return range(0, index)+"("+index+")"
     // [index..limit)
-    appendRange(sb, index, limit);
-    sb.append('(').append(limit).append(')');
+      +range(index, limit)+"("+limit+")"
     // [limit..ts.size())
-    appendRange(sb, limit, ts.size());
-    return sb.toString();
+      +range(limit, ts.size());
   }
 
-  private void appendRange(StringBuilder sb, int from, int to){
-    sb.append('[');
-    for(int i : Range.of(from,to)){
-      if(i>from){ sb.append(", "); }
-      sb.append(show(ts.get(i)));
-    }
-    sb.append(']');
+  private String range(int from, int to){
+    return ts.subList(from,to).stream().map(this::show).collect(Collectors.joining(", ","[","]"));
   }
   private Optional<T> leaf(T t, boolean first){
     if (skip(t)){ return Optional.empty(); } 
