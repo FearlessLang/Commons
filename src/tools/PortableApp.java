@@ -65,7 +65,7 @@ public record PortableApp(
     Fs.copyFresh(packaging.resolve("linux").resolve("icon.png"), app.resolve("icon.png"));
     return app;
   }
-  private static final String desktop="""
+  private static final String desktop= """
 [Desktop Entry]
 Type=Application
 Name=%1$s
@@ -73,7 +73,7 @@ Exec=sh -c 'exec "$(dirname "$(readlink -f "$0")")/bin/%1$s" "$@"' %%k %%F
 Terminal=false
 """;
   //need to be saved in fearless-mime.xml near fearless and fearlessw
-  private static final String mime="""
+  private static final String mime= """
 <?xml version="1.0" encoding="UTF-8"?>
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
   <mime-type type="application/x-fearless">

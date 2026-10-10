@@ -12,7 +12,7 @@ public record ReadZip(
     Function<String,RuntimeException> tooLargeErr,
     Function<String,RuntimeException> emptyDirErr){
   public Map<String,byte[]> readAll(Fs.Run<ZipInputStream> szin){
-    return cleanUp(Fs.of(()->{try(var zin=szin.run()){ return _readAll(zin); }}));
+    return cleanUp(Fs.of(()->{try(var zin= szin.run()){ return _readAll(zin); }}));
   }
   private LinkedHashMap<String,byte[]> _readAll(ZipInputStream zin){
     var out= new LinkedHashMap<String,byte[]>();
