@@ -172,7 +172,8 @@ public final class LinuxAssociations{
     return Collections.unmodifiableMap(res);
   }
   private static boolean alreadyMatches(List<String> existing, String identity, Map<Path,byte[]> wanted){
-    if (!existing.stream().allMatch(identity::equals) || !Set.copyOf(owned(identity::equals)).equals(wanted.keySet())){ return false; }
+    var exactlyWanted= existing.stream().allMatch(identity::equals) && Set.copyOf(owned(identity::equals)).equals(wanted.keySet());
+    if (!exactlyWanted){ return false; }
     return wanted.entrySet().stream().allMatch(e->Arrays.equals(Fs.of(()->Files.readAllBytes(e.getKey())), e.getValue()));
   }
   private static void rebuild(Function<String,RuntimeException> halfDone){
