@@ -41,7 +41,7 @@ public abstract class MetaTokenizer<
     try{ return body.get(); }
     finally { frozen= prev; }
   }
-  private final RuntimeException error(){
+  private RuntimeException error(){
     return withFrozen(()->errFactory().unrecognizedTextAt(new Span(fileName,line,col,line,col),"",self()));
   }
   private void advanceSingle(int cp){
