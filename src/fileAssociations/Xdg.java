@@ -1,7 +1,6 @@
 package fileAssociations;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -37,12 +36,7 @@ final class Xdg{
   private static List<Path> dirs(String name, List<Path> fallback){
     var v= LinuxAssociations.env.apply(name);
     if (v == null || v.isBlank()){ return fallback; }
-    var res= new ArrayList<Path>();
-    for (var part: v.split(":")){
-      if (part.isBlank()){ continue; }
-      var p= Path.of(part);
-      if (p.isAbsolute()){ res.add(p.normalize()); }
-    }
-    return res.isEmpty() ? fallback : List.copyOf(res);
+    var res= Stream.of(v.split(":")).filter(part->!part.isBlank()).map(Path::of).filter(Path::isAbsolute).map(Path::normalize).toList();
+    return res.isEmpty() ? fallback : res;
   }
 }
