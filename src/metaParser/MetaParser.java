@@ -73,7 +73,7 @@ public abstract class MetaParser<
     var tt= t.get();
     var allowed= tt.is(kinds);
     if (!allowed){ throw errFactory()
-      .missingButFound(firstLeaf(tt).flatMap(this::span).orElse(remainingSpan()),what,tt,List.of(kinds),self()); }
+      .missingButFound(leaf(tt,true).flatMap(this::span).orElse(remainingSpan()),what,tt,List.of(kinds),self()); }
     index++;
     return tt;
   }
@@ -317,17 +317,11 @@ public abstract class MetaParser<
     }
     sb.append(']');
   }
-  private Optional<T> firstLeaf(List<T> ts){ return ts.stream().flatMap(t->firstLeaf(t).stream()).findFirst(); }
-  private Optional<T> firstLeaf(T t){
+  private Optional<T> leaf(T t, boolean first){
     if (skip(t)){ return Optional.empty(); } 
     if (t.tokens().isEmpty()){ return Optional.of(t); }
-    return firstLeaf(t.tokens());
-  }
-  private Optional<T> lastLeaf(List<T> ts){ return ts.reversed().stream().flatMap(t->lastLeaf(t).stream()).findFirst(); }
-  private Optional<T> lastLeaf(T t){
-    if (skip(t)){ return Optional.empty(); } 
-    if (t.tokens().isEmpty()){ return Optional.of(t); }
-    return lastLeaf(t.tokens());
+    var ts= first ? t.tokens() : t.tokens().reversed();
+    return ts.stream().flatMap(c->leaf(c,first).stream()).findFirst();
   }
   public Span span(){ return span; }
   public Span spanLast(){
@@ -339,8 +333,8 @@ public abstract class MetaParser<
     return span(ts.get(index),ts.get(limit-1)).orElse(span); 
   }
   public Optional<Span> span(T low, T high){//not equal to span(List.of(low,high))
-    return firstLeaf(low)
-      .flatMap(first->lastLeaf(high)
+    return leaf(low,true)
+      .flatMap(first->leaf(high,false)
         .map(last->makeSpan(first,last)));
   }
   public Optional<Span> span(T t){ return span(t,t); }
