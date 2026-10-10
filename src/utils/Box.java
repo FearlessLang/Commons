@@ -1,6 +1,6 @@
 package utils;
 
-public class Box<T> {
+public final class Box<T> {
   private T inner;
 
   public Box(T inner) { this.inner = inner; }
