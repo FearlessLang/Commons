@@ -4,7 +4,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.stream.Stream;
 
-public interface Token<T extends Token<T,TK>, TK extends TokenKind> {
+public interface Token<T extends Token<T,TK>, TK extends TokenKind>{
   TK kind();
   String content();
   int line();

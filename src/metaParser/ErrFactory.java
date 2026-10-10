@@ -29,7 +29,7 @@ public interface ErrFactory<
     T open, T stop, Collection<TK> expectedClosers,
     LikelyCause likely,
     Tokenizer tokenizer);
-  enum LikelyCause {
+  enum LikelyCause{
     Unknown,
     StrayOpener,   //Dropping the opener ('open') makes parsing advance significantly.
     StrayCloser,   //Dropping the closer ('stop') makes parsing advance significantly.
