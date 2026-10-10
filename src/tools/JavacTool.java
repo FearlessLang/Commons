@@ -197,7 +197,7 @@ public final class JavacTool{
       .filter(Files::exists)
       .toList();
     Require.check(mi.size() == 1, "Expected exactly one module-info.java in the source roots "+srcs+", found: "+mi);
-    var args= new ArrayList<String>(javacArgs);
+    var args= new ArrayList<>(javacArgs);
     extraLintDisables.forEach(l->args.add("-Xlint:"+l));
     args.add("-d"); args.add(abs(classesDir));
     args.add("--module-path"); args.add(abs(modsDir));
