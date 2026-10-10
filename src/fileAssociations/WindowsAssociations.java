@@ -33,7 +33,6 @@ public final class WindowsAssociations{
       Function<String,RuntimeException> ambiguous,
       Function<List<String>,RuntimeException> userLocked,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
-      Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
     if (existing.size() > 1){ throw ambiguous.apply(String.join("\n", existing)); }
