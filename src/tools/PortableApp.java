@@ -16,10 +16,10 @@ public record PortableApp(
     Fs.cleanDir(out);
     var tmp= out.resolve("_tmp"); Fs.ensureDir(tmp);
     var modsDir= out.resolve(JavacTool.buildModsDirName);
-    try{ build0(tmp, modsDir); }
+    try{ _build(tmp, modsDir); }
     finally{ Fs.rmTree(tmp); Fs.rmTree(modsDir); }
   }
-  private void build0(Path tmp, Path modsDir){
+  private void _build(Path tmp, Path modsDir){
     Fs.cleanDir(modsDir);
     Fs.copyTreeFlat(depJar, modsDir);
     removeOtherPlatformSkijaJars(modsDir);
