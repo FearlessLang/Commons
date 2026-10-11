@@ -59,7 +59,7 @@ public final class WindowsAssociations{
     notifyShellOfChange();
   }
 
-  private static List<String> existingIdentities(Predicate<String> belongsToFamily){
+  static List<String> existingIdentities(Predicate<String> belongsToFamily){
     var res= new LinkedHashSet<String>();
     res.addAll(regValues(hkcu(registeredApplications)).keySet());
     for (var name: listSubkeys(hkcu(softwareRoot))){

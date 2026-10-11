@@ -97,7 +97,7 @@ public final class LinuxAssociations{
   private static List<Path> registrations(){
     return Stream.concat(desktops(), mimeDirs().stream().flatMap(d->listed(d.resolve("packages"), ".xml").stream())).toList();
   }
-  private static List<String> existingIdentities(Predicate<String> belongsToFamily){
+  static List<String> existingIdentities(Predicate<String> belongsToFamily){
     return registrations().stream().map(LinuxAssociations::baseName).filter(belongsToFamily).distinct().sorted().toList();
   }
   private static List<Path> owned(Predicate<String> owner){
