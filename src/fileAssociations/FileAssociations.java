@@ -131,6 +131,9 @@ import utils.Bug;
  * - A successful return means identity declares exactly, and only, the extensions in
  * extensions - or, when extensions is empty, that identity is not registered at all.
  *
+ * identities(belongsToFamily) is the list of step 1: every existing on-system identity
+ * for which belongsToFamily holds, sorted. It changes nothing.
+ *
  * eradicateAll(belongsToFamily) performs none of the checks above: every existing
  * on-system identity for which belongsToFamily holds, however many there are, is
  * deleted in full, and nothing is created. [Linux only] Every icon file in mimetypes
@@ -156,6 +159,11 @@ public interface FileAssociations{
         ambiguous, userLocked, notOurs, notWritable, halfDone);
       return;
     }
+    throw Bug.unreachable();
+  }
+  static List<String> identities(Predicate<String> belongsToFamily){
+    if (Fs.isWindows()){ return WindowsAssociations.existingIdentities(belongsToFamily); }
+    if (Fs.isLinux()){ return LinuxAssociations.existingIdentities(belongsToFamily); }
     throw Bug.unreachable();
   }
   static void eradicateAll(Predicate<String> belongsToFamily, Function<String,RuntimeException> halfDone){
