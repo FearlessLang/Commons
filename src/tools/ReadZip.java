@@ -4,13 +4,15 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.ObjLongConsumer;
 import java.util.zip.ZipInputStream;
 
 public record ReadZip(
     Function<String,RuntimeException> badNameErr,
     Function<String,RuntimeException> dupNameErr,
     Function<String,RuntimeException> tooLargeErr,
-    Function<String,RuntimeException> emptyDirErr){
+    Function<String,RuntimeException> emptyDirErr,
+    ObjLongConsumer<String> reqTime){
   public Map<String,byte[]> readAll(Fs.Run<ZipInputStream> szin){
     return cleanUp(Fs.of(()->{try(var zin=szin.run()){ return _readAll(zin); }}));
   }
@@ -25,7 +27,7 @@ public record ReadZip(
         var key= keyOf(n);
         if(out.containsKey(key)){ throw dupNameErr.apply(key); }
         if(n.endsWith("/")){ out.put(key, null); }
-        else{ out.put(key, readEntryBytes(key,zin)); }
+        else{ reqTime.accept(key, e.getTime()); out.put(key, readEntryBytes(key,zin)); }
       }
       finally{ Fs.ofV(zin::closeEntry); }
     }
