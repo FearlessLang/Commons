@@ -30,7 +30,7 @@ public final class Ico{
       var s= sizes.get(i);
       header.put((byte)s.intValue()).put((byte)s.intValue()).put((byte)0).put((byte)0)
         .putShort((short)1).putShort((short)32).putInt(frames.get(i).length).putInt(offset);
-      offset+= frames.get(i).length;
+      offset += frames.get(i).length;
     }
     var out= new ByteArrayOutputStream();
     out.writeBytes(header.array());
@@ -39,7 +39,7 @@ public final class Ico{
   }
   static BufferedImage scaled(BufferedImage img, int size){
     var res= img;
-    while (res.getWidth() > 2*size){ res= draw(res,res.getWidth()/2); }
+    while (res.getWidth() > 2*size){ res = draw(res,res.getWidth()/2); }
     return draw(res,size);
   }
   private static BufferedImage draw(BufferedImage img, int size){
@@ -64,7 +64,7 @@ public final class Ico{
     for (int y : Range.of(0,s)){
       var row= new byte[maskRow];
       for (int x : Range.of(0,s)){
-        if (img.getRGB(x,s-1-y)>>>24 == 0){ row[x/8]|= (byte)(0x80>>(x%8)); }
+        if (img.getRGB(x,s-1-y)>>>24 == 0){ row[x/8] |= (byte)(0x80>>(x%8)); }
       }
       b.put(row);
     }

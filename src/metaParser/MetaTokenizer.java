@@ -37,9 +37,9 @@ public abstract class MetaTokenizer<
 
   private <R> R withFrozen(Supplier<R> body){
     boolean prev= frozen;
-    frozen= true;
+    frozen = true;
     try{ return body.get(); }
-    finally { frozen= prev; }
+    finally { frozen = prev; }
   }
   private RuntimeException error(){
     return withFrozen(()->errFactory().unrecognizedTextAt(new Span(fileName,line,col,line,col),"",self()));
@@ -61,29 +61,29 @@ public abstract class MetaTokenizer<
         .thenComparingInt(t->-t.kind().priority()));
   }
   static String normalizeSource(String s){
-    if (s.startsWith("\uFEFF")){ s= s.substring(1); } // Drop BOM if present at start
-    s= s.replace("\r\n", "\n").replace('\r', '\n'); // Normalize common newline variants to '\n' CRLF -> LF, lone CR -> LF
-    s= s.replace('\u2028', '\n').replace('\u2029', '\n').replace('\u0085', '\n'); // Unicode separators to LF (LS, PS, NEL)
+    if (s.startsWith("\uFEFF")){ s = s.substring(1); } // Drop BOM if present at start
+    s = s.replace("\r\n", "\n").replace('\r', '\n'); // Normalize common newline variants to '\n' CRLF -> LF, lone CR -> LF
+    s = s.replace('\u2028', '\n').replace('\u2029', '\n').replace('\u0085', '\n'); // Unicode separators to LF (LS, PS, NEL)
     return s;
   }
   public Tokenizer input(URI fileName, String input){
     assert !frozen : "cannot call .input during .tokenize, .postTokenize, .buildTokenTree";
-    this.fileName= Objects.requireNonNull(fileName);
-    this.input= Objects.requireNonNull(normalizeSource(input));
+    this.fileName = Objects.requireNonNull(fileName);
+    this.input = Objects.requireNonNull(normalizeSource(input));
     return self();
   }
   public Tokenizer tokenKinds(List<TK> tks, TK sof, TK eof){
     assert !frozen : "cannot call .tokenKinds during .tokenize, .postTokenize, .buildTokenTree";
     assert !tks.isEmpty() : "kinds list cannot be empty";
     assert !tks.contains(sof) && !tks.contains(eof) : "do not include SOF/EOF in kinds";
-    this.sof= Objects.requireNonNull(sof);
-    this.eof= Objects.requireNonNull(eof);
-    this.kinds= List.copyOf(tks);
+    this.sof = Objects.requireNonNull(sof);
+    this.eof = Objects.requireNonNull(eof);
+    this.kinds = List.copyOf(tks);
     return self();
   }
   public Tokenizer setErrFactory(Err errFactory){
     assert !frozen : "cannot call .setErrFactory during .tokenize, .postTokenize, .buildTokenTree";
-    this.errFactory= Objects.requireNonNull(errFactory);
+    this.errFactory = Objects.requireNonNull(errFactory);
     return self();
   }
   public Tokenizer whiteList(String whiteList){
@@ -93,7 +93,7 @@ public abstract class MetaTokenizer<
     int l= 1, c= 1;
     for (int cp : input.codePoints().toArray()){
       if (whiteList.indexOf(cp) < 0){ var at= new Span(fileName, l, c, l, c); throw withFrozen(()->errFactory().illegalCharAt(at, cp, self())); }
-      if (cp == '\n'){ l++; c= 1; } else { c++; }
+      if (cp == '\n'){ l++; c = 1; } else { c++; }
     }
     return self();
   }
@@ -112,14 +112,14 @@ public abstract class MetaTokenizer<
         advance(best.content());
       }return null;});
     tmp.add(make(eof,"", line, col,List.of()));
-    allTokens= List.copyOf(tmp);
-    base= new Span(fileName,1,1,line,col);
+    allTokens = List.copyOf(tmp);
+    base = new Span(fileName,1,1,line,col);
     assertMonotonic(allTokens);
     return self();
   }
   public Tokenizer postTokenize(TokenProcessor.Map<T,TK,E,Tokenizer,Parser,Err> map){
     assert !allTokens.isEmpty(): "call method .postTokenizer after .tokenize";
-    postTokens= withFrozen(()->IntStream.range(0,allTokens.size()).boxed()
+    postTokens = withFrozen(()->IntStream.range(0,allTokens.size()).boxed()
       .flatMap(i->map.process(i,allTokens.get(i),self())).toList());
     assertMonotonic(postTokens);
     return self();
@@ -131,7 +131,7 @@ public abstract class MetaTokenizer<
     var tmp= tokensForTree();
     assert tmp.getFirst().kind() == sof : "first token must be SOF";
     assert tmp.getLast().kind() == eof : "last token must be EOF";
-    tree= withFrozen(()->new TokenTrees<T,TK,E,Tokenizer,Parser,Err>(spec, self()).of(tmp.listIterator()).tokens());
+    tree = withFrozen(()->new TokenTrees<T,TK,E,Tokenizer,Parser,Err>(spec, self()).of(tmp.listIterator()).tokens());
     return self();
   }
   public URI fileName(){ return Objects.requireNonNull(fileName); }
@@ -147,7 +147,7 @@ public abstract class MetaTokenizer<
       int l= tok.line(), c= tok.column();
       assert (l > prevLine) || (l == prevLine && c >= prevCol)
         : "tokens out of order at " + l + ":" + c;
-      prevLine= l; prevCol= c;
+      prevLine = l; prevCol = c;
     }
   }
 }

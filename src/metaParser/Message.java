@@ -75,7 +75,7 @@ public final class Message{
     int line= Math.clamp(p.line, 1, lines.length), col= Math.max(1, p.col);
     while (beforeOrEqual(line, col, limit)){
       String ln= get(lines, line);
-      if (col > ln.length()){ line++; col= 1; continue; }
+      if (col > ln.length()){ line++; col = 1; continue; }
       char ch= ln.charAt(col - 1);
       if (isVisible(ch)){ return new Pos(line, col); }
       col++;
@@ -93,7 +93,7 @@ public final class Message{
       if (col >= 1){ continue; }
       line--;
       if (line < start.line){ return new Pos(start.line, start.col); }
-      col= Math.max(1, get(lines, line).length());
+      col = Math.max(1, get(lines, line).length());
     }
     return new Pos(start.line, start.col);
   }
@@ -108,10 +108,10 @@ public final class Message{
     int targetLine= leadingSingles.isEmpty() ? 0 : leadingSingles.getLast().startLine();
 
     // If <=3, keep all; else keep first, a middle near avg size, and last  -  sort outer..inner by length.
-    List<Span> chosenSingles = leadingSingles.stream().filter(s -> s.startLine() == targetLine).distinct().limit(3).toList().reversed();
+    List<Span> chosenSingles= leadingSingles.stream().filter(s -> s.startLine() == targetLine).distinct().limit(3).toList().reversed();
 
     // First multiline after singles (if any)
-    Span firstMulti = spans.stream().filter(s -> !s.isSingleLine()).findFirst().orElse(null);
+    Span firstMulti= spans.stream().filter(s -> !s.isSingleLine()).findFirst().orElse(null);
 
     int caretLine= !chosenSingles.isEmpty() ? chosenSingles.getLast().startLine()
                    : (firstMulti != null ? firstMulti.startLine() : spans.getLast().startLine());
@@ -146,10 +146,10 @@ public final class Message{
       if (ch == '\t'){
         int spaces= tabWidth - ((col - 1) % tabWidth);
         out.append(" ".repeat(spaces));
-        col+= spaces;
+        col += spaces;
       }else{
         out.append(ch);
-        col+= 1;
+        col += 1;
       }
     }
     return out.toString();
@@ -161,9 +161,9 @@ public final class Message{
       char ch= rawLine.charAt(i);
       if (ch == '\t'){
         int spaces= tabWidth - (vis % tabWidth);
-        vis+= spaces;
+        vis += spaces;
       }else{
-        vis+= 1;
+        vis += 1;
       }
     }
     return vis;
@@ -341,8 +341,8 @@ public final class Message{
     String safeDisplay= sanitizeForCaret(expandTabs(raw));
     // decide marks so a single span uses '^'
     List<Span> sps= g.singles();
-    int n = sps.size();
-    String marks = n == 1 ? "^" : n == 2 ? "-^" : "-~^";
+    int n= sps.size();
+    String marks= n == 1 ? "^" : n == 2 ? "-^" : "-~^";
     // find rightmost visual column we will draw (1-based), clamp to caret-line length
     int rightMost= 0;
     for (int i : Range.of(0,n)){
@@ -350,9 +350,9 @@ public final class Message{
       int aVis= visualCol(raw, s.startCol());
       int len= visualDelta(raw, s.startCol(), s.endCol());
       int bVis= aVis + Math.max(1, len) - 1; // ensure at least 1 column
-      rightMost= Math.max(rightMost, bVis);
+      rightMost = Math.max(rightMost, bVis);
     }
-    rightMost= Math.min(rightMost, safeDisplay.length()); // belt-and-braces
+    rightMost = Math.min(rightMost, safeDisplay.length()); // belt-and-braces
     char[] carr= " ".repeat(rightMost).toCharArray();
     for (int i : Range.of(0,n)){
       Span s= sps.get(i);
@@ -360,7 +360,7 @@ public final class Message{
       int len= visualDelta(raw, s.startCol(), s.endCol());
       int b= Math.max(aVis, Math.min(aVis + Math.max(1, len) - 1, rightMost));
       for (int c : Range.of(aVis,b+1)){
-        int idx = c - 1;
+        int idx= c - 1;
         if (idx < carr.length){ carr[idx] = marks.charAt(i); }
       }
     }
@@ -379,7 +379,7 @@ public final class Message{
    * All replacements are single-column in typical monospace fonts.
    */
   private static String sanitizeForCaret(String s){
-    StringBuilder out = new StringBuilder(s.length());
+    StringBuilder out= new StringBuilder(s.length());
     for (int cp : s.codePoints().toArray()){
       if (cp >= 0x20 && cp <= 0x7E){ // printable ASCII
         out.append((char)cp);

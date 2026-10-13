@@ -126,9 +126,9 @@ public abstract class MetaParser<
   }
   public Span spanAround(int low, int high){
     if (ts.isEmpty()){ return span; }
-    if (low == ts.size()){ low-= 1; }
-    if (high == ts.size() || high < 0){ high= ts.size() - 1; }
-    if (low > high){ low= high; }
+    if (low == ts.size()){ low -= 1; }
+    if (high == ts.size() || high < 0){ high = ts.size() - 1; }
+    if (low > high){ low = high; }
     assert low >= 0 && low < ts.size();
     assert high >= 0 && high < ts.size();
     var here= span(ts.get(low),ts.get(high));
@@ -140,16 +140,16 @@ public abstract class MetaParser<
     for (int i= low ; i >= 0; i--){//starts with low in case high was the failure point
       var s= span(ts.get(i));
       if (s.isPresent()){
-        startLine= s.get().endLine();
-        startCol= s.get().endCol();
+        startLine = s.get().endLine();
+        startCol = s.get().endCol();
         break;
       }
     }
     for (int i : Range.of(high,ts.size())){//starts with high in case low was the failure point
       var s= span(ts.get(i));
       if (s.isPresent()){
-        endLine= s.get().startLine();
-        endCol= s.get().startCol();
+        endLine = s.get().startLine();
+        endCol = s.get().startCol();
         break;
       }
     }
@@ -161,7 +161,7 @@ public abstract class MetaParser<
     if (tsIn.isEmpty()){ throw Bug.of("Expected at least one remaining token."); }
     var nested= make(s,tsIn);
     var res= nested.parseAll(frameName, r);
-    index= limit;
+    index = limit;
     return res;
   }
 
@@ -227,7 +227,7 @@ public abstract class MetaParser<
     var firstS= splitterParser.spanAround(0,(end-1)-drop);
     Parser firstParser= make(firstS,List.copyOf(slice.subList(0, end-drop)));
     var res= firstParser.parseAll(frameName, first);
-    this.index+= end;//mark the tokens as eaten
+    this.index += end;//mark the tokens as eaten
     return Optional.of(res);
   }
   ///Suitable to divide two non empty lists of tokens, especially if
@@ -250,7 +250,7 @@ public abstract class MetaParser<
     var lastS= splitterParser.spanAround(end + drop, start - 1);
     Parser firstParser= make(lastS,List.copyOf(slice.subList(end + drop, start)));
     var res= firstParser.parseAll(frameName, first);
-    this.limit= index + end;//mark the tokens as eaten
+    this.limit = index + end;//mark the tokens as eaten
     return Optional.of(res);
   }
   /** Runs a well-formedness check on the remaining tokens.

@@ -141,7 +141,7 @@ public final class LinuxAssociations{
     var res= new ArrayList<Opener>();
     var section= "";
     for (var line : lines(file)){
-      if (line.startsWith("[")){ section= line.strip(); continue; }
+      if (line.startsWith("[")){ section = line.strip(); continue; }
       var eq= line.indexOf('=');
       if (eq < 0 || !List.of(defaults, added).contains(section)){ continue; }
       var at= section;
@@ -190,7 +190,7 @@ public final class LinuxAssociations{
   private static byte[] utf8(String text){ return text.getBytes(StandardCharsets.UTF_8); }
   public static String hash(byte[] bytes){
     var h= 0xcbf29ce484222325L;
-    for (var b : bytes){ h= (h ^ (b & 0xff))*0x100000001b3L; }
+    for (var b : bytes){ h = (h ^ (b & 0xff))*0x100000001b3L; }
     return Long.toHexString(h);
   }
   private static String mimeType(String identity, String ext, String icon, List<String> supertypes){

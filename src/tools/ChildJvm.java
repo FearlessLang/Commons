@@ -49,16 +49,16 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
   private static void pumpOutput(Process p, Consumer<String> out, IOException[] pumpErr){
     try(var in= p.getInputStream(); var sink= new Utf8Sink(out)){
       var buf= new byte[8192];
-      for (int n; (n= in.read(buf)) != -1; ){ sink.write(buf,0,n); }
+      for (int n; (n = in.read(buf)) != -1; ){ sink.write(buf,0,n); }
     }
-    catch(IOException e){ if (p.isAlive()){ pumpErr[0]= e; } }
+    catch(IOException e){ if (p.isAlive()){ pumpErr[0] = e; } }
   }
   private static void waitForUninterruptibly(Process p, long millis){
     boolean interrupted= false;
     long end= System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(millis);
     while(p.isAlive() && (millis == 0 || end - System.nanoTime() > 0)){
       try{ if (millis == 0){ p.waitFor(); } else { p.waitFor(end - System.nanoTime(),TimeUnit.NANOSECONDS); } }
-      catch(InterruptedException e){ interrupted= true; }
+      catch(InterruptedException e){ interrupted = true; }
     }
     if (interrupted){ Thread.currentThread().interrupt(); }
   }
@@ -66,7 +66,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
     boolean interrupted= false;
     while(t.isAlive()){
       try{ t.join(); }
-      catch(InterruptedException e){ interrupted= true; }
+      catch(InterruptedException e){ interrupted = true; }
     }
     if (interrupted){ Thread.currentThread().interrupt(); }
   }
