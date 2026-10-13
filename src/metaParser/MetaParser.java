@@ -280,8 +280,7 @@ public abstract class MetaParser<
     }
     return 0;
   }
-  @Override
-  public String toString(){
+  @Override public String toString(){
     // [0..index)
     return range(0, index)+"("+index+")"
     // [index..limit)
