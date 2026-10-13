@@ -30,7 +30,7 @@ public abstract class MetaParser<
   public MetaParser(Span span, List<T> ts){ this.span= span; this.ts= ts; this.limit= ts.size(); }
   public <R> R parseAll(String frameName, Rule<Parser,R> r){
     R res; try{ res= r.parse(this.self()); }
-    catch(RuntimeException|Error t){
+    catch (RuntimeException|Error t){
       if (!frameName.isEmpty() && t instanceof HasFrames<?> f){ f.addFrame(new Frame(frameName,span())); }
       throw t;
     }
@@ -118,7 +118,7 @@ public abstract class MetaParser<
   //ParseSplitters
   public <R> R parseGroup(String frameName, Rule<Parser,R> r){
     var tsIn= ts.get(index).tokens();
-    if(tsIn.isEmpty()){ throw Bug.of("Expected a grouped token (with children), got "+show(ts.get(index))+"."); }
+    if (tsIn.isEmpty()){ throw Bug.of("Expected a grouped token (with children), got "+show(ts.get(index))+"."); }
     var nested= make(spanAround(index,index),tsIn);
     var res= nested.parseAll(frameName,r);
     index++;
@@ -272,7 +272,7 @@ public abstract class MetaParser<
     while (!end()){
       var t= expectAny("");
       if (!p.test(t)){ continue; }
-      return switch(split){
+      return switch (split){
         case Skipped -> 1;
         case Left -> 0;
         case Right -> back(0);
@@ -299,7 +299,7 @@ public abstract class MetaParser<
     return ts.stream().flatMap(c -> leaf(c,first).stream()).findFirst();
   }
   private String show(T t){
-    if(!t.tokens().isEmpty()){ return t.kind()+"@"+t.line()+":"+t.column(); }
+    if (!t.tokens().isEmpty()){ return t.kind()+"@"+t.line()+":"+t.column(); }
     var s= t.content().replace("\n","\\n").replace("\r","\\r").replace("\t","\\t");
     return t.kind()+"\""+(s.length()<=24 ? s : s.substring(0,21)+"...")+"\"@"+t.line()+":"+t.column();
   }

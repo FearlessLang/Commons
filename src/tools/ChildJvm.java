@@ -26,7 +26,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
   public int await() throws InterruptedException{
     var lifeline= p.getOutputStream();
     int ec; try{ ec= p.waitFor(); }
-    catch(InterruptedException | RuntimeException | Error e){
+    catch (InterruptedException | RuntimeException | Error e){
       closeQuietly(lifeline);
       waitForUninterruptibly(p,200);
       kill();
@@ -47,32 +47,32 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
     waitForUninterruptibly(p,0);
   }
   private static void pumpOutput(Process p, Consumer<String> out, IOException[] pumpErr){
-    try(var in= p.getInputStream(); var sink= new Utf8Sink(out)){
+    try (var in= p.getInputStream(); var sink= new Utf8Sink(out)){
       var buf= new byte[8192];
       for (int n; (n = in.read(buf)) != -1; ){ sink.write(buf,0,n); }
     }
-    catch(IOException e){ if (p.isAlive()){ pumpErr[0] = e; } }
+    catch (IOException e){ if (p.isAlive()){ pumpErr[0] = e; } }
   }
   private static void waitForUninterruptibly(Process p, long millis){
     boolean interrupted= false;
     long end= System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(millis);
-    while(p.isAlive() && (millis == 0 || end - System.nanoTime() > 0)){
+    while (p.isAlive() && (millis == 0 || end - System.nanoTime() > 0)){
       try{ if (millis == 0){ p.waitFor(); } else { p.waitFor(end - System.nanoTime(),TimeUnit.NANOSECONDS); } }
-      catch(InterruptedException e){ interrupted = true; }
+      catch (InterruptedException e){ interrupted = true; }
     }
     if (interrupted){ Thread.currentThread().interrupt(); }
   }
   private static void joinUninterruptibly(Thread t){
     boolean interrupted= false;
-    while(t.isAlive()){
+    while (t.isAlive()){
       try{ t.join(); }
-      catch(InterruptedException e){ interrupted = true; }
+      catch (InterruptedException e){ interrupted = true; }
     }
     if (interrupted){ Thread.currentThread().interrupt(); }
   }
   private static void closeQuietly(Closeable c){
     try{ c.close(); }
-    catch(IOException _){}
+    catch (IOException _){}
   }
   public static void watchParent(){
     if (!lifelineValue.equals(System.getProperty(lifelineKey))){ return; }
@@ -82,7 +82,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
   }
   private static void readTillEof(){
     try{ while (System.in.read() != -1){} }
-    catch(IOException _){}
+    catch (IOException _){}
     Runtime.getRuntime().halt(121);
   }
   static Path javaExe(){ return Path.of(System.getProperty("java.home"),"bin",Fs.isWindows() ? "java.exe" : "java"); }

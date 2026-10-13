@@ -206,12 +206,12 @@ public final class WindowsAssociations{
   }
   @SuppressWarnings("restricted")
   private static void notifyShellOfChange(){
-    try(var arena= Arena.ofConfined()){
+    try (var arena= Arena.ofConfined()){
       var notify= Linker.nativeLinker().downcallHandle(
         SymbolLookup.libraryLookup("shell32.dll", arena).find("SHChangeNotify").orElseThrow(),
         FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
       notify.invokeWithArguments(assocChanged, 0, MemorySegment.NULL, MemorySegment.NULL);
     }
-    catch(Throwable t){ throw Bug.of(t); }
+    catch (Throwable t){ throw Bug.of(t); }
   }
 }

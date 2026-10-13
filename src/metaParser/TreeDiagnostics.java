@@ -71,7 +71,7 @@ record TreeDiagnostics<
       @Override E diagOnBadCloser(T open, T stop){ throw new Out(); }
       @Override E diagOnBadBarrier(T open, T stop){ throw new Out(); }
     }.of(li);}
-    catch(Out _){/*eated*/ return li.previousIndex(); }
+    catch (Out _){/*eated*/ return li.previousIndex(); }
     return li.nextIndex();
   }
   private List<T> betweenExclusive(T a, T b, List<T> tokens){
