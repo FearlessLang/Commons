@@ -28,13 +28,13 @@ record Builder<
       if (groupKind != null){
         output.add(current);//the group must contain the opener and the closer
         //so we can have tokens like "{ a, b, c }" but also "(2,4]", where the open/close token are relevant
-        return ctx.tokenizer.make(groupKind,"",open.line(),open.column(),Collections.unmodifiableList(output));
+        return ctx.tokenizer.make(groupKind, "", open.line(), open.column(), Collections.unmodifiableList(output));
       }
       if (ctx.spec.openClose.containsKey(current.kind())){
-        output.add(new Builder<>(ctx,new ArrayList<>(List.of(current)),i).build(current));
+        output.add(new Builder<>(ctx, new ArrayList<>(List.of(current)), i).build(current));
         continue;
       }
-      if (ctx.spec.closers.contains(current.kind())){ throw ctx.diagOnBadCloser(open,current); }
+      if (ctx.spec.closers.contains(current.kind())){ throw ctx.diagOnBadCloser(open, current); }
       output.add(current);
     }
     throw Bug.unreachable();

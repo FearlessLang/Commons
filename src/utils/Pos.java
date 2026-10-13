@@ -7,7 +7,7 @@ import java.net.URI;
 public record Pos(URI fileName, int line, int column) implements Serializable{
   public static final Pos unknown= Pos.of(URI.create("unknown"), 0, 0);
   public static Pos of(URI fileName, int line, int column){
-    return new Pos(fileName,line,column);
+    return new Pos(fileName, line, column);
   }
 
   @Override public String toString(){

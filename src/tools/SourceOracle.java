@@ -19,13 +19,13 @@ import utils.Push;
  */
 
 public interface SourceOracle{
-  static final String root= "fear:/";
+  static String root= "fear:/";
 
   interface Ref extends RefParent{
     byte[] loadBytes();
     long lastModified();
     default String loadString(){
-      return Fs.of(()->StandardCharsets.UTF_8.newDecoder()
+      return Fs.of(() -> StandardCharsets.UTF_8.newDecoder()
         .onMalformedInput(CodingErrorAction.REPORT)
         .onUnmappableCharacter(CodingErrorAction.REPORT)
         .decode(ByteBuffer.wrap(loadBytes()))
@@ -48,7 +48,7 @@ public interface SourceOracle{
   }
   List<Ref> allFiles();
   default String loadString(URI uri){
-    return OneOr.of("Expected one source for "+uri, allFiles().stream().filter(f->f.fearURI().equals(uri))).loadString();
+    return OneOr.of("Expected one source for "+uri, allFiles().stream().filter(f -> f.fearURI().equals(uri))).loadString();
   }
   static URI defaultDbgFearPath(int index){
     return URI.create(root+"___DBG___/"+(index==0 ? "_rank_app999.fear" : "in_memory"+index+".fear"));
@@ -56,25 +56,25 @@ public interface SourceOracle{
   default SourceOracle withFallback(SourceOracle fb){
     var all= Push.of(allFiles(), fb.allFiles());
     assert all.stream().map(Ref::fearPath).distinct().count()== all.size();
-    return ()->all;
+    return () -> all;
   }
   static Builder debugBuilder(){ return new Builder(); }
   final class Builder{
-    private record DebugRef(String fearPath, byte[] loadBytes,String loadString) implements Ref{
-      DebugRef{ assert Require.nonNull(fearPath,loadBytes); }
+    private record DebugRef(String fearPath, byte[] loadBytes, String loadString) implements Ref{
+      DebugRef{ assert Require.nonNull(fearPath, loadBytes); }
       @Override public long lastModified(){ return System.currentTimeMillis(); }
       @Override public String toString(){ return fearPath; }
     }
     private record Debug(List<Ref> allFiles) implements SourceOracle{//should be private inside builder?
       Debug{
-        assert Require.unmodifiable(allFiles,"Debug.fileList");//still should be guaranteed by builder?
+        assert Require.unmodifiable(allFiles, "Debug.fileList");//still should be guaranteed by builder?
         assert allFiles.stream().map(Ref::fearPath).distinct().count()== allFiles.size();
       }
     }
     private final ArrayList<Ref> allFiles= new ArrayList<>();
-    public Builder putURI(URI uri, String content){ allFiles.add(new DebugRef(uri.normalize().toString(),content.getBytes(),content)); return this; }
+    public Builder putURI(URI uri, String content){ allFiles.add(new DebugRef(uri.normalize().toString(), content.getBytes(), content)); return this; }
     public Builder put(String pathLike, String content){ return putURI(Path.of(pathLike).toAbsolutePath().normalize().toUri(), content); }
-    public Builder put(int index,String content){ return putURI(defaultDbgFearPath(index), content); }
+    public Builder put(int index, String content){ return putURI(defaultDbgFearPath(index), content); }
     public SourceOracle build(){ return new Debug(List.copyOf(allFiles)); }
   }
 }

@@ -25,16 +25,16 @@ public abstract class MetaParser<
   private int limit;
   public abstract Parser self();
   public abstract boolean skip(T token);
-  public abstract Parser make(Span span,List<T> tokens);
+  public abstract Parser make(Span span, List<T> tokens);
   public abstract Err errFactory();
   public MetaParser(Span span, List<T> ts){ this.span= span; this.ts= ts; this.limit= ts.size(); }
   public <R> R parseAll(String frameName, Rule<Parser,R> r){
     R res; try{ res= r.parse(this.self()); }
-    catch(RuntimeException|Error t){
-      if (!frameName.isEmpty() && t instanceof HasFrames<?> f){ f.addFrame(new Frame(frameName,span())); }
+    catch (RuntimeException|Error t){
+      if (!frameName.isEmpty() && t instanceof HasFrames<?> f){ f.addFrame(new Frame(frameName, span())); }
       throw t;
     }
-    if (index != limit){ throw errFactory().extraContent(remainingSpan(), "", List.of(),self()); }
+    if (index != limit){ throw errFactory().extraContent(remainingSpan(), "", List.of(), self()); }
     return res;
   }
   public boolean end(){ return limit == index; }
@@ -53,46 +53,46 @@ public abstract class MetaParser<
   public final boolean peek(TK... kinds){
     assert kinds.length > 0;
     var t= peek();
-    return t.map(tt->tt.is(kinds)).orElse(false);
+    return t.map(tt -> tt.is(kinds)).orElse(false);
   }
-  public final T expectAny(String what){
+  public T expectAny(String what){
     var t= peek();
-    if (t.isEmpty()){ throw errFactory().missing(spanLast(), what, List.of(),self()); }
+    if (t.isEmpty()){ throw errFactory().missing(spanLast(), what, List.of(), self()); }
     index++;
     return t.get();
   }
-  public final T expectAnyLast(String what){
+  public T expectAnyLast(String what){
     var t= peekLast();
-    if (t.isEmpty()){ throw errFactory().missing(spanLast(), what, List.of(),self()); }
+    if (t.isEmpty()){ throw errFactory().missing(spanLast(), what, List.of(), self()); }
     limit--;
     return t.get();
   }
   @SafeVarargs @SuppressWarnings("varargs")
-  public final T expect(String what,TK... kinds){
+  public final T expect(String what, TK... kinds){
     var t= peek();
     if (t.isEmpty()){ throw errFactory()
-      .missing(spanLast(),what,List.of(kinds),self()); }
+      .missing(spanLast(), what, List.of(kinds), self()); }
     var tt= t.get();
     var allowed= tt.is(kinds);
     if (!allowed){ throw errFactory()
-      .missingButFound(leaf(tt,true).flatMap(this::span).orElse(remainingSpan()),what,tt,List.of(kinds),self()); }
+      .missingButFound(leaf(tt, true).flatMap(this::span).orElse(remainingSpan()), what, tt, List.of(kinds), self()); }
     index++;
     return tt;
   }
   @SafeVarargs @SuppressWarnings("varargs")
   public final T expectLast(String what, TK... kinds){
     var last= peekLast();
-    if (last.isEmpty()){ throw errFactory().missing(span(),what,List.of(kinds),self()); }
+    if (last.isEmpty()){ throw errFactory().missing(span(), what, List.of(kinds), self()); }
     var t= last.get();
     var allowed= t.is(kinds);
-    if (!allowed){ throw errFactory().missingButFound(span(),what,t,List.of(kinds),self()); }
+    if (!allowed){ throw errFactory().missingButFound(span(), what, t, List.of(kinds), self()); }
     limit--;
     return t;
   }
   @SafeVarargs @SuppressWarnings("varargs")
-  public final void expectEnd(String what,TK... kinds){
+  public final void expectEnd(String what, TK... kinds){
     if (end()){ return; }
-    throw errFactory().extraContent(remainingSpan(),what,List.of(kinds),self());
+    throw errFactory().extraContent(remainingSpan(), what, List.of(kinds), self());
   }
   public boolean peekIf(Predicate<T> p){
     return peek().map(p::test).orElse(false);
@@ -100,7 +100,7 @@ public abstract class MetaParser<
   @SafeVarargs
   public final boolean peekOrder(Predicate<T>... ps){
     return IntStream.range(0, ps.length)
-      .mapToObj(i->peek(i).filter(t->ps[i].test(t)))
+      .mapToObj(i -> peek(i).filter(t -> ps[i].test(t)))
       .allMatch(Optional::isPresent);
   }
   public <R> R back(R v){
@@ -118,20 +118,20 @@ public abstract class MetaParser<
   //ParseSplitters
   public <R> R parseGroup(String frameName, Rule<Parser,R> r){
     var tsIn= ts.get(index).tokens();
-    if(tsIn.isEmpty()){ throw Bug.of("Expected a grouped token (with children), got "+show(ts.get(index))+"."); }
-    var nested= make(spanAround(index,index),tsIn);
-    var res= nested.parseAll(frameName,r);
+    if (tsIn.isEmpty()){ throw Bug.of("Expected a grouped token (with children), got "+show(ts.get(index))+"."); }
+    var nested= make(spanAround(index, index), tsIn);
+    var res= nested.parseAll(frameName, r);
     index++;
     return res;
   }
   public Span spanAround(int low, int high){
     if (ts.isEmpty()){ return span; }
-    if (low == ts.size()){ low-= 1; }
-    if (high == ts.size() || high < 0){ high= ts.size() - 1; }
-    if (low > high){ low= high; }
+    if (low == ts.size()){ low -= 1; }
+    if (high == ts.size() || high < 0){ high = ts.size() - 1; }
+    if (low > high){ low = high; }
     assert low >= 0 && low < ts.size();
     assert high >= 0 && high < ts.size();
-    var here= span(ts.get(low),ts.get(high));
+    var here= span(ts.get(low), ts.get(high));
     if (here.isPresent()){ return here.get(); }
     int startLine= this.span.startLine();
     int  startCol= this.span.startCol();
@@ -140,16 +140,16 @@ public abstract class MetaParser<
     for (int i= low ; i >= 0; i--){//starts with low in case high was the failure point
       var s= span(ts.get(i));
       if (s.isPresent()){
-        startLine= s.get().endLine();
-        startCol= s.get().endCol();
+        startLine = s.get().endLine();
+        startCol = s.get().endCol();
         break;
       }
     }
-    for (int i : Range.of(high,ts.size())){//starts with high in case low was the failure point
+    for (int i : Range.of(high, ts.size())){//starts with high in case low was the failure point
       var s= span(ts.get(i));
       if (s.isPresent()){
-        endLine= s.get().startLine();
-        endCol= s.get().startCol();
+        endLine = s.get().startLine();
+        endCol = s.get().startCol();
         break;
       }
     }
@@ -157,11 +157,11 @@ public abstract class MetaParser<
   }
   public <R> R parseRemaining(String frameName, Rule<Parser,R> r){
     var tsIn= ts.subList(index, limit);
-    var s= spanAround(index,limit-1);
+    var s= spanAround(index, limit-1);
     if (tsIn.isEmpty()){ throw Bug.of("Expected at least one remaining token."); }
-    var nested= make(s,tsIn);
+    var nested= make(s, tsIn);
     var res= nested.parseAll(frameName, r);
-    index= limit;
+    index = limit;
     return res;
   }
 
@@ -172,28 +172,28 @@ public abstract class MetaParser<
   
   public <R> List<R> splitBy(String frameName, NextCut<Parser> probe, Rule<Parser,R> elem){
     var slice= ts.subList(index, limit);
-    var s= spanAround(index,Math.max(index,limit-1));
-    Parser splitterParser= make(s,slice);
+    var s= spanAround(index, Math.max(index, limit-1));
+    Parser splitterParser= make(s, slice);
     var parts= new ArrayList<Parser>();
     while (!splitterParser.end()){
       int start= splitterParser.index();
       int drop= probe.cutAt(splitterParser);
       int end= splitterParser.index();
-      ((MetaParser<T,TK,E,Tokenizer,Parser,Err>)splitterParser).checkProbeErrorFront(false,start, end, drop, frameName);
+      ((MetaParser<T,TK,E,Tokenizer,Parser,Err>)splitterParser).checkProbeErrorFront(false, start, end, drop, frameName);
       var tsi= List.copyOf(slice.subList(start, end-drop));
-      var si= splitterParser.spanAround(start,(end-1)-drop);
-      parts.add(make(si,tsi));
+      var si= splitterParser.spanAround(start, (end-1)-drop);
+      parts.add(make(si, tsi));
     }
     var res= parts.stream().map(p -> p.parseAll(frameName, elem)).toList();
     index = limit;//only update outer parser if no failures
     return res;
   }
-  public <R> List<R> parseGroupSep(String frameNameOut, String frameNameIn, Rule<Parser,R> r,TK open, TK close, NextCut<Parser> probe){
+  public <R> List<R> parseGroupSep(String frameNameOut, String frameNameIn, Rule<Parser,R> r, TK open, TK close, NextCut<Parser> probe){
     String label= frameNameOut.isEmpty()?frameNameIn:frameNameOut;
-    return parseGroup(frameNameOut,p->{
-      p.expect(label,open);
-      p.expectLast(label,close);
-      return p.splitBy(frameNameIn,probe,r);
+    return parseGroup(frameNameOut, p -> {
+      p.expect(label, open);
+      p.expectLast(label, close);
+      return p.splitBy(frameNameIn, probe, r);
     });
   }
 
@@ -203,10 +203,10 @@ public abstract class MetaParser<
   ///If the probe eats all the tokens, all the tokens are parsed.
   ///The probe accepting all the token signals no prefix.
   ///The probe returns the number of tokens to drop. This number must be between 0 and the number of consumed tokens.  
-  public final <R> R parseFrontOrAll(String frameName, NextCut<Parser> probe, Rule<Parser,R> first){
+  public <R> R parseFrontOrAll(String frameName, NextCut<Parser> probe, Rule<Parser,R> first){
     var res= parseFront(frameName, true, probe, first);
     if (res.isPresent()){ return res.get(); }
-    return parseAll(frameName,first);
+    return parseAll(frameName, first);
   }
   ///Suitable to divide two non empty lists of tokens, especially if
   ///the division can not be easily located by looking at a few tokens forward.
@@ -215,19 +215,19 @@ public abstract class MetaParser<
   ///Must be a proper division, that is, if the probe eats all the tokens we get an Optional.empty() result.
   ///The probe accepting all the token signals no prefix.
   ///The probe returns the number of tokens to drop. This number must be between 0 and the number of consumed tokens.  
-  public final <R> Optional<R> parseFront(String frameName, boolean emptyAllowed, NextCut<Parser> probe, Rule<Parser,R> first){
+  public <R> Optional<R> parseFront(String frameName, boolean emptyAllowed, NextCut<Parser> probe, Rule<Parser,R> first){
     var slice= ts.subList(index, limit);
     var s= spanAround(index, limit-1);
-    Parser splitterParser= make(s,slice);
+    Parser splitterParser= make(s, slice);
     int start= splitterParser.index();
     int drop= probe.cutAt(splitterParser);
     int end= splitterParser.index();
-    ((MetaParser<T,TK,E,Tokenizer,Parser,Err>)splitterParser).checkProbeErrorFront(emptyAllowed,start, end, drop, frameName);
+    ((MetaParser<T,TK,E,Tokenizer,Parser,Err>)splitterParser).checkProbeErrorFront(emptyAllowed, start, end, drop, frameName);
     if (splitterParser.end()){ return Optional.empty(); }//split not found
-    var firstS= splitterParser.spanAround(0,(end-1)-drop);
-    Parser firstParser= make(firstS,List.copyOf(slice.subList(0, end-drop)));
+    var firstS= splitterParser.spanAround(0, (end-1)-drop);
+    Parser firstParser= make(firstS, List.copyOf(slice.subList(0, end-drop)));
     var res= firstParser.parseAll(frameName, first);
-    this.index+= end;//mark the tokens as eaten
+    this.index += end;//mark the tokens as eaten
     return Optional.of(res);
   }
   ///Suitable to divide two non empty lists of tokens, especially if
@@ -237,20 +237,20 @@ public abstract class MetaParser<
   ///Must be a proper division, that is, if the probe eats all the tokens we get an Optional.empty() result.
   ///The probe accepting all the token signals no prefix.
   ///The probe returns the number of tokens to drop. This number must be between 0 and the number of consumed tokens.  
-  public final <R> Optional<R> parseBack(String frameName, boolean emptyAllowed, NextCut<Parser> probe, Rule<Parser,R> first){
+  public <R> Optional<R> parseBack(String frameName, boolean emptyAllowed, NextCut<Parser> probe, Rule<Parser,R> first){
     var slice= ts.subList(index, limit);
     var s= spanAround(index, limit-1);
-    Parser splitterParser= make(s,slice);
+    Parser splitterParser= make(s, slice);
     int start= splitterParser.limit();
     int drop= probe.cutAt(splitterParser);
     int end= splitterParser.limit();
-    ((MetaParser<T,TK,E,Tokenizer,Parser,Err>)splitterParser).checkProbeErrorFront(emptyAllowed,end, start, drop, frameName);
+    ((MetaParser<T,TK,E,Tokenizer,Parser,Err>)splitterParser).checkProbeErrorFront(emptyAllowed, end, start, drop, frameName);
     //TODO: test if the errors make sense by just swapping start/end    
     if (splitterParser.end()){ return Optional.empty(); }//split not found
     var lastS= splitterParser.spanAround(end + drop, start - 1);
-    Parser firstParser= make(lastS,List.copyOf(slice.subList(end + drop, start)));
+    Parser firstParser= make(lastS, List.copyOf(slice.subList(end + drop, start)));
     var res= firstParser.parseAll(frameName, first);
-    this.limit= index + end;//mark the tokens as eaten
+    this.limit = index + end;//mark the tokens as eaten
     return Optional.of(res);
   }
   /** Runs a well-formedness check on the remaining tokens.
@@ -262,17 +262,17 @@ public abstract class MetaParser<
     check.accept(make(spanAround(index, limit-1), ts.subList(index, limit)));
   }
   private void checkProbeErrorFront(boolean emptyAllowed, int start, int end, int drop, String frameName){
-    if (drop < 0 || start > end - drop){ throw errFactory().badProbeDropIn(frameName, spanAround(start, start), start, end, drop,self()); }
-    if (!emptyAllowed && start >= end){ throw errFactory().probeStalledIn(frameName, spanAround(start, start), start, end,self()); }
+    if (drop < 0 || start > end - drop){ throw errFactory().badProbeDropIn(frameName, spanAround(start, start), start, end, drop, self()); }
+    if (!emptyAllowed && start >= end){ throw errFactory().probeStalledIn(frameName, spanAround(start, start), start, end, self()); }
   }
   public enum SplitMode{Skipped,Left,Right}
-  public int splitOn(SplitMode split, TK k){ return splitOn(split,t->t.is(k)); }
+  public int splitOn(SplitMode split, TK k){ return splitOn(split, t -> t.is(k)); }
   public int splitOn(SplitMode split, Predicate<T> p){
     fwdIf(index() != 0 && !end() && split == SplitMode.Right);
     while (!end()){
       var t= expectAny("");
       if (!p.test(t)){ continue; }
-      return switch(split){
+      return switch (split){
         case Skipped -> 1;
         case Left -> 0;
         case Right -> back(0);
@@ -280,8 +280,7 @@ public abstract class MetaParser<
     }
     return 0;
   }
-  @Override
-  public String toString(){
+  @Override public String toString(){
     // [0..index)
     return range(0, index)+"("+index+")"
     // [index..limit)
@@ -291,18 +290,18 @@ public abstract class MetaParser<
   }
 
   private String range(int from, int to){
-    return ts.subList(from,to).stream().map(this::show).collect(Collectors.joining(", ","[","]"));
+    return ts.subList(from, to).stream().map(this::show).collect(Collectors.joining(", ", "[", "]"));
   }
   private Optional<T> leaf(T t, boolean first){
     if (skip(t)){ return Optional.empty(); } 
     if (t.tokens().isEmpty()){ return Optional.of(t); }
     var ts= first ? t.tokens() : t.tokens().reversed();
-    return ts.stream().flatMap(c->leaf(c,first).stream()).findFirst();
+    return ts.stream().flatMap(c -> leaf(c, first).stream()).findFirst();
   }
   private String show(T t){
-    if(!t.tokens().isEmpty()){ return t.kind()+"@"+t.line()+":"+t.column(); }
-    var s= t.content().replace("\n","\\n").replace("\r","\\r").replace("\t","\\t");
-    return t.kind()+"\""+(s.length()<=24 ? s : s.substring(0,21)+"...")+"\"@"+t.line()+":"+t.column();
+    if (!t.tokens().isEmpty()){ return t.kind()+"@"+t.line()+":"+t.column(); }
+    var s= t.content().replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
+    return t.kind()+"\""+(s.length()<=24 ? s : s.substring(0, 21)+"...")+"\"@"+t.line()+":"+t.column();
   }
   public Span span(){ return span; }
   public Span spanLast(){
@@ -311,13 +310,13 @@ public abstract class MetaParser<
   }
   public Span remainingSpan(){
     if (end()){ return spanLast(); }
-    return span(ts.get(index),ts.get(limit-1)).orElse(span);
+    return span(ts.get(index), ts.get(limit-1)).orElse(span);
   }
   public Optional<Span> span(T low, T high){//not equal to span(List.of(low,high))
-    return leaf(low,true)
-      .flatMap(first->leaf(high,false)
-        .map(last->makeSpan(first,last)));
+    return leaf(low, true)
+      .flatMap(first -> leaf(high, false)
+        .map(last -> makeSpan(first, last)));
   }
-  public Optional<Span> span(T t){ return span(t,t); }
+  public Optional<Span> span(T t){ return span(t, t); }
   private Span makeSpan(T first, T last){ return Token.makeSpan(span.fileName(), first, last); }
 }

@@ -23,16 +23,16 @@ public record PortableApp(
     Fs.cleanDir(modsDir);
     Fs.copyTreeFlat(depJar, modsDir);
     removeOtherPlatformSkijaJars(modsDir);
-    modules.forEach(m->compileMod(m, modsDir, tmp));
+    modules.forEach(m -> compileMod(m, modsDir, tmp));
     var stdLib= prepareAppContent(tmp);
     JavacTool.jpackage(out, packaging, appName, versionId, moduleMain, stdLib);
   }
   private static void removeOtherPlatformSkijaJars(Path modsDir){
     var currentTag= (Fs.isWindows()? "windows" : Fs.isMac()? "macos" : "linux")
       +"-"+(System.getProperty("os.arch").contains("aarch64")? "arm64" : "x64");
-    Fs.walk(modsDir, s->s
+    Fs.walk(modsDir, s -> s
       .filter(Files::isRegularFile)
-      .filter(p->{
+      .filter(p -> {
         var name= p.getFileName().toString();
         return name.startsWith("skija-") && !name.startsWith("skija-shared-") && !name.startsWith("skija-"+currentTag+"-");
       })
@@ -41,7 +41,7 @@ public record PortableApp(
   }
   private void reqInputs(){
     Fs.reqDir(base, "base"); Fs.reqDir(rt, "rt");
-    modules.stream().flatMap(List::stream).forEach(p->Fs.reqDir(p, "module source root"));
+    modules.stream().flatMap(List::stream).forEach(p -> Fs.reqDir(p, "module source root"));
   }
   private static void compileMod(List<Path> srcRoots, Path modsDir, Path tmp){
     var classes= tmp.resolve("classes");

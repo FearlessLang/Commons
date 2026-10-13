@@ -19,9 +19,9 @@ public final class Message{
   private static final int minLineWidth= 3;
 
   public static String of(Function<URI,String> loader, List<Frame> frames, String msg){
-    try{ return _of(loader,frames,msg); }
-    catch(Throwable e){
-      String locs= frames.stream().map(f->f.s().toString()).collect(Collectors.joining("\n"));
+    try{ return _of(loader, frames, msg); }
+    catch (Throwable e){
+      String locs= frames.stream().map(f -> f.s().toString()).collect(Collectors.joining("\n"));
       throw new Error("Exception while formatting the following error:\n" + locs + "\n" + msg, e);
     }
   }
@@ -34,7 +34,7 @@ public final class Message{
     String body= (g.multiLine() != null)
       ? renderMulti(lines, g, width, caretLine)
       : numberedCaret(lines, g.caretLine(), width) + "\n" + caretLine.orElse("");
-    var names= frames.stream().filter(f->!f.name().isBlank()).map(Frame::name).collect(Collectors.joining(" > "));
+    var names= frames.stream().filter(f -> !f.name().isBlank()).map(Frame::name).collect(Collectors.joining(" > "));
     String framesLine= names.isEmpty() ? "While inspecting the file" : "While inspecting " + names;
     return "In file: " + PrettyFileName.displayFileName(g.file()) + "\n\n" + body + "\n\n" + framesLine + "\n" + msg;
   }
@@ -43,7 +43,7 @@ public final class Message{
   }
   private static List<Frame> ensureContainment(List<Frame> fs){
     ArrayList<Frame> out= new ArrayList<>(fs);
-    for (int i : Range.of(0,out.size() - 1)){
+    for (int i : Range.of(0, out.size() - 1)){
       Span inner= out.get(i).s();
       Span outer= out.get(i+1).s();
       out.set(i+1, new Frame(out.get(i+1).name(), union(inner, outer)));
@@ -62,7 +62,7 @@ public final class Message{
     return new Span(a.fileName(), startLine, startCol, endLine, endCol);
   }
   private static List<Frame> trimInvisible(Function<URI,String> loader, List<Frame> fs){
-    return fs.stream().map(f->new Frame(f.name(), shrinkToVisible(loader, f.s()))).toList();
+    return fs.stream().map(f -> new Frame(f.name(), shrinkToVisible(loader, f.s()))).toList();
   }
   private static Span shrinkToVisible(Function<URI,String> loader, Span s){
     String src= Objects.requireNonNull(loader.apply(s.fileName()));
@@ -75,7 +75,7 @@ public final class Message{
     int line= Math.clamp(p.line, 1, lines.length), col= Math.max(1, p.col);
     while (beforeOrEqual(line, col, limit)){
       String ln= get(lines, line);
-      if (col > ln.length()){ line++; col= 1; continue; }
+      if (col > ln.length()){ line++; col = 1; continue; }
       char ch= ln.charAt(col - 1);
       if (isVisible(ch)){ return new Pos(line, col); }
       col++;
@@ -93,7 +93,7 @@ public final class Message{
       if (col >= 1){ continue; }
       line--;
       if (line < start.line){ return new Pos(start.line, start.col); }
-      col= Math.max(1, get(lines, line).length());
+      col = Math.max(1, get(lines, line).length());
     }
     return new Pos(start.line, start.col);
   }
@@ -108,10 +108,10 @@ public final class Message{
     int targetLine= leadingSingles.isEmpty() ? 0 : leadingSingles.getLast().startLine();
 
     // If <=3, keep all; else keep first, a middle near avg size, and last  -  sort outer..inner by length.
-    List<Span> chosenSingles = leadingSingles.stream().filter(s -> s.startLine() == targetLine).distinct().limit(3).toList().reversed();
+    List<Span> chosenSingles= leadingSingles.stream().filter(s -> s.startLine() == targetLine).distinct().limit(3).toList().reversed();
 
     // First multiline after singles (if any)
-    Span firstMulti = spans.stream().filter(s -> !s.isSingleLine()).findFirst().orElse(null);
+    Span firstMulti= spans.stream().filter(s -> !s.isSingleLine()).findFirst().orElse(null);
 
     int caretLine= !chosenSingles.isEmpty() ? chosenSingles.getLast().startLine()
                    : (firstMulti != null ? firstMulti.startLine() : spans.getLast().startLine());
@@ -141,15 +141,15 @@ public final class Message{
     if (s.indexOf('\t') < 0){ return s; }
     StringBuilder out= new StringBuilder(s.length() + 8);
     int col= 1; // 1-based
-    for (int i : Range.of(0,s.length())){
+    for (int i : Range.of(0, s.length())){
       char ch= s.charAt(i);
       if (ch == '\t'){
         int spaces= tabWidth - ((col - 1) % tabWidth);
         out.append(" ".repeat(spaces));
-        col+= spaces;
+        col += spaces;
       }else{
         out.append(ch);
-        col+= 1;
+        col += 1;
       }
     }
     return out.toString();
@@ -157,13 +157,13 @@ public final class Message{
 
   private static int tabAwareWidth(String rawLine, int fromIdxIncl, int toIdxExcl, int baseVis){
     int vis= baseVis;
-    for (int i : Range.of(fromIdxIncl,toIdxExcl)){
+    for (int i : Range.of(fromIdxIncl, toIdxExcl)){
       char ch= rawLine.charAt(i);
       if (ch == '\t'){
         int spaces= tabWidth - (vis % tabWidth);
-        vis+= spaces;
+        vis += spaces;
       }else{
-        vis+= 1;
+        vis += 1;
       }
     }
     return vis;
@@ -282,56 +282,56 @@ public final class Message{
       "Record Separator",
       "Unit Separator"
     };
-    for (int i : Range.of(0,c0.length)){
+    for (int i : Range.of(0, c0.length)){
       named.put(i, c0[i] + " 0x" + String.format(Locale.ROOT, "%02X", i));
     }
     // DEL and a couple C1s commonly seen
-    named.put(0x7F,"Delete 0x7F");
-    named.put(0x85,"Next Line 0x85");
-    named.put(0x9B,"Control Sequence Introducer 0x9B");
+    named.put(0x7F, "Delete 0x7F");
+    named.put(0x85, "Next Line 0x85");
+    named.put(0x9B, "Control Sequence Introducer 0x9B");
     // Spaces and separators
     named.put(0x22, "Double Quote (\") 0x22");
     named.put(0x27, "Single Quote (') 0x27");
     named.put(0x5C, "Backslash (\\) 0x5C");
     named.put(0x60, "Backtick (`) 0x60");
     named.put(0x20, "Space ( ) 0x20");
-    named.put(0x00A0,"No-Break Space 0x00A0");
-    named.put(0x1680,"Ogham Space Mark 0x1680");
-    named.put(0x2000,"En Quad 0x2000");
-    named.put(0x2001,"Em Quad 0x2001");
-    named.put(0x2002,"En Space 0x2002");
-    named.put(0x2003,"Em Space 0x2003");
-    named.put(0x2004,"Three-Per-Em Space 0x2004");
-    named.put(0x2005,"Four-Per-Em Space 0x2005");
-    named.put(0x2006,"Six-Per-Em Space 0x2006");
-    named.put(0x2007,"Figure Space 0x2007");
-    named.put(0x2008,"Punctuation Space 0x2008");
-    named.put(0x2009,"Thin Space 0x2009");
-    named.put(0x200A,"Hair Space 0x200A");
-    named.put(0x2028,"Line Separator 0x2028");
-    named.put(0x2029,"Paragraph Separator 0x2029");
-    named.put(0x202F,"Narrow No-Break Space 0x202F");
-    named.put(0x205F,"Medium Mathematical Space 0x205F");
-    named.put(0x3000,"Ideographic Space 0x3000");
+    named.put(0x00A0, "No-Break Space 0x00A0");
+    named.put(0x1680, "Ogham Space Mark 0x1680");
+    named.put(0x2000, "En Quad 0x2000");
+    named.put(0x2001, "Em Quad 0x2001");
+    named.put(0x2002, "En Space 0x2002");
+    named.put(0x2003, "Em Space 0x2003");
+    named.put(0x2004, "Three-Per-Em Space 0x2004");
+    named.put(0x2005, "Four-Per-Em Space 0x2005");
+    named.put(0x2006, "Six-Per-Em Space 0x2006");
+    named.put(0x2007, "Figure Space 0x2007");
+    named.put(0x2008, "Punctuation Space 0x2008");
+    named.put(0x2009, "Thin Space 0x2009");
+    named.put(0x200A, "Hair Space 0x200A");
+    named.put(0x2028, "Line Separator 0x2028");
+    named.put(0x2029, "Paragraph Separator 0x2029");
+    named.put(0x202F, "Narrow No-Break Space 0x202F");
+    named.put(0x205F, "Medium Mathematical Space 0x205F");
+    named.put(0x3000, "Ideographic Space 0x3000");
     // Format and bidi controls
-    named.put(0x00AD,"Soft Hyphen 0x00AD");
-    named.put(0x061C,"Arabic Letter Mark 0x061C");
-    named.put(0x200B,"Zero Width Space 0x200B");
-    named.put(0x200C,"Zero Width Non-Joiner 0x200C");
-    named.put(0x200D,"Zero Width Joiner 0x200D");
-    named.put(0x200E,"Left-To-Right Mark 0x200E");
-    named.put(0x200F,"Right-To-Left Mark 0x200F");
-    named.put(0x202A,"Left-To-Right Embedding 0x202A");
-    named.put(0x202B,"Right-To-Left Embedding 0x202B");
-    named.put(0x202C,"Pop Directional Formatting 0x202C");
-    named.put(0x202D,"Left-To-Right Override 0x202D");
-    named.put(0x202E,"Right-To-Left Override 0x202E");
-    named.put(0x2060,"Word Joiner 0x2060");
-    named.put(0x2066,"Left-To-Right Isolate 0x2066");
-    named.put(0x2067,"Right-To-Left Isolate 0x2067");
-    named.put(0x2068,"First Strong Isolate 0x2068");
-    named.put(0x2069,"Pop Directional Isolate 0x2069");
-    named.put(0xFEFF,"Byte Order Mark 0xFEFF");
+    named.put(0x00AD, "Soft Hyphen 0x00AD");
+    named.put(0x061C, "Arabic Letter Mark 0x061C");
+    named.put(0x200B, "Zero Width Space 0x200B");
+    named.put(0x200C, "Zero Width Non-Joiner 0x200C");
+    named.put(0x200D, "Zero Width Joiner 0x200D");
+    named.put(0x200E, "Left-To-Right Mark 0x200E");
+    named.put(0x200F, "Right-To-Left Mark 0x200F");
+    named.put(0x202A, "Left-To-Right Embedding 0x202A");
+    named.put(0x202B, "Right-To-Left Embedding 0x202B");
+    named.put(0x202C, "Pop Directional Formatting 0x202C");
+    named.put(0x202D, "Left-To-Right Override 0x202D");
+    named.put(0x202E, "Right-To-Left Override 0x202E");
+    named.put(0x2060, "Word Joiner 0x2060");
+    named.put(0x2066, "Left-To-Right Isolate 0x2066");
+    named.put(0x2067, "Right-To-Left Isolate 0x2067");
+    named.put(0x2068, "First Strong Isolate 0x2068");
+    named.put(0x2069, "Pop Directional Isolate 0x2069");
+    named.put(0xFEFF, "Byte Order Mark 0xFEFF");
   }
 
   private static String makeCaretLine(String[] lines, Grouping g, int width){
@@ -341,26 +341,26 @@ public final class Message{
     String safeDisplay= sanitizeForCaret(expandTabs(raw));
     // decide marks so a single span uses '^'
     List<Span> sps= g.singles();
-    int n = sps.size();
-    String marks = n == 1 ? "^" : n == 2 ? "-^" : "-~^";
+    int n= sps.size();
+    String marks= n == 1 ? "^" : n == 2 ? "-^" : "-~^";
     // find rightmost visual column we will draw (1-based), clamp to caret-line length
     int rightMost= 0;
-    for (int i : Range.of(0,n)){
+    for (int i : Range.of(0, n)){
       Span s= sps.get(i);
       int aVis= visualCol(raw, s.startCol());
       int len= visualDelta(raw, s.startCol(), s.endCol());
       int bVis= aVis + Math.max(1, len) - 1; // ensure at least 1 column
-      rightMost= Math.max(rightMost, bVis);
+      rightMost = Math.max(rightMost, bVis);
     }
-    rightMost= Math.min(rightMost, safeDisplay.length()); // belt-and-braces
+    rightMost = Math.min(rightMost, safeDisplay.length()); // belt-and-braces
     char[] carr= " ".repeat(rightMost).toCharArray();
-    for (int i : Range.of(0,n)){
+    for (int i : Range.of(0, n)){
       Span s= sps.get(i);
       int aVis= visualCol(raw, s.startCol());
       int len= visualDelta(raw, s.startCol(), s.endCol());
       int b= Math.max(aVis, Math.min(aVis + Math.max(1, len) - 1, rightMost));
-      for (int c : Range.of(aVis,b+1)){
-        int idx = c - 1;
+      for (int c : Range.of(aVis, b+1)){
+        int idx= c - 1;
         if (idx < carr.length){ carr[idx] = marks.charAt(i); }
       }
     }
@@ -379,7 +379,7 @@ public final class Message{
    * All replacements are single-column in typical monospace fonts.
    */
   private static String sanitizeForCaret(String s){
-    StringBuilder out = new StringBuilder(s.length());
+    StringBuilder out= new StringBuilder(s.length());
     for (int cp : s.codePoints().toArray()){
       if (cp >= 0x20 && cp <= 0x7E){ // printable ASCII
         out.append((char)cp);
@@ -391,7 +391,7 @@ public final class Message{
           cp == 0x202F || cp == 0x205F || cp == 0x3000 ||
           cp == 0x200B /* ZWSP */ || cp == 0x200C /* ZWNJ */ || cp == 0x200D /* ZWJ */){
         out.append('_');
-      } else {
+      } else{
         out.append('?');
       }
     }

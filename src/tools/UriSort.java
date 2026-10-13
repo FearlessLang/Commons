@@ -7,8 +7,8 @@ import java.util.function.Function;
 
 public final class UriSort{
   public static <X> List<X> byFolderThenFile(List<X> xs, Function<X,URI> toUri){
-    return xs.stream().sorted(Comparator.comparing((X x)->Fs.removeFileNameAllowTop(toUri.apply(x).toString()))
-      .thenComparing(x->Fs.fileNameWithExtension(toUri.apply(x).toString()))
-      .thenComparing(x->toUri.apply(x).toString())).toList();
+    return xs.stream().sorted(Comparator.comparing((X x) -> Fs.removeFileNameAllowTop(toUri.apply(x).toString()))
+      .thenComparing(x -> Fs.fileNameWithExtension(toUri.apply(x).toString()))
+      .thenComparing(x -> toUri.apply(x).toString())).toList();
   }
 }

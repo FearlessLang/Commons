@@ -13,55 +13,55 @@ import java.util.stream.Stream;
 
 public final class Streams{
   @SafeVarargs @SuppressWarnings("varargs")
-  public static <T> Stream<T> of(Stream<T>...ss){ return Stream.of(ss).flatMap(s->s); }
+  public static <T> Stream<T> of(Stream<T>...ss){ return Stream.of(ss).flatMap(s -> s); }
   @SafeVarargs @SuppressWarnings("varargs")
   public static <T> Stream<T> ofWC(Stream<T>...ss){ return of(ss); }
 
   public static <A,B> Zipper2<A,B> zip(List<A> as, List<B> bs){
     assert as.size() == bs.size();
-    return new ListZipper2<>(as,bs);
+    return new ListZipper2<>(as, bs);
   }
   public static <A,B> Zipper2<A,B> zip(A[] as, B[] bs){ return zip(Arrays.asList(as), Arrays.asList(bs)); }
 
   private record ListZipper2<A,B>(List<A> as, List<B> bs) implements Zipper2<A,B>{
     @Override public void forEach(BiConsumer<A,B> f){
-      IntStream.range(0, as.size()).forEach(i->f.accept(as.get(i), bs.get(i)));
+      IntStream.range(0, as.size()).forEach(i -> f.accept(as.get(i), bs.get(i)));
     }
     @Override public <R> Stream<R> map(BiFunction<A,B,R> f){
-      return IntStream.range(0, as.size()).mapToObj(i->f.apply(as.get(i), bs.get(i)));
+      return IntStream.range(0, as.size()).mapToObj(i -> f.apply(as.get(i), bs.get(i)));
     }
     @Override public <R> Stream<R> parallelMap(BiFunction<A,B,R> f){
-      return IntStream.range(0, as.size()).parallel().mapToObj(i->f.apply(as.get(i), bs.get(i)));
+      return IntStream.range(0, as.size()).parallel().mapToObj(i -> f.apply(as.get(i), bs.get(i)));
     }
     @Override public <R> Stream<R> flatMap(BiFunction<A,B,Stream<R>> f){
-      return IntStream.range(0, as.size()).boxed().flatMap(i->f.apply(as.get(i), bs.get(i)));
+      return IntStream.range(0, as.size()).boxed().flatMap(i -> f.apply(as.get(i), bs.get(i)));
     }
     @Override public <R> Stream<R> filterMap(BiFunction<A,B,Optional<R>> f){
       return IntStream.range(0, as.size())
-        .mapToObj(i->f.apply(as.get(i), bs.get(i)))
+        .mapToObj(i -> f.apply(as.get(i), bs.get(i)))
         .flatMap(Optional::stream);
     }
     @Override public Zipper2<A,B> filter(BiPredicate<A,B> f){
       var asi= new ArrayList<A>();
       var bsi= new ArrayList<B>();
       IntStream.range(0, as.size())
-        .filter(i->f.test(as.get(i), bs.get(i)))
-        .forEachOrdered(i->{ asi.add(as.get(i)); bsi.add(bs.get(i)); });
+        .filter(i -> f.test(as.get(i), bs.get(i)))
+        .forEachOrdered(i -> { asi.add(as.get(i)); bsi.add(bs.get(i)); });
       return new ListZipper2<>(asi, bsi);
     }
     @Override public <R> R fold(Acc2<R,A,B> folder, R initial){
       Box<R> acc= new Box<>(initial);
-      IntStream.range(0, as.size()).forEach(i->acc.set(folder.apply(acc.get(), as.get(i), bs.get(i))));
+      IntStream.range(0, as.size()).forEach(i -> acc.set(folder.apply(acc.get(), as.get(i), bs.get(i))));
       return acc.get();
     }
     @Override public boolean anyMatch(BiPredicate<A,B> test){
-      return IntStream.range(0, as.size()).anyMatch(i->test.test(as.get(i), bs.get(i)));
+      return IntStream.range(0, as.size()).anyMatch(i -> test.test(as.get(i), bs.get(i)));
     }
     @Override public boolean allMatch(BiPredicate<A,B> test){
-      return IntStream.range(0, as.size()).allMatch(i->test.test(as.get(i), bs.get(i)));
+      return IntStream.range(0, as.size()).allMatch(i -> test.test(as.get(i), bs.get(i)));
     }
     @Override public boolean allMatchParallel(BiPredicate<A,B> test){
-      return IntStream.range(0, as.size()).parallel().allMatch(i->test.test(as.get(i), bs.get(i)));
+      return IntStream.range(0, as.size()).parallel().allMatch(i -> test.test(as.get(i), bs.get(i)));
     }
   }
   public static <T> Optional<Integer> firstPos(List<T> xs, Predicate<Integer> p){
@@ -73,7 +73,7 @@ public final class Streams{
       .filter(p)
       .findFirst();
   }
-  public interface Acc2<R,A,B> { R apply(R acc, A a, B b); }
+  public interface Acc2<R,A,B>{ R apply(R acc, A a, B b); }
   public interface Acc3<R,A,B,C>{ R apply(R acc, A a, B b, C c); }
 
   public static <A,B> Zipper3<Integer,A,B> zipI(List<A> as, List<B> bs){
@@ -83,20 +83,20 @@ public final class Streams{
   public static <A,B> Zipper3<Integer,A,B> zipI(A[] as, B[] bs){ return zipI(Arrays.asList(as), Arrays.asList(bs)); }
   private record ListZipper3<A,B,C>(List<A> as, List<B> bs, List<C> cs) implements Zipper3<A,B,C>{
     @Override public void forEach(TriConsumer<A,B,C> f){
-      IntStream.range(0, as.size()).forEach(i->f.accept(as.get(i), bs.get(i), cs.get(i)));
+      IntStream.range(0, as.size()).forEach(i -> f.accept(as.get(i), bs.get(i), cs.get(i)));
     }
     @Override public <R> Stream<R> map(TriFunction<A,B,C,R> f){
-      return IntStream.range(0, as.size()).mapToObj(i->f.apply(as.get(i), bs.get(i), cs.get(i)));
+      return IntStream.range(0, as.size()).mapToObj(i -> f.apply(as.get(i), bs.get(i), cs.get(i)));
     }
     @Override public <R> Stream<R> parallelMap(TriFunction<A,B,C,R> f){
-      return IntStream.range(0, as.size()).parallel().mapToObj(i->f.apply(as.get(i), bs.get(i), cs.get(i)));
+      return IntStream.range(0, as.size()).parallel().mapToObj(i -> f.apply(as.get(i), bs.get(i), cs.get(i)));
     }
     @Override public <R> Stream<R> flatMap(TriFunction<A,B,C,Stream<R>> f){
-      return IntStream.range(0, as.size()).boxed().flatMap(i->f.apply(as.get(i), bs.get(i), cs.get(i)));
+      return IntStream.range(0, as.size()).boxed().flatMap(i -> f.apply(as.get(i), bs.get(i), cs.get(i)));
     }
     @Override public <R> Stream<R> filterMap(TriFunction<A,B,C,Optional<R>> f){
       return IntStream.range(0, as.size())
-        .mapToObj(i->f.apply(as.get(i), bs.get(i), cs.get(i)))
+        .mapToObj(i -> f.apply(as.get(i), bs.get(i), cs.get(i)))
         .flatMap(Optional::stream);
     }
     @Override public Zipper3<A,B,C> filter(TriPredicate<A,B,C> f){
@@ -104,23 +104,23 @@ public final class Streams{
       var bsi= new ArrayList<B>();
       var csi= new ArrayList<C>();
       IntStream.range(0, as.size())
-        .filter(i->f.test(as.get(i), bs.get(i), cs.get(i)))
-        .forEachOrdered(i->{ asi.add(as.get(i)); bsi.add(bs.get(i)); csi.add(cs.get(i)); });
+        .filter(i -> f.test(as.get(i), bs.get(i), cs.get(i)))
+        .forEachOrdered(i -> { asi.add(as.get(i)); bsi.add(bs.get(i)); csi.add(cs.get(i)); });
       return new ListZipper3<>(asi, bsi, csi);
     }
     @Override public <R> R fold(Acc3<R,A,B,C> folder, R initial){
       Box<R> acc= new Box<>(initial);
-      IntStream.range(0, as.size()).forEach(i->acc.set(folder.apply(acc.get(), as.get(i), bs.get(i), cs.get(i))));
+      IntStream.range(0, as.size()).forEach(i -> acc.set(folder.apply(acc.get(), as.get(i), bs.get(i), cs.get(i))));
       return acc.get();
     }
     @Override public boolean anyMatch(TriPredicate<A,B,C> test){
-      return IntStream.range(0, as.size()).anyMatch(i->test.test(as.get(i), bs.get(i), cs.get(i)));
+      return IntStream.range(0, as.size()).anyMatch(i -> test.test(as.get(i), bs.get(i), cs.get(i)));
     }
     @Override public boolean allMatch(TriPredicate<A,B,C> test){
-      return IntStream.range(0, as.size()).allMatch(i->test.test(as.get(i), bs.get(i), cs.get(i)));
+      return IntStream.range(0, as.size()).allMatch(i -> test.test(as.get(i), bs.get(i), cs.get(i)));
     }
     @Override public boolean allMatchParallel(TriPredicate<A,B,C> test){
-      return IntStream.range(0, as.size()).parallel().allMatch(i->test.test(as.get(i), bs.get(i), cs.get(i)));
+      return IntStream.range(0, as.size()).parallel().allMatch(i -> test.test(as.get(i), bs.get(i), cs.get(i)));
     }
   }
 }

@@ -52,6 +52,6 @@ public final class Utf8Sink extends OutputStream{
     ByteBuffer newBuf= ByteBuffer.allocate(newCap);
     inBuf.flip();
     newBuf.put(inBuf);
-    inBuf= newBuf;
+    inBuf = newBuf;
   }
 }

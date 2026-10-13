@@ -18,11 +18,11 @@ record TreeDiagnostics<
 
   E onBadCloser(T open, T badCloser){
     return tryEatenBetween(open, badCloser, false)
-      .or(()->tryEatenBetween(open, badCloser, true))
-      .orElseGet(()->onStray(open, badCloser));
+      .or(() -> tryEatenBetween(open, badCloser, true))
+      .orElseGet(() -> onStray(open, badCloser));
   }
   E onBadBarrier(T open, T barrier){
-    return tryEatenBetween(open, barrier, false).orElseGet(()->onStray(open, barrier));
+    return tryEatenBetween(open, barrier, false).orElseGet(() -> onStray(open, barrier));
   }
   private E onStray(T open, T stop){
     int res= ofRecovery(tz.tokensForTree());
@@ -38,7 +38,7 @@ record TreeDiagnostics<
   }
   private List<TK> openerForCloser(TK closer){
     return spec.openClose.entrySet().stream()
-      .filter(e->e.getValue().containsKey(closer))
+      .filter(e -> e.getValue().containsKey(closer))
       .map(Map.Entry::getKey).toList();
   }
   private List<TK> closersForOpener(TK opener){
@@ -63,7 +63,7 @@ record TreeDiagnostics<
   @SuppressWarnings("unchecked")
   private int ofRemoval(T remove){
     if (remove.is(tz.sof(), tz.eof())){ return -1; }
-    return ofRecovery(tz.tokensForTree().stream().filter(t->t!=remove).toList());
+    return ofRecovery(tz.tokensForTree().stream().filter(t -> t!=remove).toList());
   }
   private int ofRecovery(List<T> tokens){
     var li= tokens.listIterator();
@@ -71,7 +71,7 @@ record TreeDiagnostics<
       @Override E diagOnBadCloser(T open, T stop){ throw new Out(); }
       @Override E diagOnBadBarrier(T open, T stop){ throw new Out(); }
     }.of(li);}
-    catch(Out _){/*eated*/ return li.previousIndex(); }
+    catch (Out _){/*eated*/ return li.previousIndex(); }
     return li.nextIndex();
   }
   private List<T> betweenExclusive(T a, T b, List<T> tokens){

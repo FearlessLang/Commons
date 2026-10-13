@@ -33,23 +33,23 @@ public final class Fs{
   public static final int maxExtSeg= 16;
   public static boolean isExtSegChar(char c){ return ('a' <= c && c <= 'z') || ('0' <= c && c <= '9'); }
   public static boolean isExtSeg(String s){
-    return !s.isEmpty() && s.length() <= maxExtSeg && s.chars().allMatch(c->isExtSegChar((char)c));
+    return !s.isEmpty() && s.length() <= maxExtSeg && s.chars().allMatch(c -> isExtSegChar((char)c));
   }
-  public static void ensureDir(Path p){ ofV(()->Files.createDirectories(p)); }
+  public static void ensureDir(Path p){ ofV(() -> Files.createDirectories(p)); }
   public static void cleanDirContents(Path p){
     reqDir(p, "cleaning");
-    var xs= walk(p, s->s
-      .filter(x->!x.equals(p))
+    var xs= walk(p, s -> s
+      .filter(x -> !x.equals(p))
       .sorted(Comparator.reverseOrder())
       .toList()
     );
-    xs.forEach(x->ofV(()->forceDelete(x)));
+    xs.forEach(x -> ofV(() -> forceDelete(x)));
   }
   private static void forceDelete(Path p) throws IOException{
     if (isWindows()){ Files.setAttribute(p, "dos:readonly", false, LinkOption.NOFOLLOW_LINKS); }
     for (int attempt= 0; ; attempt++){
       try{ Files.deleteIfExists(p); return; }
-      catch(AccessDeniedException e){
+      catch (AccessDeniedException e){
         if (!isWindows() || attempt >= 9){ throw e; }
         if (attempt == 0){ System.gc(); }
         sleepBriefly();
@@ -57,15 +57,15 @@ public final class Fs{
     }
   }
   private static void sleepBriefly(){
-    try{ Thread.sleep(25); } catch(InterruptedException _){ Thread.currentThread().interrupt(); }
+    try{ Thread.sleep(25); } catch (InterruptedException _){ Thread.currentThread().interrupt(); }
   }
   public static void writeUtf8(Path file, String content){
     ensureDir(file.getParent());
-    ofV(()->Files.writeString(file, content));
+    ofV(() -> Files.writeString(file, content));
   }
-  public static String readUtf8(Path file){ return of(()->Files.readString(file)); }
+  public static String readUtf8(Path file){ return of(() -> Files.readString(file)); }
   public static void copyTree(Path from, Path to){
-    walkV(from,s->s.forEach(src->ofV(()->copyOne(from, to, src))));
+    walkV(from, s -> s.forEach(src -> ofV(() -> copyOne(from, to, src))));
   }
   private static void copyOne(Path fromRoot, Path toRoot, Path src) throws IOException{
     var rel= fromRoot.relativize(src);
@@ -76,8 +76,8 @@ public final class Fs{
   }
   public static long lastModified(Path file){
     try{ return Files.getLastModifiedTime(file, LinkOption.NOFOLLOW_LINKS).toMillis(); }
-    catch(NoSuchFileException _){ return -1; }
-    catch(IOException ioe){ throw new UncheckedIOException(ioe); }
+    catch (NoSuchFileException _){ return -1; }
+    catch (IOException ioe){ throw new UncheckedIOException(ioe); }
   }
   // Writes (overwriting if needed) and guarantees mtime > minExclusiveMillis. Returns the actual mtime.
   public static long writeUtf8(Path file, String content, long minExclusiveMillis){
@@ -86,7 +86,7 @@ public final class Fs{
       var m= lastModified(file);
       if (m > minExclusiveMillis){ return m; }
       try{ Thread.sleep(10); }
-      catch(InterruptedException ie){ Thread.currentThread().interrupt(); throw Bug.of(ie); }
+      catch (InterruptedException ie){ Thread.currentThread().interrupt(); throw Bug.of(ie); }
     }
   }
   public static void reqDir(Path p, String what){ Require.check(Files.isDirectory(p), "Expected a directory for "+what+": "+p); }
@@ -96,7 +96,7 @@ public final class Fs{
   }
   public static void rmTree(Path p){
     if (Files.isDirectory(p)){ cleanDirContents(p); }
-    ofV(()->Files.deleteIfExists(p));
+    ofV(() -> Files.deleteIfExists(p));
   }
   public static void copyFresh(Path from, Path to){
     rmTree(to);
@@ -115,7 +115,7 @@ public final class Fs{
     Require.check(rc == 0,
       "Tool error: "+tool+
       "\nExit code: "+rc+
-      "\nArgs:\n"+String.join("\n",args)+
+      "\nArgs:\n"+String.join("\n", args)+
       "\nOutput length: "+out.length()+
       "\nOutput:\n<<<\n"+out+"\n>>>");
   }
@@ -141,7 +141,7 @@ public final class Fs{
     int i= s.lastIndexOf('/');
     if (i == -1){ return ""; }
     int j= s.indexOf(":/");
-    return i == j+1 ? s.substring(0,i+1) : s.substring(0,i);
+    return i == j+1 ? s.substring(0, i+1) : s.substring(0, i);
   }
   private static int lastSlashIndex(String s){
     int i= s.lastIndexOf('/');
@@ -158,32 +158,32 @@ public final class Fs{
   public interface Walk<T>{T walk(Stream<Path> p) throws IOException;}
   public static void ofV(RunVoid f){
     try{ f.run(); }
-    catch(IOException io){ throw new UncheckedIOException(io); }
+    catch (IOException io){ throw new UncheckedIOException(io); }
   }
   public static <T> T of(Run<T> f){
     try{ return f.run(); }
-    catch(IOException io){ throw new UncheckedIOException(io); }
+    catch (IOException io){ throw new UncheckedIOException(io); }
   }
   public static void walkV(Path p, WalkVoid f){
     try (Stream<Path> s= Files.walk(p)){ f.walk(s); }
-    catch(IOException io){ throw new UncheckedIOException(io); }
+    catch (IOException io){ throw new UncheckedIOException(io); }
   }
   public static <T> T walk(Path p, Walk<T> f){
     try (Stream<Path> s= Files.walk(p)){ return f.walk(s); }
-    catch(IOException io){ throw new UncheckedIOException(io); }
+    catch (IOException io){ throw new UncheckedIOException(io); }
   }
   public static void copyTreeFlat(Path from, Path to){
-    var files= walk(from,s->s
+    var files= walk(from, s -> s
       .filter(Files::isRegularFile)
       .toList()
     );
     var duplicates= files.stream()
-      .collect(Collectors.groupingBy(p->p.getFileName().toString()))
+      .collect(Collectors.groupingBy(p -> p.getFileName().toString()))
       .entrySet().stream()
-      .filter(e->e.getValue().size() > 1)
+      .filter(e -> e.getValue().size() > 1)
       .toList();
     Require.check(duplicates.isEmpty(), "Expected distinct file names to flatten "+from+" into "+to+", found:\n"+duplicates);
     ensureDir(to);
-    files.forEach(src->ofV(()->Files.copy(src, to.resolve(src.getFileName()), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)));
+    files.forEach(src -> ofV(() -> Files.copy(src, to.resolve(src.getFileName()), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)));
   }
 }
