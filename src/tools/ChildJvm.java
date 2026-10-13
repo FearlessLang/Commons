@@ -16,9 +16,9 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
   public static ChildJvm start(List<String> args, Consumer<String> out){
     var cmd= Push.of(List.<String>of(javaExe().toString(),"-ea","-D"+lifelineKey+"="+lifelineValue), args);
     var pb= Fs.processBuilder(cmd);
-    Process p= Fs.of(()->pb.redirectErrorStream(true).start());
+    Process p= Fs.of(() -> pb.redirectErrorStream(true).start());
     var pumpErr= new IOException[1];
-    var pump= new Thread(()->pumpOutput(p,out,pumpErr),"FearlessJvmOut");
+    var pump= new Thread(() -> pumpOutput(p,out,pumpErr),"FearlessJvmOut");
     pump.setDaemon(true);
     pump.start();
     return new ChildJvm(p,pump,pumpErr,cmd);

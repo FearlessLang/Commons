@@ -26,14 +26,14 @@ public final class JavaTool{
   }
   private static String _runMain(List<String> jvmArgs,String classPath,String mainClass,String... mainArgs) throws InterruptedException{
     var sb= new StringBuilder();
-    var jvm= start(jvmArgs, classPath, mainClass, s->{ sb.append(s); System.out.print(s); }, mainArgs);
+    var jvm= start(jvmArgs, classPath, mainClass, s -> { sb.append(s); System.out.print(s); }, mainArgs);
     Fs.checkTool("java", jvm.await(), jvm.cmd(), sb.toString());
     return sb.toString();
   }
   static String jarsCp(List<Path> jarDirs){
     return jarDirs.stream()
-      .flatMap(dir->Fs.walk(dir,s->s.filter(p->p.toString().endsWith(".jar")).toList()).stream())
-      .sorted(Comparator.comparing(p->p.getFileName().toString()))
+      .flatMap(dir -> Fs.walk(dir,s -> s.filter(p -> p.toString().endsWith(".jar")).toList()).stream())
+      .sorted(Comparator.comparing(p -> p.getFileName().toString()))
       .map(Path::toString)
       .collect(Collectors.joining(File.pathSeparator));
   }

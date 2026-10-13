@@ -25,7 +25,7 @@ public interface SourceOracle{
     byte[] loadBytes();
     long lastModified();
     default String loadString(){
-      return Fs.of(()->StandardCharsets.UTF_8.newDecoder()
+      return Fs.of(() -> StandardCharsets.UTF_8.newDecoder()
         .onMalformedInput(CodingErrorAction.REPORT)
         .onUnmappableCharacter(CodingErrorAction.REPORT)
         .decode(ByteBuffer.wrap(loadBytes()))
@@ -48,7 +48,7 @@ public interface SourceOracle{
   }
   List<Ref> allFiles();
   default String loadString(URI uri){
-    return OneOr.of("Expected one source for "+uri, allFiles().stream().filter(f->f.fearURI().equals(uri))).loadString();
+    return OneOr.of("Expected one source for "+uri, allFiles().stream().filter(f -> f.fearURI().equals(uri))).loadString();
   }
   static URI defaultDbgFearPath(int index){
     return URI.create(root+"___DBG___/"+(index==0 ? "_rank_app999.fear" : "in_memory"+index+".fear"));
@@ -56,7 +56,7 @@ public interface SourceOracle{
   default SourceOracle withFallback(SourceOracle fb){
     var all= Push.of(allFiles(), fb.allFiles());
     assert all.stream().map(Ref::fearPath).distinct().count()== all.size();
-    return ()->all;
+    return () -> all;
   }
   static Builder debugBuilder(){ return new Builder(); }
   final class Builder{

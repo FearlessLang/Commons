@@ -21,7 +21,7 @@ public final class Message{
   public static String of(Function<URI,String> loader, List<Frame> frames, String msg){
     try{ return _of(loader,frames,msg); }
     catch(Throwable e){
-      String locs= frames.stream().map(f->f.s().toString()).collect(Collectors.joining("\n"));
+      String locs= frames.stream().map(f -> f.s().toString()).collect(Collectors.joining("\n"));
       throw new Error("Exception while formatting the following error:\n" + locs + "\n" + msg, e);
     }
   }
@@ -34,7 +34,7 @@ public final class Message{
     String body= (g.multiLine() != null)
       ? renderMulti(lines, g, width, caretLine)
       : numberedCaret(lines, g.caretLine(), width) + "\n" + caretLine.orElse("");
-    var names= frames.stream().filter(f->!f.name().isBlank()).map(Frame::name).collect(Collectors.joining(" > "));
+    var names= frames.stream().filter(f -> !f.name().isBlank()).map(Frame::name).collect(Collectors.joining(" > "));
     String framesLine= names.isEmpty() ? "While inspecting the file" : "While inspecting " + names;
     return "In file: " + PrettyFileName.displayFileName(g.file()) + "\n\n" + body + "\n\n" + framesLine + "\n" + msg;
   }
@@ -62,7 +62,7 @@ public final class Message{
     return new Span(a.fileName(), startLine, startCol, endLine, endCol);
   }
   private static List<Frame> trimInvisible(Function<URI,String> loader, List<Frame> fs){
-    return fs.stream().map(f->new Frame(f.name(), shrinkToVisible(loader, f.s()))).toList();
+    return fs.stream().map(f -> new Frame(f.name(), shrinkToVisible(loader, f.s()))).toList();
   }
   private static Span shrinkToVisible(Function<URI,String> loader, Span s){
     String src= Objects.requireNonNull(loader.apply(s.fileName()));

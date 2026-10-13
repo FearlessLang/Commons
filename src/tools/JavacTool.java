@@ -33,14 +33,14 @@ public final class JavacTool{
 
   public static String compileTree(Path srcRoot, Path classesDir, Runnable postProcess, Path jarPath, List<Path> extraClasspathDirs){
     var srcs= javaSourcesUnder(srcRoot);
-    Fs.ofV(()->Files.deleteIfExists(jarPath));
+    Fs.ofV(() -> Files.deleteIfExists(jarPath));
     Require.check(!srcs.isEmpty(), "Expected .java files under "+srcRoot);
     var args= new ArrayList<String>(10+srcs.size());
     args.add("-encoding"); args.add("UTF-8");
     args.add("-d"); args.add(abs(classesDir));
     var cp= JavaTool.jarsCp(Push.of(jarPath.getParent(), extraClasspathDirs));
     if (!cp.isEmpty()){ args.add("-cp"); args.add(cp); }
-    srcs.forEach(p->args.add(abs(p)));
+    srcs.forEach(p -> args.add(abs(p)));
     var javacOut= runJavacArgFile(jarPath.getParent(), args);
     postProcess.run();
     jar(classesDir, jarPath);
@@ -48,9 +48,9 @@ public final class JavacTool{
   }
 
   static List<Path> javaSourcesUnder(Path root){
-    return Fs.walk(root,pi->pi
-      .filter(p->p.toString().endsWith(".java"))
-      .sorted(Comparator.comparing(p->root.relativize(p).toString()))
+    return Fs.walk(root,pi -> pi
+      .filter(p -> p.toString().endsWith(".java"))
+      .sorted(Comparator.comparing(p -> root.relativize(p).toString()))
       .toList());
   }
 
@@ -107,12 +107,12 @@ public final class JavacTool{
     var jmods= javaHome.resolve("jmods");
     Fs.reqDir(jmods, "the jmods of a full JDK (a JRE has none)");
     var appModules= ModuleFinder.of(modsDir).findAll();
-    var appModuleNames= appModules.stream().map(m->m.descriptor().name()).collect(Collectors.toUnmodifiableSet());
+    var appModuleNames= appModules.stream().map(m -> m.descriptor().name()).collect(Collectors.toUnmodifiableSet());
     var platformModules= appModules.stream()
-      .flatMap(m->m.descriptor().requires().stream())
-      .filter(r->!r.modifiers().contains(Requires.Modifier.STATIC))
+      .flatMap(m -> m.descriptor().requires().stream())
+      .filter(r -> !r.modifiers().contains(Requires.Modifier.STATIC))
       .map(Requires::name)
-      .filter(n->!appModuleNames.contains(n))
+      .filter(n -> !appModuleNames.contains(n))
       .distinct().sorted()
       .collect(Collectors.joining(","));
     var runtimeImage= tmp.resolve("_runtime");
@@ -126,12 +126,12 @@ public final class JavacTool{
     return runtimeImage;
   }
   private static void reqDeployedMods(Path dest){
-    var found= Fs.walk(dest, s->s
+    var found= Fs.walk(dest, s -> s
       .filter(Files::isDirectory)
-      .filter(p->p.getFileName().toString().equals(deployedModsDirName))
+      .filter(p -> p.getFileName().toString().equals(deployedModsDirName))
       .toList());
     Require.check(found.size() == 1, "Expected exactly one '"+deployedModsDirName+"' dir under "+dest+" after jpackage, found: "+found);
-    var jars= Fs.walk(found.getFirst(), s->s.filter(p->p.toString().endsWith(".jar")).toList());
+    var jars= Fs.walk(found.getFirst(), s -> s.filter(p -> p.toString().endsWith(".jar")).toList());
     Require.check(!jars.isEmpty(), "Expected jars in the '"+deployedModsDirName+"' dir made by jpackage: "+found.getFirst());
   }
 
@@ -185,19 +185,19 @@ public final class JavacTool{
   //extraLintDisables: for modules that must `requires` an automatic module (no module-info in
   //the jar, e.g. flexmark), since that is otherwise an unavoidable -Werror failure
   public static void javac(List<Path> srcs, Path classesDir, Path modsDir, List<String> extraLintDisables){
-    srcs.forEach(src->Fs.reqDir(src, "source root"));
+    srcs.forEach(src -> Fs.reqDir(src, "source root"));
     Fs.reqDir(modsDir, "module path");
     Fs.cleanDir(classesDir);
     var mi= srcs.stream()
-      .map(src->src.resolve("module-info.java"))
+      .map(src -> src.resolve("module-info.java"))
       .filter(Files::exists)
       .toList();
     Require.check(mi.size() == 1, "Expected exactly one module-info.java in the source roots "+srcs+", found: "+mi);
     var args= new ArrayList<>(javacArgs);
-    extraLintDisables.forEach(l->args.add("-Xlint:"+l));
+    extraLintDisables.forEach(l -> args.add("-Xlint:"+l));
     args.add("-d"); args.add(abs(classesDir));
     args.add("--module-path"); args.add(abs(modsDir));
-    srcs.forEach(src->javaSourcesUnder(src).forEach(p->args.add(abs(p))));
+    srcs.forEach(src -> javaSourcesUnder(src).forEach(p -> args.add(abs(p))));
     runJavacArgFile(classesDir.getParent(), args);
   }
 }

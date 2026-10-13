@@ -33,17 +33,17 @@ public final class Fs{
   public static final int maxExtSeg= 16;
   public static boolean isExtSegChar(char c){ return ('a' <= c && c <= 'z') || ('0' <= c && c <= '9'); }
   public static boolean isExtSeg(String s){
-    return !s.isEmpty() && s.length() <= maxExtSeg && s.chars().allMatch(c->isExtSegChar((char)c));
+    return !s.isEmpty() && s.length() <= maxExtSeg && s.chars().allMatch(c -> isExtSegChar((char)c));
   }
-  public static void ensureDir(Path p){ ofV(()->Files.createDirectories(p)); }
+  public static void ensureDir(Path p){ ofV(() -> Files.createDirectories(p)); }
   public static void cleanDirContents(Path p){
     reqDir(p, "cleaning");
-    var xs= walk(p, s->s
-      .filter(x->!x.equals(p))
+    var xs= walk(p, s -> s
+      .filter(x -> !x.equals(p))
       .sorted(Comparator.reverseOrder())
       .toList()
     );
-    xs.forEach(x->ofV(()->forceDelete(x)));
+    xs.forEach(x -> ofV(() -> forceDelete(x)));
   }
   private static void forceDelete(Path p) throws IOException{
     if (isWindows()){ Files.setAttribute(p, "dos:readonly", false, LinkOption.NOFOLLOW_LINKS); }
@@ -61,11 +61,11 @@ public final class Fs{
   }
   public static void writeUtf8(Path file, String content){
     ensureDir(file.getParent());
-    ofV(()->Files.writeString(file, content));
+    ofV(() -> Files.writeString(file, content));
   }
-  public static String readUtf8(Path file){ return of(()->Files.readString(file)); }
+  public static String readUtf8(Path file){ return of(() -> Files.readString(file)); }
   public static void copyTree(Path from, Path to){
-    walkV(from,s->s.forEach(src->ofV(()->copyOne(from, to, src))));
+    walkV(from,s -> s.forEach(src -> ofV(() -> copyOne(from, to, src))));
   }
   private static void copyOne(Path fromRoot, Path toRoot, Path src) throws IOException{
     var rel= fromRoot.relativize(src);
@@ -96,7 +96,7 @@ public final class Fs{
   }
   public static void rmTree(Path p){
     if (Files.isDirectory(p)){ cleanDirContents(p); }
-    ofV(()->Files.deleteIfExists(p));
+    ofV(() -> Files.deleteIfExists(p));
   }
   public static void copyFresh(Path from, Path to){
     rmTree(to);
@@ -173,17 +173,17 @@ public final class Fs{
     catch(IOException io){ throw new UncheckedIOException(io); }
   }
   public static void copyTreeFlat(Path from, Path to){
-    var files= walk(from,s->s
+    var files= walk(from,s -> s
       .filter(Files::isRegularFile)
       .toList()
     );
     var duplicates= files.stream()
-      .collect(Collectors.groupingBy(p->p.getFileName().toString()))
+      .collect(Collectors.groupingBy(p -> p.getFileName().toString()))
       .entrySet().stream()
-      .filter(e->e.getValue().size() > 1)
+      .filter(e -> e.getValue().size() > 1)
       .toList();
     Require.check(duplicates.isEmpty(), "Expected distinct file names to flatten "+from+" into "+to+", found:\n"+duplicates);
     ensureDir(to);
-    files.forEach(src->ofV(()->Files.copy(src, to.resolve(src.getFileName()), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)));
+    files.forEach(src -> ofV(() -> Files.copy(src, to.resolve(src.getFileName()), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)));
   }
 }

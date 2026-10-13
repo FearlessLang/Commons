@@ -53,7 +53,7 @@ public abstract class MetaParser<
   public final boolean peek(TK... kinds){
     assert kinds.length > 0;
     var t= peek();
-    return t.map(tt->tt.is(kinds)).orElse(false);
+    return t.map(tt -> tt.is(kinds)).orElse(false);
   }
   public T expectAny(String what){
     var t= peek();
@@ -100,7 +100,7 @@ public abstract class MetaParser<
   @SafeVarargs
   public final boolean peekOrder(Predicate<T>... ps){
     return IntStream.range(0, ps.length)
-      .mapToObj(i->peek(i).filter(t->ps[i].test(t)))
+      .mapToObj(i -> peek(i).filter(t -> ps[i].test(t)))
       .allMatch(Optional::isPresent);
   }
   public <R> R back(R v){
@@ -190,7 +190,7 @@ public abstract class MetaParser<
   }
   public <R> List<R> parseGroupSep(String frameNameOut, String frameNameIn, Rule<Parser,R> r,TK open, TK close, NextCut<Parser> probe){
     String label= frameNameOut.isEmpty()?frameNameIn:frameNameOut;
-    return parseGroup(frameNameOut,p->{
+    return parseGroup(frameNameOut,p -> {
       p.expect(label,open);
       p.expectLast(label,close);
       return p.splitBy(frameNameIn,probe,r);
@@ -266,7 +266,7 @@ public abstract class MetaParser<
     if (!emptyAllowed && start >= end){ throw errFactory().probeStalledIn(frameName, spanAround(start, start), start, end,self()); }
   }
   public enum SplitMode{Skipped,Left,Right}
-  public int splitOn(SplitMode split, TK k){ return splitOn(split,t->t.is(k)); }
+  public int splitOn(SplitMode split, TK k){ return splitOn(split,t -> t.is(k)); }
   public int splitOn(SplitMode split, Predicate<T> p){
     fwdIf(index() != 0 && !end() && split == SplitMode.Right);
     while (!end()){
@@ -296,7 +296,7 @@ public abstract class MetaParser<
     if (skip(t)){ return Optional.empty(); } 
     if (t.tokens().isEmpty()){ return Optional.of(t); }
     var ts= first ? t.tokens() : t.tokens().reversed();
-    return ts.stream().flatMap(c->leaf(c,first).stream()).findFirst();
+    return ts.stream().flatMap(c -> leaf(c,first).stream()).findFirst();
   }
   private String show(T t){
     if(!t.tokens().isEmpty()){ return t.kind()+"@"+t.line()+":"+t.column(); }
@@ -314,8 +314,8 @@ public abstract class MetaParser<
   }
   public Optional<Span> span(T low, T high){//not equal to span(List.of(low,high))
     return leaf(low,true)
-      .flatMap(first->leaf(high,false)
-        .map(last->makeSpan(first,last)));
+      .flatMap(first -> leaf(high,false)
+        .map(last -> makeSpan(first,last)));
   }
   public Optional<Span> span(T t){ return span(t,t); }
   private Span makeSpan(T first, T last){ return Token.makeSpan(span.fileName(), first, last); }

@@ -18,13 +18,13 @@ public final class NameSuggester{
     if (candidates.contains(name)){ return Optional.of(name); }
     var base= stripQuotes(name);
     if (!base.equals(name) && candidates.contains(base)){ return Optional.of(base); }
-    return suggest(name, candidates, (_,_,best)->best);
+    return suggest(name, candidates, (_,_,best) -> best);
   }
 
   public static String suggest(String name, List<String> candidates){
-    return suggest(name, candidates, (_,cs,best)->{
+    return suggest(name, candidates, (_,cs,best) -> {
       StringBuilder out= new StringBuilder();
-      best.ifPresent(b->out
+      best.ifPresent(b -> out
         .append("Did you mean ")
         .append(Message.displayString(b))
         .append(" ?\n"));
@@ -41,7 +41,7 @@ public final class NameSuggester{
     assert !name.isEmpty();
     assert !candidates.isEmpty();
     assert candidates.equals(candidates.stream().distinct().sorted().toList()): candidates;
-    assert candidates.stream().allMatch(s->!s.isEmpty());
+    assert candidates.stream().allMatch(s -> !s.isEmpty());
     assert !candidates.contains(name);
     var best= pickBest(name, candidates);
     return renderer.render(name, candidates, best);
@@ -57,10 +57,10 @@ public final class NameSuggester{
     }
 
     scored.sort(Comparator
-      .<Suggestion>comparingDouble(s->-s.score)
-      .thenComparingInt(s->Math.abs(s.scoreName.length() - tScore.length()))
-      .thenComparingInt(s->s.value.length())
-      .thenComparing(s->s.value));
+      .<Suggestion>comparingDouble(s -> -s.score)
+      .thenComparingInt(s -> Math.abs(s.scoreName.length() - tScore.length()))
+      .thenComparingInt(s -> s.value.length())
+      .thenComparing(s -> s.value));
 
     var top= scored.getFirst();
     double topScore= top.score;
@@ -115,7 +115,7 @@ public final class NameSuggester{
   private static double tokenScore(String a, String b){
     var al= a.toLowerCase(Locale.ROOT);
     var bl= b.toLowerCase(Locale.ROOT);
-    var alias= !a.equals(b) && aliases.stream().anyMatch(g->g.contains(al) && g.contains(bl));
+    var alias= !a.equals(b) && aliases.stream().anyMatch(g -> g.contains(al) && g.contains(bl));
     return alias ? 0.96 : wholeScore(a, b);
   }
 
@@ -140,7 +140,7 @@ public final class NameSuggester{
     */
   private static List<String> splitCamel(String s){
     if (s.matches("[^A-Za-z]*")){ return List.of(s); }
-    return Stream.of(s.split("(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|[^A-Za-z]+")).filter(t->!t.isEmpty()).toList();
+    return Stream.of(s.split("(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|[^A-Za-z]+")).filter(t -> !t.isEmpty()).toList();
   }
 
   private static double normalizedLevenshtein(String a, String b){
@@ -177,12 +177,12 @@ public final class NameSuggester{
   private static final List<Set<String>> aliases= aliases();
   private static List<Set<String>> aliases(){
     var res= new ArrayList<Set<String>>();
-    aliasGroups.lines().map(l->l.replaceFirst("#.*","").strip()).filter(l->!l.isEmpty())
-      .forEach(l->connect(res, new HashSet<>(List.of(l.toLowerCase(Locale.ROOT).split("\\s+")))));
+    aliasGroups.lines().map(l -> l.replaceFirst("#.*","").strip()).filter(l -> !l.isEmpty())
+      .forEach(l -> connect(res, new HashSet<>(List.of(l.toLowerCase(Locale.ROOT).split("\\s+")))));
     return List.copyOf(res);
   }
   private static void connect(ArrayList<Set<String>> groups, HashSet<String> group){
-    var overlapping= groups.stream().filter(g->!Collections.disjoint(g, group)).toList();
+    var overlapping= groups.stream().filter(g -> !Collections.disjoint(g, group)).toList();
     overlapping.forEach(group::addAll);
     groups.removeAll(overlapping);
     groups.add(group);

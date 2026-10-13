@@ -22,7 +22,7 @@ final class Shell{
     Process p;
     try{ p= pb.start(); }
     catch(IOException _){ return Optional.empty(); }
-    var out= Fs.of(()->new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8));
+    var out= Fs.of(() -> new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8));
     return Optional.of(new Ran(waitFor(p), out));
   }
   private static int waitFor(Process p){

@@ -42,7 +42,7 @@ public abstract class MetaTokenizer<
     finally { frozen = prev; }
   }
   private RuntimeException error(){
-    return withFrozen(()->errFactory().unrecognizedTextAt(new Span(fileName,line,col,line,col),"",self()));
+    return withFrozen(() -> errFactory().unrecognizedTextAt(new Span(fileName,line,col,line,col),"",self()));
   }
   private void advance(String matched){
     for (int cp : matched.codePoints().toArray()){ if (cp == '\n'){ line++; col = 1; } else { col++; } }
@@ -51,14 +51,14 @@ public abstract class MetaTokenizer<
   private Optional<T> current(TK kind){
     return kind
       .matcher().apply(input, pos)
-      .map(text->make(kind, text, line, col,List.of()));
+      .map(text -> make(kind, text, line, col,List.of()));
   }
   private Optional<T> findNext(){
     return kinds.stream()
-      .flatMap(k->current(k).stream())
+      .flatMap(k -> current(k).stream())
       .max(Comparator
-        .<T>comparingInt(t->t.content().length())
-        .thenComparingInt(t->-t.kind().priority()));
+        .<T>comparingInt(t -> t.content().length())
+        .thenComparingInt(t -> -t.kind().priority()));
   }
   static String normalizeSource(String s){
     if (s.startsWith("\uFEFF")){ s = s.substring(1); } // Drop BOM if present at start
@@ -92,7 +92,7 @@ public abstract class MetaTokenizer<
     assert input!=null:      "call method .input before tokenize";
     int l= 1, c= 1;
     for (int cp : input.codePoints().toArray()){
-      if (whiteList.indexOf(cp) < 0){ var at= new Span(fileName, l, c, l, c); throw withFrozen(()->errFactory().illegalCharAt(at, cp, self())); }
+      if (whiteList.indexOf(cp) < 0){ var at= new Span(fileName, l, c, l, c); throw withFrozen(() -> errFactory().illegalCharAt(at, cp, self())); }
       if (cp == '\n'){ l++; c = 1; } else { c++; }
     }
     return self();
@@ -104,7 +104,7 @@ public abstract class MetaTokenizer<
     assert kinds != null:      "call method .tokenKinds before .tokenize";
     assert errFactory != null: "call method .errFactory before .tokenize";
     tmp.add(make(sof,"", line, col,List.of()));
-    withFrozen(()->{
+    withFrozen(() -> {
       while (pos < input.length()){
         var best= findNext().orElseThrow(this::error);
         assert !best.content().isEmpty() : "lexer produced a zero-length token for " + best.kind();
@@ -119,8 +119,8 @@ public abstract class MetaTokenizer<
   }
   public Tokenizer postTokenize(TokenProcessor.Map<T,TK,E,Tokenizer,Parser,Err> map){
     assert !allTokens.isEmpty(): "call method .postTokenizer after .tokenize";
-    postTokens = withFrozen(()->IntStream.range(0,allTokens.size()).boxed()
-      .flatMap(i->map.process(i,allTokens.get(i),self())).toList());
+    postTokens = withFrozen(() -> IntStream.range(0,allTokens.size()).boxed()
+      .flatMap(i -> map.process(i,allTokens.get(i),self())).toList());
     assertMonotonic(postTokens);
     return self();
   }
@@ -131,7 +131,7 @@ public abstract class MetaTokenizer<
     var tmp= tokensForTree();
     assert tmp.getFirst().kind() == sof : "first token must be SOF";
     assert tmp.getLast().kind() == eof : "last token must be EOF";
-    tree = withFrozen(()->new TokenTrees<T,TK,E,Tokenizer,Parser,Err>(spec, self()).of(tmp.listIterator()).tokens());
+    tree = withFrozen(() -> new TokenTrees<T,TK,E,Tokenizer,Parser,Err>(spec, self()).of(tmp.listIterator()).tokens());
     return self();
   }
   public URI fileName(){ return Objects.requireNonNull(fileName); }

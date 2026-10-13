@@ -14,7 +14,7 @@ public record ReadZip(
     Function<String,RuntimeException> emptyDirErr,
     ObjLongConsumer<String> reqTime){
   public Map<String,byte[]> readAll(Fs.Run<ZipInputStream> szin){
-    return cleanUp(Fs.of(()->{try(var zin= szin.run()){ return _readAll(zin); }}));
+    return cleanUp(Fs.of(() -> {try(var zin= szin.run()){ return _readAll(zin); }}));
   }
   private LinkedHashMap<String,byte[]> _readAll(ZipInputStream zin){
     var out= new LinkedHashMap<String,byte[]>();
@@ -49,10 +49,10 @@ public record ReadZip(
   }
   private Map<String,byte[]> cleanUp(LinkedHashMap<String,byte[]> map){
     for (var e : map.entrySet()){
-      var emptyDir= e.getValue() == null && map.keySet().stream().noneMatch(k->k.startsWith(e.getKey()+"/"));
+      var emptyDir= e.getValue() == null && map.keySet().stream().noneMatch(k -> k.startsWith(e.getKey()+"/"));
       if (emptyDir){ throw emptyDirErr.apply(e.getKey()); }
     }
-    map.values().removeIf(v->v == null);
+    map.values().removeIf(v -> v == null);
     return Collections.unmodifiableMap(map);//to keep the order instead of Map.copyOf undocumented behaviour exactly here
   }
 }

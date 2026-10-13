@@ -39,16 +39,16 @@ public final class WindowsAssociations{
     var existing= existingIdentities(belongsToFamily);
     if (existing.size() > 1){ throw ambiguous.apply(String.join("\n", existing)); }
     var locked= extensions.stream().map(Icon::extension)
-      .filter(e->userChoice(e).isPresent() || userChoiceLatest(e).isPresent()).toList();
+      .filter(e -> userChoice(e).isPresent() || userChoiceLatest(e).isPresent()).toList();
     if (!locked.isEmpty()){ throw userLocked.apply(locked); }
     var foreign= new LinkedHashMap<String,List<String>>();
-    extensions.stream().map(Icon::extension).filter(e->!Icon.system(e)).forEach(e->foreign.put(e, held(e, belongsToFamily)));
+    extensions.stream().map(Icon::extension).filter(e -> !Icon.system(e)).forEach(e -> foreign.put(e, held(e, belongsToFamily)));
     foreign.values().removeIf(List::isEmpty);
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
     if (alreadyMatches(existing, identity, command, extensions, programIco)){ return; }
-    existing.forEach(s->eradicate(s, belongsToFamily));
+    existing.forEach(s -> eradicate(s, belongsToFamily));
     if (!extensions.isEmpty()){
-      extensions.forEach(icon->forgetOpenWithHistory(icon.extension(), belongsToFamily));
+      extensions.forEach(icon -> forgetOpenWithHistory(icon.extension(), belongsToFamily));
       Shell.req(importReg(regFile(identity, command, extensions, programIco)), halfDone);
     }
     notifyShellOfChange();
@@ -56,7 +56,7 @@ public final class WindowsAssociations{
   static void eradicateAll(Predicate<String> belongsToFamily){
     var existing= existingIdentities(belongsToFamily);
     if (existing.isEmpty()){ return; }
-    existing.forEach(name->eradicate(name, belongsToFamily));
+    existing.forEach(name -> eradicate(name, belongsToFamily));
     notifyShellOfChange();
   }
 
@@ -75,7 +75,7 @@ public final class WindowsAssociations{
   }
   private static List<String> held(String ext, Predicate<String> belongsToFamily){
     var progIds= Stream.concat(regValue(hkcu(classes)+ext, "").stream(), regValues(hkcu(classes)+ext+"\\OpenWithProgids").keySet().stream());
-    return progIds.distinct().filter(p->!belongsToFamily.test(owner(p, ext))).toList();
+    return progIds.distinct().filter(p -> !belongsToFamily.test(owner(p, ext))).toList();
   }
   private static String owner(String progId, String ext){
     var suffix= "."+ext.substring(1);
@@ -98,7 +98,7 @@ public final class WindowsAssociations{
   }
   private static void eradicate(String identity, Predicate<String> belongsToFamily){
     var declared= regValues(hkcu(fileAssociations(identity)));
-    declared.forEach((ext,progId)->{
+    declared.forEach((ext,progId) -> {
       Shell.exec(List.of("reg","delete",hkcu(classes)+progId,"/f"));
       dropClaim(ext, progId);
       forgetOpenWithHistory(ext, belongsToFamily);
@@ -121,7 +121,7 @@ public final class WindowsAssociations{
   }
   private static void forgetOpenWithHistory(String ext, Predicate<String> belongsToFamily){
     var listKey= hkcu(fileExts)+ext+"\\OpenWithList";
-    regValues(listKey).forEach((name,exe)->{
+    regValues(listKey).forEach((name,exe) -> {
       if (!name.equals("MRUList") && belongsToFamily.test(exe)){
         Shell.exec(List.of("reg","delete",listKey,"/v",name,"/f"));
       }
@@ -129,7 +129,7 @@ public final class WindowsAssociations{
     if (regValues(listKey).isEmpty()){ Shell.exec(List.of("reg","delete",listKey,"/f")); }
 
     var progIdsKey= hkcu(fileExts)+ext+"\\OpenWithProgids";
-    regValues(progIdsKey).keySet().forEach(progId->{
+    regValues(progIdsKey).keySet().forEach(progId -> {
       if (belongsToFamily.test(owner(progId, ext))){ Shell.exec(List.of("reg","delete",progIdsKey,"/v",progId,"/f")); }
     });
     if (regValues(progIdsKey).isEmpty()){ Shell.exec(List.of("reg","delete",progIdsKey,"/f")); }
@@ -138,7 +138,7 @@ public final class WindowsAssociations{
     var res= new StringBuilder("Windows Registry Editor Version 5.00\r\n");
     res.append(regEntry(capabilities(identity), "ApplicationName", identity));
     res.append(regEntry(capabilities(identity), "ApplicationIcon", programIco+",0"));
-    extensions.forEach(icon->res.append(oneKind(identity, command, icon)));
+    extensions.forEach(icon -> res.append(oneKind(identity, command, icon)));
     res.append(regEntry(registeredApplications, identity, "Software\\"+identity+"\\Capabilities"));
     return res.toString();
   }
@@ -166,31 +166,31 @@ public final class WindowsAssociations{
     var cmd= name.isEmpty()
       ? List.of("reg","query",key,"/ve")
       : List.of("reg","query",key,"/v",name);
-    var raw= Shell.exec(cmd).filter(ran->ran.code() == 0)
-      .flatMap(ran->ran.out().lines().map(String::strip).filter(l->l.contains("REG_")).findFirst())
+    var raw= Shell.exec(cmd).filter(ran -> ran.code() == 0)
+      .flatMap(ran -> ran.out().lines().map(String::strip).filter(l -> l.contains("REG_")).findFirst())
       .map(WindowsAssociations::regQueried);
-    if (raw.filter(v->v.equals(valueNotSet)).isEmpty()){ return raw; }
+    if (raw.filter(v -> v.equals(valueNotSet)).isEmpty()){ return raw; }
     var del= name.isEmpty() ? List.of("reg","delete",key,"/ve","/f") : List.of("reg","delete",key,"/v",name,"/f");
     Shell.exec(del);
     return Optional.empty();
   }
   private static Map<String,String> regValues(String key){
     var res= new LinkedHashMap<String,String>();
-    Shell.exec(List.of("reg","query",key)).filter(ran->ran.code() == 0)
-      .ifPresent(ran->ran.out().lines().map(String::strip)
-        .filter(l->l.contains("REG_")).forEach(l->res.put(regName(l), regQueried(l))));
+    Shell.exec(List.of("reg","query",key)).filter(ran -> ran.code() == 0)
+      .ifPresent(ran -> ran.out().lines().map(String::strip)
+        .filter(l -> l.contains("REG_")).forEach(l -> res.put(regName(l), regQueried(l))));
     return Collections.unmodifiableMap(res);//keep insertion order, unlike Map.copyOf
   }
   private static List<String> listSubkeys(String key){
-    return Shell.exec(List.of("reg","query",key)).filter(ran->ran.code() == 0)
-      .map(ran->ran.out().lines().map(String::strip)
-        .filter(l->l.startsWith(key+"\\"))
-        .map(l->l.substring(key.length()+1))
+    return Shell.exec(List.of("reg","query",key)).filter(ran -> ran.code() == 0)
+      .map(ran -> ran.out().lines().map(String::strip)
+        .filter(l -> l.startsWith(key+"\\"))
+        .map(l -> l.substring(key.length()+1))
         .toList())
       .orElse(List.of());
   }
   private static boolean keyExists(String key){
-    return Shell.exec(List.of("reg","query",key)).filter(ran->ran.code() == 0).isPresent();
+    return Shell.exec(List.of("reg","query",key)).filter(ran -> ran.code() == 0).isPresent();
   }
   public static String regName(String line){ return line.substring(0, line.indexOf("REG_")).strip(); }
   private static String regQueried(String line){
@@ -199,8 +199,8 @@ public final class WindowsAssociations{
   }
   private static String hkcu(String key){ return "HKCU"+key.substring("HKEY_CURRENT_USER".length()); }
   private static List<String> importReg(String content){
-    var file= Fs.of(()->Files.createTempFile("association",".reg"));
-    Fs.ofV(()->Files.write(file, ("\uFEFF"+content).getBytes(StandardCharsets.UTF_16LE)));
+    var file= Fs.of(() -> Files.createTempFile("association",".reg"));
+    Fs.ofV(() -> Files.write(file, ("\uFEFF"+content).getBytes(StandardCharsets.UTF_16LE)));
     file.toFile().deleteOnExit();
     return List.of("reg","import",file.toString());
   }

@@ -5,7 +5,7 @@ import java.util.Comparator;
 import java.util.Objects;
 
 public record Span(URI fileName, int startLine, int startCol, int endLine, int endCol) implements Comparable<Span>{
-  private static final Comparator<Span> order= Comparator.comparing((Span s)->s.fileName().toASCIIString())
+  private static final Comparator<Span> order= Comparator.comparing((Span s) -> s.fileName().toASCIIString())
     .thenComparingInt(Span::endLine).thenComparingInt(Span::endCol)
     .thenComparingInt(Span::startLine).thenComparingInt(Span::startCol);
   public Span{

@@ -19,10 +19,10 @@ import utils.Range;
 public final class Ico{
   public static final List<Integer> sizes= List.of(16,20,24,32,40,48,64,256);
   public static void fromPng(Path png, Path ico){
-    var src= Objects.requireNonNull(Fs.of(()->ImageIO.read(png.toFile())));
+    var src= Objects.requireNonNull(Fs.of(() -> ImageIO.read(png.toFile())));
     Require.check(src.getWidth() == src.getHeight(), "The icon \""+png+"\" is "+src.getWidth()+"x"+src.getHeight()
       +" pixels, but an icon must be square: its width and its height must be equal, for example 256x256.");
-    var frames= sizes.stream().map(s->frame(scaled(src,s))).toList();
+    var frames= sizes.stream().map(s -> frame(scaled(src,s))).toList();
     var header= ByteBuffer.allocate(6+16*sizes.size()).order(ByteOrder.LITTLE_ENDIAN);
     header.putShort((short)0).putShort((short)1).putShort((short)sizes.size());
     var offset= header.capacity();
@@ -35,7 +35,7 @@ public final class Ico{
     var out= new ByteArrayOutputStream();
     out.writeBytes(header.array());
     frames.forEach(out::writeBytes);
-    Fs.ofV(()->Files.write(ico,out.toByteArray()));
+    Fs.ofV(() -> Files.write(ico,out.toByteArray()));
   }
   static BufferedImage scaled(BufferedImage img, int size){
     var res= img;
@@ -72,7 +72,7 @@ public final class Ico{
   }
   static byte[] png(BufferedImage img){
     var out= new ByteArrayOutputStream();
-    var written= Fs.of(()->ImageIO.write(img,"png",out));
+    var written= Fs.of(() -> ImageIO.write(img,"png",out));
     assert written;
     return out.toByteArray();
   }

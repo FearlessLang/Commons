@@ -8,7 +8,7 @@ import tools.Fs;
 public final class PrettyFileName{
   public static String displayFileName(URI uri){
     var s= "file".equals(uri.getScheme()) ? relativeToCwd(Path.of(uri)) : uri.toString();
-    var plain= s.chars().allMatch(c->c != ' ' && c != '\n' && Fs.allowed.indexOf(c) != -1);
+    var plain= s.chars().allMatch(c -> c != ' ' && c != '\n' && Fs.allowed.indexOf(c) != -1);
     return plain ? s : uri.toASCIIString();
   }
   private static String relativeToCwd(Path p){
@@ -18,7 +18,7 @@ public final class PrettyFileName{
   }
   public static String sanitizeAscii(String s){
     var sb= new StringBuilder(s.length());
-    s.codePoints().forEach(cp->sb.append(cp >= 0x20 && cp <= 0x7E ? (char)cp : '?'));
+    s.codePoints().forEach(cp -> sb.append(cp >= 0x20 && cp <= 0x7E ? (char)cp : '?'));
     return sb.toString();
   }
 }
