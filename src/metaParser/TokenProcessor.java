@@ -24,7 +24,7 @@ public interface TokenProcessor<
     >{
     private final LinkedHashMap<TK,TokenProcessor<T,TK,E,Tokenizer,Parser,Err>> map= new LinkedHashMap<>();
     private final TokenProcessor<T,TK,E,Tokenizer,Parser,Err> identity= (_,t,_) -> Stream.of(t);
-    public Map<T,TK,E,Tokenizer,Parser,Err> put(TK kind,TokenProcessor<T,TK,E,Tokenizer,Parser,Err> p){
+    public Map<T,TK,E,Tokenizer,Parser,Err> put(TK kind, TokenProcessor<T,TK,E,Tokenizer,Parser,Err> p){
       assert !map.containsKey(kind);
       map.put(kind, p);
       return this;
@@ -34,7 +34,7 @@ public interface TokenProcessor<
         String head= t.content().isBlank()
           ? "Unrecognized text."
           : "Unrecognized text " + Message.displayString(t.content()) + ".";
-        throw f.apply(head+"\n"+str).addFrame(frame,t.span(tz.fileName()));
+        throw f.apply(head+"\n"+str).addFrame(frame, t.span(tz.fileName()));
         });
     }
 

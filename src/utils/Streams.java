@@ -19,7 +19,7 @@ public final class Streams{
 
   public static <A,B> Zipper2<A,B> zip(List<A> as, List<B> bs){
     assert as.size() == bs.size();
-    return new ListZipper2<>(as,bs);
+    return new ListZipper2<>(as, bs);
   }
   public static <A,B> Zipper2<A,B> zip(A[] as, B[] bs){ return zip(Arrays.asList(as), Arrays.asList(bs)); }
 

@@ -145,7 +145,7 @@ public final class LinuxAssociations{
       var eq= line.indexOf('=');
       if (eq < 0 || !List.of(defaults, added).contains(section)){ continue; }
       var at= section;
-      split(line.substring(eq+1)).forEach(n -> res.add(new Opener(n.replaceFirst("\\.desktop$", ""), line.substring(0,eq).strip(), at)));
+      split(line.substring(eq+1)).forEach(n -> res.add(new Opener(n.replaceFirst("\\.desktop$", ""), line.substring(0, eq).strip(), at)));
     }
     return Collections.unmodifiableList(res);
   }

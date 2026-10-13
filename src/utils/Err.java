@@ -24,25 +24,25 @@ public final class Err{
     Err.assertTrue = assertTrue;
   }
   public static final String hole= "[###]";//not contains \.[]{}()<>*+-=!?^$|
-  public static boolean strCmp(String expected,String actual){
+  public static boolean strCmp(String expected, String actual){
     actual = actual.trim();
     expected = expected.trim();
-    try {assertTrue.accept(strCmpAux(expected,actual,Err.hole));}
+    try {assertTrue.accept(strCmpAux(expected, actual, Err.hole));}
     catch (AssertionError e){
       if (!err.isInstance(e)){ throw e; }
-      assertEquals.accept(expected,actual);
+      assertEquals.accept(expected, actual);
       throw Bug.of();
       }
     return true;
     }
   private static boolean strCmpAux(String expected, String actual, String hole){
-    boolean regexResult= strCmpAuxRegex(expected,actual,hole);
-    assert regexResult == strCmpAuxLegacy(expected,actual,hole);
+    boolean regexResult= strCmpAuxRegex(expected, actual, hole);
+    assert regexResult == strCmpAuxLegacy(expected, actual, hole);
     return regexResult;
   }
   private static boolean strCmpAuxRegex(String expected, String actual, String hole){
-    var regex= Stream.of(expected.split(Pattern.quote(hole),-1)).map(Pattern::quote).collect(Collectors.joining(".*"));
-    return Pattern.compile(regex,Pattern.DOTALL).matcher(actual).matches();
+    var regex= Stream.of(expected.split(Pattern.quote(hole), -1)).map(Pattern::quote).collect(Collectors.joining(".*"));
+    return Pattern.compile(regex, Pattern.DOTALL).matcher(actual).matches();
   }
   private static boolean strCmpAuxLegacy(String cmp2, String cmp1, String stringHole) {
     if (cmp2.isEmpty()){ return cmp1.isEmpty(); }
@@ -84,13 +84,13 @@ public final class Err{
       int index= 0;
       while ((index = cmp1.indexOf(split.get(0))) > -1) {
         cmp1 = cmp1.substring(index);
-        if (strCmpAuxLegacy(reconstituteRight(split,stringHole),cmp1,stringHole)) { return true; }
+        if (strCmpAuxLegacy(reconstituteRight(split, stringHole), cmp1, stringHole)) { return true; }
         cmp1 = cmp1.substring(split.get(0).length());
         }
       }
     return false;
     }
-  private static String reconstituteRight(List<String> list,String stringHole){
+  private static String reconstituteRight(List<String> list, String stringHole){
     StringBuilder builder= new StringBuilder();
     for (int i= 0; i < list.size(); i++){
       builder.append(list.get(i));

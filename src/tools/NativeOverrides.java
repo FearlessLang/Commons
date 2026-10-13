@@ -22,9 +22,9 @@ public record NativeOverrides(Set<String> pairs, Set<String> fileNames){
     var compiler= ToolProvider.getSystemJavaCompiler();
     var pairs= new HashSet<String>();
     Fs.ofV(() -> {
-      try (StandardJavaFileManager fm= compiler.getStandardFileManager(null,null,null)){
+      try (StandardJavaFileManager fm= compiler.getStandardFileManager(null, null, null)){
         var units= fm.getJavaFileObjectsFromPaths(files);
-        var task= (JavacTask)compiler.getTask(null,fm,null,null,null,units);
+        var task= (JavacTask)compiler.getTask(null, fm, null, null, null, units);
         for (var cu : task.parse()){ scanUnit(cu, pairs); }
       }
     });
@@ -39,7 +39,7 @@ public record NativeOverrides(Set<String> pairs, Set<String> fileNames){
             if (mem instanceof MethodTree mt){ pairs.add(i+"#"+mt.getName()); }
           }
         }
-        return super.visitClass(c,p);
+        return super.visitClass(c, p);
       }
     }.scan(cu, null);
   }

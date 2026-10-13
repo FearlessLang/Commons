@@ -28,7 +28,7 @@ public record ReadZip(
         if (out.containsKey(key)){ throw dupNameErr.apply(key); }
         if (n.endsWith("/")){ out.put(key, null); continue; }
         reqTime.accept(key, e.getTime());
-        out.put(key, readEntryBytes(key,zin));
+        out.put(key, readEntryBytes(key, zin));
       }
       finally{ Fs.ofV(zin::closeEntry); }
     }

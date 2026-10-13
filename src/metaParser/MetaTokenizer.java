@@ -42,7 +42,7 @@ public abstract class MetaTokenizer<
     finally { frozen = prev; }
   }
   private RuntimeException error(){
-    return withFrozen(() -> errFactory().unrecognizedTextAt(new Span(fileName,line,col,line,col),"",self()));
+    return withFrozen(() -> errFactory().unrecognizedTextAt(new Span(fileName, line, col, line, col), "", self()));
   }
   private void advance(String matched){
     for (int cp : matched.codePoints().toArray()){ if (cp == '\n'){ line++; col = 1; } else { col++; } }
@@ -51,7 +51,7 @@ public abstract class MetaTokenizer<
   private Optional<T> current(TK kind){
     return kind
       .matcher().apply(input, pos)
-      .map(text -> make(kind, text, line, col,List.of()));
+      .map(text -> make(kind, text, line, col, List.of()));
   }
   private Optional<T> findNext(){
     return kinds.stream()
@@ -103,7 +103,7 @@ public abstract class MetaTokenizer<
     assert input != null:      "call method .input before .tokenize";
     assert kinds != null:      "call method .tokenKinds before .tokenize";
     assert errFactory != null: "call method .errFactory before .tokenize";
-    tmp.add(make(sof,"", line, col,List.of()));
+    tmp.add(make(sof, "", line, col, List.of()));
     withFrozen(() -> {
       while (pos < input.length()){
         var best= findNext().orElseThrow(this::error);
@@ -111,16 +111,16 @@ public abstract class MetaTokenizer<
         tmp.add(best);
         advance(best.content());
       }return null;});
-    tmp.add(make(eof,"", line, col,List.of()));
+    tmp.add(make(eof, "", line, col, List.of()));
     allTokens = List.copyOf(tmp);
-    base = new Span(fileName,1,1,line,col);
+    base = new Span(fileName, 1, 1, line, col);
     assertMonotonic(allTokens);
     return self();
   }
   public Tokenizer postTokenize(TokenProcessor.Map<T,TK,E,Tokenizer,Parser,Err> map){
     assert !allTokens.isEmpty(): "call method .postTokenizer after .tokenize";
-    postTokens = withFrozen(() -> IntStream.range(0,allTokens.size()).boxed()
-      .flatMap(i -> map.process(i,allTokens.get(i),self())).toList());
+    postTokens = withFrozen(() -> IntStream.range(0, allTokens.size()).boxed()
+      .flatMap(i -> map.process(i, allTokens.get(i), self())).toList());
     assertMonotonic(postTokens);
     return self();
   }

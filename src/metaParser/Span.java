@@ -23,5 +23,5 @@ public record Span(URI fileName, int startLine, int startCol, int endLine, int e
     boolean endsAfter= endLine > other.endLine || (endLine == other.endLine && endCol >= other.endCol);
     return startsBefore && endsAfter;
   }
-  @Override public int compareTo(Span o){ return order.compare(this,o); }
+  @Override public int compareTo(Span o){ return order.compare(this, o); }
 }

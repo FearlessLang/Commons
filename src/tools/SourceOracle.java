@@ -60,21 +60,21 @@ public interface SourceOracle{
   }
   static Builder debugBuilder(){ return new Builder(); }
   final class Builder{
-    private record DebugRef(String fearPath, byte[] loadBytes,String loadString) implements Ref{
-      DebugRef{ assert Require.nonNull(fearPath,loadBytes); }
+    private record DebugRef(String fearPath, byte[] loadBytes, String loadString) implements Ref{
+      DebugRef{ assert Require.nonNull(fearPath, loadBytes); }
       @Override public long lastModified(){ return System.currentTimeMillis(); }
       @Override public String toString(){ return fearPath; }
     }
     private record Debug(List<Ref> allFiles) implements SourceOracle{//should be private inside builder?
       Debug{
-        assert Require.unmodifiable(allFiles,"Debug.fileList");//still should be guaranteed by builder?
+        assert Require.unmodifiable(allFiles, "Debug.fileList");//still should be guaranteed by builder?
         assert allFiles.stream().map(Ref::fearPath).distinct().count()== allFiles.size();
       }
     }
     private final ArrayList<Ref> allFiles= new ArrayList<>();
-    public Builder putURI(URI uri, String content){ allFiles.add(new DebugRef(uri.normalize().toString(),content.getBytes(),content)); return this; }
+    public Builder putURI(URI uri, String content){ allFiles.add(new DebugRef(uri.normalize().toString(), content.getBytes(), content)); return this; }
     public Builder put(String pathLike, String content){ return putURI(Path.of(pathLike).toAbsolutePath().normalize().toUri(), content); }
-    public Builder put(int index,String content){ return putURI(defaultDbgFearPath(index), content); }
+    public Builder put(int index, String content){ return putURI(defaultDbgFearPath(index), content); }
     public SourceOracle build(){ return new Debug(List.copyOf(allFiles)); }
   }
 }

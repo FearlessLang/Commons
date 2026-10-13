@@ -65,7 +65,7 @@ public final class Fs{
   }
   public static String readUtf8(Path file){ return of(() -> Files.readString(file)); }
   public static void copyTree(Path from, Path to){
-    walkV(from,s -> s.forEach(src -> ofV(() -> copyOne(from, to, src))));
+    walkV(from, s -> s.forEach(src -> ofV(() -> copyOne(from, to, src))));
   }
   private static void copyOne(Path fromRoot, Path toRoot, Path src) throws IOException{
     var rel= fromRoot.relativize(src);
@@ -115,7 +115,7 @@ public final class Fs{
     Require.check(rc == 0,
       "Tool error: "+tool+
       "\nExit code: "+rc+
-      "\nArgs:\n"+String.join("\n",args)+
+      "\nArgs:\n"+String.join("\n", args)+
       "\nOutput length: "+out.length()+
       "\nOutput:\n<<<\n"+out+"\n>>>");
   }
@@ -141,7 +141,7 @@ public final class Fs{
     int i= s.lastIndexOf('/');
     if (i == -1){ return ""; }
     int j= s.indexOf(":/");
-    return i == j+1 ? s.substring(0,i+1) : s.substring(0,i);
+    return i == j+1 ? s.substring(0, i+1) : s.substring(0, i);
   }
   private static int lastSlashIndex(String s){
     int i= s.lastIndexOf('/');
@@ -173,7 +173,7 @@ public final class Fs{
     catch (IOException io){ throw new UncheckedIOException(io); }
   }
   public static void copyTreeFlat(Path from, Path to){
-    var files= walk(from,s -> s
+    var files= walk(from, s -> s
       .filter(Files::isRegularFile)
       .toList()
     );

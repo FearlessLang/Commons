@@ -18,7 +18,7 @@ final class Xdg{
   static List<Path> appDirs(){ return Push.of(dataHome(), dataDirs()).stream().map(d -> d.resolve("applications")).toList(); }
   //The desktop reads a prefixed list before the plain one, one prefix per name in XDG_CURRENT_DESKTOP.
   static List<String> listNames(){
-    var prefixed= Stream.of(Objects.requireNonNullElse(LinuxAssociations.env.apply("XDG_CURRENT_DESKTOP"),"").split(":"))
+    var prefixed= Stream.of(Objects.requireNonNullElse(LinuxAssociations.env.apply("XDG_CURRENT_DESKTOP"), "").split(":"))
       .filter(de -> !de.isEmpty()).map(de -> de.toLowerCase(Locale.ROOT)+"-mimeapps.list").toList();
     return Push.of(prefixed, "mimeapps.list");
   }

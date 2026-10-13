@@ -177,7 +177,7 @@ public final class NameSuggester{
   private static final List<Set<String>> aliases= aliases();
   private static List<Set<String>> aliases(){
     var res= new ArrayList<Set<String>>();
-    aliasGroups.lines().map(l -> l.replaceFirst("#.*","").strip()).filter(l -> !l.isEmpty())
+    aliasGroups.lines().map(l -> l.replaceFirst("#.*", "").strip()).filter(l -> !l.isEmpty())
       .forEach(l -> connect(res, new HashSet<>(List.of(l.toLowerCase(Locale.ROOT).split("\\s+")))));
     return List.copyOf(res);
   }
