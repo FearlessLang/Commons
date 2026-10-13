@@ -3,29 +3,25 @@ package tools;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import utils.Bug;
+import utils.Push;
 
 public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<String> cmd){
   public static final String lifelineKey= "fearless.parentLifeline";
   public static final String lifelineValue= "stdin";
   public static ChildJvm start(List<String> args, Consumer<String> out){
-    var cmd= new ArrayList<String>(args.size()+3);
-    cmd.add(javaExe().toString());
-    cmd.add("-ea");
-    cmd.add("-D"+lifelineKey+"="+lifelineValue);
-    cmd.addAll(args);
+    var cmd= Push.of(List.<String>of(javaExe().toString(),"-ea","-D"+lifelineKey+"="+lifelineValue), args);
     var pb= Fs.processBuilder(cmd);
     Process p= Fs.of(()->pb.redirectErrorStream(true).start());
     var pumpErr= new IOException[1];
     var pump= new Thread(()->pumpOutput(p,out,pumpErr),"FearlessJvmOut");
     pump.setDaemon(true);
     pump.start();
-    return new ChildJvm(p,pump,pumpErr,List.copyOf(cmd));
+    return new ChildJvm(p,pump,pumpErr,cmd);
   }
   public int await() throws InterruptedException{
     var lifeline= p.getOutputStream();
@@ -59,35 +55,20 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
   }
   private static void waitForUninterruptibly(Process p, long millis){
     boolean interrupted= false;
-    try{
-      if (millis > 0){
-        long end= System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(millis);
-        while(p.isAlive()){
-          long left= end - System.nanoTime();
-          if (left <= 0){ return; }
-          try{
-            if (p.waitFor(TimeUnit.NANOSECONDS.toMillis(left),TimeUnit.MILLISECONDS)){ return; }
-          }
-          catch(InterruptedException e){ interrupted= true; }
-        }
-        return;
-      }
-      while(p.isAlive()){
-        try{ p.waitFor(); }
-        catch(InterruptedException e){ interrupted= true; }
-      }
+    long end= System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(millis);
+    while(p.isAlive() && (millis == 0 || end - System.nanoTime() > 0)){
+      try{ if (millis == 0){ p.waitFor(); } else { p.waitFor(end - System.nanoTime(),TimeUnit.NANOSECONDS); } }
+      catch(InterruptedException e){ interrupted= true; }
     }
-    finally{ if (interrupted){ Thread.currentThread().interrupt(); } }
+    if (interrupted){ Thread.currentThread().interrupt(); }
   }
   private static void joinUninterruptibly(Thread t){
     boolean interrupted= false;
-    try{
-      while(t.isAlive()){
-        try{ t.join(); }
-        catch(InterruptedException e){ interrupted= true; }
-      }
+    while(t.isAlive()){
+      try{ t.join(); }
+      catch(InterruptedException e){ interrupted= true; }
     }
-    finally{ if (interrupted){ Thread.currentThread().interrupt(); } }
+    if (interrupted){ Thread.currentThread().interrupt(); }
   }
   private static void closeQuietly(Closeable c){
     try{ c.close(); }

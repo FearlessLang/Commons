@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
@@ -127,7 +126,6 @@ public final class Fs{
     return pb;
   }
   ///Returns the filename with extension (the substring after the last '/').
-  public static String fileNameWithExtension(URI s){ return fileNameWithExtension(s.toString()); } 
   public static String fileNameWithExtension(String s){
     var res= s.substring(lastSlashIndex(s)+1);
     assert !res.isEmpty();
@@ -140,15 +138,6 @@ public final class Fs{
     assert dot > slash + 1 && dot + 1 < s.length();
     return s.substring(slash + 1, dot);
   }
-  /// Returns the extension including the leading '.' Example: "fear:/a/b/c.tar.gz" -> ".tar.gz"; but also /a.b/c.z -> .z
-  public static String extensionWithDot(String s){
-    int dot= s.indexOf('.', lastSlashIndex(s) + 1); // first dot after last slash
-    assert dot >= 0 && dot + 1 < s.length();
-    return s.substring(dot);
-  }
-  ///Returns the path without the filename
-  public static String removeFileName(String s){ return s.substring(0,lastSlashIndex(s)); }
-  public static String removeFileNameAllowTop(URI s){ return removeFileNameAllowTop(s.toString()); } 
   public static String removeFileNameAllowTop(String s){
     int i= s.lastIndexOf('/');
     if (i == -1){ return ""; }
@@ -196,9 +185,6 @@ public final class Fs{
       .toList();
     check(duplicates.isEmpty(), "Expected distinct file names to flatten "+from+" into "+to+", found:\n"+duplicates);
     ensureDir(to);
-    files.forEach(src->ofV(()->copyFlat(to, src)));
+    files.forEach(src->ofV(()->Files.copy(src, to.resolve(src.getFileName()), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)));
   }
-  private static void copyFlat(Path toRoot, Path src) throws IOException{
-    Files.copy(src, toRoot.resolve(src.getFileName()), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
-  } 
 }

@@ -44,11 +44,8 @@ public abstract class MetaTokenizer<
   private final RuntimeException error(){ 
     return withFrozen(()->errFactory().unrecognizedTextAt(new Span(fileName,line,col,line,col),"",self()));
   }
-  private void advanceSingle(int cp){
-    if (cp == '\n'){ line++; col = 1; } else { col++; }
-  }
   private void advance(String matched){
-    matched.codePoints().forEach(this::advanceSingle);
+    for (int cp : matched.codePoints().toArray()){ if (cp == '\n'){ line++; col = 1; } else { col++; } }
     pos += matched.length();
   }
   private Optional<T> current(TK kind){
@@ -84,12 +81,6 @@ public abstract class MetaTokenizer<
     this.kinds= List.copyOf(tks);
     return self();
   }
-  public Tokenizer startingPosition(int line, int col){
-    assert !frozen : "cannot call .startingPosition during .tokenize, .postTokenize, .buildTokenTree";
-    this.line= line;
-    this.col= col;
-    return self();
-  }
   public Tokenizer setErrFactory(Err errFactory){
     assert !frozen : "cannot call .setErrFactory during .tokenize, .postTokenize, .buildTokenTree";
     this.errFactory= Objects.requireNonNull(errFactory);
@@ -114,8 +105,6 @@ public abstract class MetaTokenizer<
     assert input != null:      "call method .input before .tokenize";
     assert kinds != null:      "call method .tokenKinds before .tokenize";
     assert errFactory != null: "call method .errFactory before .tokenize";
-    int preLine= line;
-    int preCol= col;
     tmp.add(make(sof,"", line, col,List.of()));
     withFrozen(()->{
       while (pos < input.length()){
@@ -126,7 +115,7 @@ public abstract class MetaTokenizer<
       }return null;});
     tmp.add(make(eof,"", line, col,List.of()));
     allTokens= List.copyOf(tmp);
-    base= new Span(fileName,preLine,preCol,line,col);
+    base= new Span(fileName,1,1,line,col);
     assertMonotonic(allTokens);
     return self();
   }

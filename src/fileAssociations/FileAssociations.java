@@ -151,7 +151,7 @@ public interface FileAssociations{
       Function<String,RuntimeException> halfDone){
     if (Fs.isWindows()){
       WindowsAssociations.reconcile(identity, belongsToFamily, command, extensions, programIco,
-        ambiguous, userLocked, notOurs, notWritable, halfDone);
+        ambiguous, userLocked, notOurs, halfDone);
       return;
     }
     if (Fs.isLinux()){
