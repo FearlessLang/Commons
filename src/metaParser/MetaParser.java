@@ -55,13 +55,13 @@ public abstract class MetaParser<
     var t= peek();
     return t.map(tt->tt.is(kinds)).orElse(false);
   }
-  public final T expectAny(String what){
+  public T expectAny(String what){
     var t= peek();
     if (t.isEmpty()){ throw errFactory().missing(spanLast(), what, List.of(),self()); }
     index++;
     return t.get();
   }
-  public final T expectAnyLast(String what){
+  public T expectAnyLast(String what){
     var t= peekLast();
     if (t.isEmpty()){ throw errFactory().missing(spanLast(), what, List.of(),self()); }
     limit--;
@@ -203,7 +203,7 @@ public abstract class MetaParser<
   ///If the probe eats all the tokens, all the tokens are parsed.
   ///The probe accepting all the token signals no prefix.
   ///The probe returns the number of tokens to drop. This number must be between 0 and the number of consumed tokens.  
-  public final <R> R parseFrontOrAll(String frameName, NextCut<Parser> probe, Rule<Parser,R> first){
+  public <R> R parseFrontOrAll(String frameName, NextCut<Parser> probe, Rule<Parser,R> first){
     var res= parseFront(frameName, true, probe, first);
     if (res.isPresent()){ return res.get(); }
     return parseAll(frameName,first);
@@ -215,7 +215,7 @@ public abstract class MetaParser<
   ///Must be a proper division, that is, if the probe eats all the tokens we get an Optional.empty() result.
   ///The probe accepting all the token signals no prefix.
   ///The probe returns the number of tokens to drop. This number must be between 0 and the number of consumed tokens.  
-  public final <R> Optional<R> parseFront(String frameName, boolean emptyAllowed, NextCut<Parser> probe, Rule<Parser,R> first){
+  public <R> Optional<R> parseFront(String frameName, boolean emptyAllowed, NextCut<Parser> probe, Rule<Parser,R> first){
     var slice= ts.subList(index, limit);
     var s= spanAround(index, limit-1);
     Parser splitterParser= make(s,slice);
@@ -237,7 +237,7 @@ public abstract class MetaParser<
   ///Must be a proper division, that is, if the probe eats all the tokens we get an Optional.empty() result.
   ///The probe accepting all the token signals no prefix.
   ///The probe returns the number of tokens to drop. This number must be between 0 and the number of consumed tokens.  
-  public final <R> Optional<R> parseBack(String frameName, boolean emptyAllowed, NextCut<Parser> probe, Rule<Parser,R> first){
+  public <R> Optional<R> parseBack(String frameName, boolean emptyAllowed, NextCut<Parser> probe, Rule<Parser,R> first){
     var slice= ts.subList(index, limit);
     var s= spanAround(index, limit-1);
     Parser splitterParser= make(s,slice);
