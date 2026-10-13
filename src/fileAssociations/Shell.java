@@ -20,13 +20,13 @@ final class Shell{
   static Optional<Ran> exec(List<String> cmd){
     var pb= Fs.processBuilder(cmd).redirectErrorStream(true);
     Process p;
-    try { p= pb.start(); }
-    catch(IOException e){ return Optional.empty(); }
+    try{ p= pb.start(); }
+    catch(IOException _){ return Optional.empty(); }
     var out= Fs.of(()->new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8));
     return Optional.of(new Ran(waitFor(p), out));
   }
   private static int waitFor(Process p){
-    try { return p.waitFor(); }
+    try{ return p.waitFor(); }
     catch(InterruptedException e){ Thread.currentThread().interrupt(); throw Bug.of(e); }
   }
 }

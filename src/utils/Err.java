@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 ///Note: call this with
 ///   @BeforeAll static void setUp(){ Err.setUp(AssertionFailedError.class,Assertions::assertEquals,Assertions::assertTrue);}
 /// We need to wire this later so we do not need Commons to depend from JUnit
-public final class Err {
+public final class Err{
   private static Class<? extends AssertionError> err;
   private static BiConsumer<String,String> assertEquals;
   private static Consumer<Boolean> assertTrue;
@@ -23,7 +23,7 @@ public final class Err {
     Err.assertEquals= assertEquals;
     Err.assertTrue= assertTrue;
   }
-  public static final String hole="[###]";//not contains \.[]{}()<>*+-=!?^$|
+  public static final String hole= "[###]";//not contains \.[]{}()<>*+-=!?^$|
   public static boolean strCmp(String expected,String actual){
     actual = actual.trim();
     expected = expected.trim();

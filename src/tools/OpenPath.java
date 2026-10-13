@@ -2,6 +2,7 @@ package tools;
 
 import java.nio.file.Path;
 import java.util.List;
+
 //This file only exists because
 //Desktop.getDesktop().open(path.toFile())
 //has a bug connected with JPackage (shell poisoning)

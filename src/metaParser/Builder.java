@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
+
 import utils.Bug;
 
 //package private so we do not need to make private fields or to otherwise protect from the library user
