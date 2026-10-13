@@ -73,7 +73,7 @@ public final class Streams{
       .filter(p)
       .findFirst();
   }
-  public interface Acc2<R,A,B> { R apply(R acc, A a, B b); }
+  public interface Acc2<R,A,B>{ R apply(R acc, A a, B b); }
   public interface Acc3<R,A,B,C>{ R apply(R acc, A a, B b, C c); }
 
   public static <A,B> Zipper3<Integer,A,B> zipI(List<A> as, List<B> bs){

@@ -75,7 +75,7 @@ public final class NameSuggester{
     double score= 0.55 * componentScore(splitCamel(tScore), splitCamel(cScore)) + 0.45 * wholeScore(tScore, cScore);
 
     if (kindsCompatible(tScore, cScore)){ score += 0.03; }
-    else { score -= 0.10; }
+    else{ score -= 0.10; }
 
     return Math.clamp(score, 0, 1);
   }

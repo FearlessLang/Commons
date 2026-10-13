@@ -391,7 +391,7 @@ public final class Message{
           cp == 0x202F || cp == 0x205F || cp == 0x3000 ||
           cp == 0x200B /* ZWSP */ || cp == 0x200C /* ZWNJ */ || cp == 0x200D /* ZWJ */){
         out.append('_');
-      } else {
+      } else{
         out.append('?');
       }
     }

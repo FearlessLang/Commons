@@ -27,7 +27,7 @@ public final class Err{
   public static boolean strCmp(String expected, String actual){
     actual = actual.trim();
     expected = expected.trim();
-    try {assertTrue.accept(strCmpAux(expected, actual, Err.hole));}
+    try{assertTrue.accept(strCmpAux(expected, actual, Err.hole));}
     catch (AssertionError e){
       if (!err.isInstance(e)){ throw e; }
       assertEquals.accept(expected, actual);
@@ -44,7 +44,7 @@ public final class Err{
     var regex= Stream.of(expected.split(Pattern.quote(hole), -1)).map(Pattern::quote).collect(Collectors.joining(".*"));
     return Pattern.compile(regex, Pattern.DOTALL).matcher(actual).matches();
   }
-  private static boolean strCmpAuxLegacy(String cmp2, String cmp1, String stringHole) {
+  private static boolean strCmpAuxLegacy(String cmp2, String cmp1, String stringHole){
     if (cmp2.isEmpty()){ return cmp1.isEmpty(); }
     List<String> split= new ArrayList<String>(List.of(cmp2.split(Pattern.quote(stringHole))));
     for (int i= 0; i < split.size(); i++){ if (split.get(i).length() == 0){ split.remove(i--); } }
@@ -52,14 +52,14 @@ public final class Err{
     boolean endswith= cmp2.endsWith(stringHole);
     int holes= (beginswith ? 1 : 0) + (endswith ? 1 : 0) + split.size() - 1;
     //Trivial
-    if (holes == 0) { return cmp1.equals(cmp2); }
+    if (holes == 0){ return cmp1.equals(cmp2); }
     //If we didn't start with a hole, compare everything up to the hole
-    if (!beginswith) {
+    if (!beginswith){
       String startCmp2= split.get(0);
       //The thing before the hole is bigger than the entire string!
-      if (startCmp2.length() > cmp1.length()) { return false; }
+      if (startCmp2.length() > cmp1.length()){ return false; }
       String startCmp1= cmp1.substring(0, startCmp2.length());
-      if (!startCmp1.equals(startCmp2)) { return false; }
+      if (!startCmp1.equals(startCmp2)){ return false; }
       cmp1 = cmp1.substring(startCmp2.length());
       split.remove(0);
     }
@@ -82,9 +82,9 @@ public final class Err{
     if (holes > 2){
       //Guess how much space the first hole takes up by iteratively searching for the middle text
       int index= 0;
-      while ((index = cmp1.indexOf(split.get(0))) > -1) {
+      while ((index = cmp1.indexOf(split.get(0))) > -1){
         cmp1 = cmp1.substring(index);
-        if (strCmpAuxLegacy(reconstituteRight(split, stringHole), cmp1, stringHole)) { return true; }
+        if (strCmpAuxLegacy(reconstituteRight(split, stringHole), cmp1, stringHole)){ return true; }
         cmp1 = cmp1.substring(split.get(0).length());
         }
       }
