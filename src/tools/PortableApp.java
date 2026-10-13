@@ -25,9 +25,6 @@ public record PortableApp(
     modules.forEach(m->compileMod(m, modsDir, tmp));
     var stdLib= prepareAppContent(tmp);
     JavacTool.jpackage(out, packaging, appName, versionId, moduleMain, stdLib);
-    if(!Fs.isLinux()){ return; }
-    var app= out.resolve(appName);
-    Fs.writeUtf8(app.resolve("bin").resolve("fearless-mime.xml"), mime);
   }
   private static void removeOtherPlatformSkijaJars(Path modsDir){
     var currentTag= (Fs.isWindows()? "windows" : Fs.isMac()? "macos" : "linux")
@@ -60,14 +57,4 @@ public record PortableApp(
     Fs.copyFresh(packaging.resolve("linux").resolve("icon.png"), app.resolve("icon.png"));
     return app;
   }
-  //need to be saved in fearless-mime.xml near fearless and fearlessw
-  private static final String mime="""
-<?xml version="1.0" encoding="UTF-8"?>
-<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
-  <mime-type type="application/x-fearless">
-    <comment>Fearless project</comment>
-    <glob pattern="*.fearless"/>
-  </mime-type>
-</mime-info>
-""";
 }
