@@ -47,7 +47,7 @@ public final class Err{
   private static boolean strCmpAuxLegacy(String cmp2, String cmp1, String stringHole){
     if (cmp2.isEmpty()){ return cmp1.isEmpty(); }
     List<String> split= new ArrayList<String>(List.of(cmp2.split(Pattern.quote(stringHole))));
-    for (int i= 0; i < split.size(); i++){ if (split.get(i).length() == 0){ split.remove(i--); } }
+    for (int i= 0; i < split.size(); i += 1){ if (split.get(i).length() == 0){ split.remove(i--); } }
     boolean beginswith= cmp2.startsWith(stringHole);
     boolean endswith= cmp2.endsWith(stringHole);
     int holes= (beginswith ? 1 : 0) + (endswith ? 1 : 0) + split.size() - 1;
@@ -92,7 +92,7 @@ public final class Err{
     }
   private static String reconstituteRight(List<String> list, String stringHole){
     StringBuilder builder= new StringBuilder();
-    for (int i= 0; i < list.size(); i++){
+    for (int i= 0; i < list.size(); i += 1){
       builder.append(list.get(i));
       builder.append(stringHole);
     }

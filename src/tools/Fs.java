@@ -47,7 +47,7 @@ public final class Fs{
   }
   private static void forceDelete(Path p) throws IOException{
     if (isWindows()){ Files.setAttribute(p, "dos:readonly", false, LinkOption.NOFOLLOW_LINKS); }
-    for (int attempt= 0; ; attempt++){
+    for (int attempt= 0; ; attempt += 1){
       try{ Files.deleteIfExists(p); return; }
       catch (AccessDeniedException e){
         if (!isWindows() || attempt >= 9){ throw e; }
@@ -57,7 +57,8 @@ public final class Fs{
     }
   }
   private static void sleepBriefly(){
-    try{ Thread.sleep(25); } catch (InterruptedException _){ Thread.currentThread().interrupt(); }
+    try{ Thread.sleep(25); }
+    catch (InterruptedException _){ Thread.currentThread().interrupt(); }
   }
   public static void writeUtf8(Path file, String content){
     ensureDir(file.getParent());

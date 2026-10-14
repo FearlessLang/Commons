@@ -25,7 +25,7 @@ public final class Require{
     return true;
   }
   public static boolean nonNull(Object...os){
-    for (var o:os){ Objects.requireNonNull(o); }
+    for (var o : os){ Objects.requireNonNull(o); }
     return true;
   }
   public static boolean eq(Object left, Object right, String what){
