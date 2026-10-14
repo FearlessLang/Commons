@@ -58,13 +58,13 @@ public abstract class MetaParser<
   public T expectAny(String what){
     var t= peek();
     if (t.isEmpty()){ throw errFactory().missing(spanLast(), what, List.of(), self()); }
-    index++;
+    index += 1;
     return t.get();
   }
   public T expectAnyLast(String what){
     var t= peekLast();
     if (t.isEmpty()){ throw errFactory().missing(spanLast(), what, List.of(), self()); }
-    limit--;
+    limit -= 1;
     return t.get();
   }
   @SafeVarargs @SuppressWarnings("varargs")
@@ -76,7 +76,7 @@ public abstract class MetaParser<
     var allowed= tt.is(kinds);
     if (!allowed){ throw errFactory()
       .missingButFound(leaf(tt, true).flatMap(this::span).orElse(remainingSpan()), what, tt, List.of(kinds), self()); }
-    index++;
+    index += 1;
     return tt;
   }
   @SafeVarargs @SuppressWarnings("varargs")
@@ -86,7 +86,7 @@ public abstract class MetaParser<
     var t= last.get();
     var allowed= t.is(kinds);
     if (!allowed){ throw errFactory().missingButFound(span(), what, t, List.of(kinds), self()); }
-    limit--;
+    limit -= 1;
     return t;
   }
   @SafeVarargs @SuppressWarnings("varargs")
@@ -105,12 +105,12 @@ public abstract class MetaParser<
   }
   public <R> R back(R v){
     if (index == 0){ throw Bug.of("Can not go back since already at start"); }
-    index--;
+    index -= 1;
     return v;
     }
   public <R> R fwd(R v){
     if (index == limit){ throw Bug.of("Can not go fwd since already at end"); }
-    index++;
+    index += 1;
     return v;
   }
   public boolean fwdIf(boolean v){ return v && fwd(true); }
@@ -121,7 +121,7 @@ public abstract class MetaParser<
     if (tsIn.isEmpty()){ throw Bug.of("Expected a grouped token (with children), got "+show(ts.get(index))+"."); }
     var nested= make(spanAround(index, index), tsIn);
     var res= nested.parseAll(frameName, r);
-    index++;
+    index += 1;
     return res;
   }
   public Span spanAround(int low, int high){
@@ -137,7 +137,7 @@ public abstract class MetaParser<
     int  startCol= this.span.startCol();
     int   endLine= this.span.endLine();
     int    endCol= this.span.endCol();
-    for (int i= low ; i >= 0; i--){//starts with low in case high was the failure point
+    for (int i= low ; i >= 0; i -= 1){//starts with low in case high was the failure point
       var s= span(ts.get(i));
       if (s.isPresent()){
         startLine = s.get().endLine();

@@ -45,7 +45,10 @@ public abstract class MetaTokenizer<
     return withFrozen(() -> errFactory().unrecognizedTextAt(new Span(fileName, line, col, line, col), "", self()));
   }
   private void advance(String matched){
-    for (int cp : matched.codePoints().toArray()){ if (cp == '\n'){ line++; col = 1; } else{ col++; } }
+    for (int cp : matched.codePoints().toArray()){
+      if (cp == '\n'){ line += 1; col = 1; }
+      else{ col += 1; }
+    }
     pos += matched.length();
   }
   private Optional<T> current(TK kind){
@@ -93,7 +96,8 @@ public abstract class MetaTokenizer<
     int l= 1, c= 1;
     for (int cp : input.codePoints().toArray()){
       if (whiteList.indexOf(cp) < 0){ var at= new Span(fileName, l, c, l, c); throw withFrozen(() -> errFactory().illegalCharAt(at, cp, self())); }
-      if (cp == '\n'){ l++; c = 1; } else{ c++; }
+      if (cp == '\n'){ l += 1; c = 1; }
+      else{ c += 1; }
     }
     return self();
   }

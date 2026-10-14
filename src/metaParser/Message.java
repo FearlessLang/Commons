@@ -75,10 +75,10 @@ public final class Message{
     int line= Math.clamp(p.line, 1, lines.length), col= Math.max(1, p.col);
     while (beforeOrEqual(line, col, limit)){
       String ln= get(lines, line);
-      if (col > ln.length()){ line++; col = 1; continue; }
+      if (col > ln.length()){ line += 1; col = 1; continue; }
       char ch= ln.charAt(col - 1);
       if (isVisible(ch)){ return new Pos(line, col); }
-      col++;
+      col += 1;
     }
     return limit;
   }
@@ -89,9 +89,9 @@ public final class Message{
       String ln= get(lines, line);
       var visible= col <= ln.length() && isVisible(ln.charAt(col - 1));
       if (visible){ return new Pos(line, col); }
-      col--;
+      col -= 1;
       if (col >= 1){ continue; }
-      line--;
+      line -= 1;
       if (line < start.line){ return new Pos(start.line, start.col); }
       col = Math.max(1, get(lines, line).length());
     }
@@ -147,7 +147,8 @@ public final class Message{
         int spaces= tabWidth - ((col - 1) % tabWidth);
         out.append(" ".repeat(spaces));
         col += spaces;
-      }else{
+      }
+      else{
         out.append(ch);
         col += 1;
       }
@@ -162,7 +163,8 @@ public final class Message{
       if (ch == '\t'){
         int spaces= tabWidth - (vis % tabWidth);
         vis += spaces;
-      }else{
+      }
+      else{
         vis += 1;
       }
     }
@@ -391,7 +393,8 @@ public final class Message{
           cp == 0x202F || cp == 0x205F || cp == 0x3000 ||
           cp == 0x200B /* ZWSP */ || cp == 0x200C /* ZWNJ */ || cp == 0x200D /* ZWJ */){
         out.append('_');
-      } else{
+      }
+      else{
         out.append('?');
       }
     }
@@ -401,7 +404,8 @@ public final class Message{
   private static void addElision(ArrayList<String> out, String[] lines, int width, int count, int oneLineNum){
     if (count == 1){
       out.add(numbered(lines, oneLineNum, width));
-    } else if (count > 1){
+    }
+    else if (count > 1){
       out.add(" ".repeat(width) + '|' + ' ' + "... " + count + " lines ...");
     }
   }

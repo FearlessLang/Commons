@@ -51,7 +51,7 @@ public final class NameSuggester{
     var tScore= simpleName(stripQuotes(t));
 
     List<Suggestion> scored= new ArrayList<>(candidates.size());
-    for (String c: candidates){
+    for (String c : candidates){
       var cScore= simpleName(stripQuotes(c));
       scored.add(new Suggestion(c, cScore, score(tScore, cScore)));
     }
@@ -102,7 +102,7 @@ public final class NameSuggester{
 
   private static double window(List<String> small, List<String> big, double front, double back, double extra){
     double best= 0.0;
-    for (int start= 0; start <= big.size() - small.size(); start++){
+    for (int start= 0; start <= big.size() - small.size(); start += 1){
       double sum= 0.0;
       for (int i : Range.of(small)){ sum += tokenScore(small.get(i), big.get(start + i)); }
       double avg= sum / small.size();
@@ -154,12 +154,12 @@ public final class NameSuggester{
 
     int[] prev= new int[m + 1];
     int[] curr= new int[m + 1];
-    for (int j= 0; j <= m; j++){ prev[j] = j; }
+    for (int j= 0; j <= m; j += 1){ prev[j] = j; }
 
-    for (int i= 1; i <= n; i++){
+    for (int i= 1; i <= n; i += 1){
       curr[0] = i;
       char ca= a.charAt(i - 1);
-      for (int j= 1; j <= m; j++){
+      for (int j= 1; j <= m; j += 1){
         char cb= b.charAt(j - 1);
         int cost= (ca == cb) ? 0 : 1;
         curr[j] = Math.min(Math.min(curr[j - 1] + 1, prev[j] + 1), prev[j - 1] + cost);
