@@ -36,11 +36,7 @@ public final class Streams{
     @Override public <R> Stream<R> flatMap(BiFunction<A,B,Stream<R>> f){
       return IntStream.range(0, as.size()).boxed().flatMap(i -> f.apply(as.get(i), bs.get(i)));
     }
-    @Override public <R> Stream<R> filterMap(BiFunction<A,B,Optional<R>> f){
-      return IntStream.range(0, as.size())
-        .mapToObj(i -> f.apply(as.get(i), bs.get(i)))
-        .flatMap(Optional::stream);
-    }
+    @Override public <R> Stream<R> filterMap(BiFunction<A,B,Optional<R>> f){ return map(f).flatMap(Optional::stream); }
     @Override public Zipper2<A,B> filter(BiPredicate<A,B> f){
       var asi= new ArrayList<A>();
       var bsi= new ArrayList<B>();
@@ -94,11 +90,7 @@ public final class Streams{
     @Override public <R> Stream<R> flatMap(TriFunction<A,B,C,Stream<R>> f){
       return IntStream.range(0, as.size()).boxed().flatMap(i -> f.apply(as.get(i), bs.get(i), cs.get(i)));
     }
-    @Override public <R> Stream<R> filterMap(TriFunction<A,B,C,Optional<R>> f){
-      return IntStream.range(0, as.size())
-        .mapToObj(i -> f.apply(as.get(i), bs.get(i), cs.get(i)))
-        .flatMap(Optional::stream);
-    }
+    @Override public <R> Stream<R> filterMap(TriFunction<A,B,C,Optional<R>> f){ return map(f).flatMap(Optional::stream); }
     @Override public Zipper3<A,B,C> filter(TriPredicate<A,B,C> f){
       var asi= new ArrayList<A>();
       var bsi= new ArrayList<B>();

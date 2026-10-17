@@ -158,28 +158,17 @@ public final class Message{
 
   private static int tabAwareWidth(String rawLine, int fromIdxIncl, int toIdxExcl, int baseVis){
     int vis= baseVis;
-    for (int i : Range.of(fromIdxIncl, toIdxExcl)){
-      char ch= rawLine.charAt(i);
-      if (ch == '\t'){
-        int spaces= tabWidth - (vis % tabWidth);
-        vis += spaces;
-      }
-      else{
-        vis += 1;
-      }
-    }
+    for (int i : Range.of(fromIdxIncl, toIdxExcl)){ vis += rawLine.charAt(i) == '\t' ? tabWidth - (vis % tabWidth) : 1; }
     return vis;
   }
 
   /** Visual column (1-based) at a logical column (expands tabs). */
   private static int visualCol(String rawLine, int logicalCol){
-    if (logicalCol <= 1){ return 1; }
     int limit= Math.min(logicalCol - 1, rawLine.length());
     return tabAwareWidth(rawLine, 0, limit, 1);
   }
 
   private static int visualDelta(String rawLine, int startCol, int endCol){
-    if (rawLine.isEmpty()){ return 0; }
     int aIdx= Math.max(0, startCol - 1);
     // Clamped independent of aIdx -- the old Math.max(aIdx,...) form let this track aIdx past line end, defeating the guard below.
     int bIdxInclusive= Math.min(endCol - 1, rawLine.length() - 1);
@@ -212,21 +201,14 @@ public final class Message{
   public static String displayString(String s){
     if (s.isEmpty()){ return "\"\""; }
     if (s.codePointCount(0, s.length()) == 1){ return displayChar(s.codePointAt(0)); }
-
     ArrayList<String> out= new ArrayList<>();
     StringBuilder lit= new StringBuilder();
-
     for (int cp : s.codePoints().toArray()){
       boolean clash= (cp == '"' && lit.indexOf("`") >= 0) || (cp == '`' && lit.indexOf("\"") >= 0);
-      if (literalChar(cp) && !clash){
-        lit.append((char)cp);
-        continue;
-      }
-
+      if (literalChar(cp) && !clash){ lit.append((char)cp); continue; }
       flushLiteral(out, lit);
       out.add(cp == '\n' ? "|" : displayChar(cp));
     }
-
     flushLiteral(out, lit);
     return String.join(" ", out);
   }
@@ -402,12 +384,8 @@ public final class Message{
   }
   //helper: push either an elision counter or the single in-between line
   private static void addElision(ArrayList<String> out, String[] lines, int width, int count, int oneLineNum){
-    if (count == 1){
-      out.add(numbered(lines, oneLineNum, width));
-    }
-    else if (count > 1){
-      out.add(" ".repeat(width) + '|' + ' ' + "... " + count + " lines ...");
-    }
+    if (count == 1){ out.add(numbered(lines, oneLineNum, width)); return; }
+    if (count > 1){ out.add(" ".repeat(width) + '|' + ' ' + "... " + count + " lines ..."); }
   }
   private static String renderMulti(String[] lines, Grouping g, int width, Optional<String> caretLine){
     Span group= g.multiLine();

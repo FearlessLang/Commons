@@ -27,7 +27,6 @@ public final class TokenTreeSpec<
   }
   public TokenTreeSpec<T,TK> addBarriers(TK opener, Set<TK> bs){
     assert Require.nonNull(opener, bs);
-    if (bs.isEmpty()){ return this; }
     barriers.computeIfAbsent(opener, _ -> new LinkedHashSet<>()).addAll(bs);
     return this;
   }
