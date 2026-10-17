@@ -27,12 +27,12 @@ public abstract class MetaParser<
   public abstract boolean skip(T token);
   public abstract Parser make(Span span, List<T> tokens);
   public abstract Err errFactory();
-  public MetaParser(Span span, List<T> ts){ this.span= span; this.ts= ts; this.limit= ts.size(); }
+  public MetaParser(Span span, List<T> ts){ this.span= span; this.ts= ts; limit = ts.size(); }
   public <R> R parseAll(String frameName, Rule<Parser,R> r){
-    R res; try{ res= r.parse(this.self()); }
-    catch (RuntimeException|Error t){
-      if (!frameName.isEmpty() && t instanceof HasFrames<?> f){ f.addFrame(new Frame(frameName, span())); }
-      throw t;
+    R res; try{ res= r.parse(self()); }
+    catch (RuntimeException|Error e){
+      if (!frameName.isEmpty() && e instanceof HasFrames<?> f){ f.addFrame(new Frame(frameName, span())); }
+      throw e;
     }
     if (index != limit){ throw errFactory().extraContent(remainingSpan(), "", List.of(), self()); }
     return res;
@@ -106,7 +106,7 @@ public abstract class MetaParser<
     if (index == 0){ throw Bug.of("Can not go back since already at start"); }
     index -= 1;
     return v;
-    }
+  }
   public <R> R fwd(R v){
     if (index == limit){ throw Bug.of("Can not go fwd since already at end"); }
     index += 1;
@@ -132,11 +132,11 @@ public abstract class MetaParser<
     assert high >= 0 && high < ts.size();
     var here= span(ts.get(low), ts.get(high));
     if (here.isPresent()){ return here.get(); }
-    int startLine= this.span.startLine();
-    int  startCol= this.span.startCol();
-    int   endLine= this.span.endLine();
-    int    endCol= this.span.endCol();
-    for (int i= low ; i >= 0; i -= 1){//starts with low in case high was the failure point
+    int startLine= span.startLine();
+    int startCol= span.startCol();
+    int endLine= span.endLine();
+    int endCol= span.endCol();
+    for (int i= low; i >= 0; i -= 1){//starts with low in case high was the failure point
       var s= span(ts.get(i));
       if (s.isPresent()){
         startLine = s.get().endLine();
@@ -188,7 +188,7 @@ public abstract class MetaParser<
     return res;
   }
   public <R> List<R> parseGroupSep(String frameNameOut, String frameNameIn, Rule<Parser,R> r, TK open, TK close, NextCut<Parser> probe){
-    String label= frameNameOut.isEmpty()?frameNameIn:frameNameOut;
+    String label= frameNameOut.isEmpty() ? frameNameIn : frameNameOut;
     return parseGroup(frameNameOut, p -> {
       p.expect(label, open);
       p.expectLast(label, close);
@@ -226,7 +226,7 @@ public abstract class MetaParser<
     var firstS= splitterParser.spanAround(0, (end-1)-drop);
     Parser firstParser= make(firstS, List.copyOf(slice.subList(0, end-drop)));
     var res= firstParser.parseAll(frameName, first);
-    this.index += end;//mark the tokens as eaten
+    index += end;//mark the tokens as eaten
     return Optional.of(res);
   }
   ///Suitable to divide two non empty lists of tokens, especially if
@@ -249,7 +249,7 @@ public abstract class MetaParser<
     var lastS= splitterParser.spanAround(end + drop, start - 1);
     Parser firstParser= make(lastS, List.copyOf(slice.subList(end + drop, start)));
     var res= firstParser.parseAll(frameName, first);
-    this.limit = index + end;//mark the tokens as eaten
+    limit = index + end;//mark the tokens as eaten
     return Optional.of(res);
   }
   /** Runs a well-formedness check on the remaining tokens.
@@ -264,7 +264,7 @@ public abstract class MetaParser<
     if (drop < 0 || start > end - drop){ throw errFactory().badProbeDropIn(frameName, spanAround(start, start), start, end, drop, self()); }
     if (!emptyAllowed && start >= end){ throw errFactory().probeStalledIn(frameName, spanAround(start, start), start, end, self()); }
   }
-  public enum SplitMode{Skipped,Left,Right}
+  public enum SplitMode{ Skipped, Left, Right }
   public int splitOn(SplitMode split, TK k){ return splitOn(split, t -> t.is(k)); }
   public int splitOn(SplitMode split, Predicate<T> p){
     fwdIf(index() != 0 && !end() && split == SplitMode.Right);
@@ -300,7 +300,7 @@ public abstract class MetaParser<
   private String show(T t){
     if (!t.tokens().isEmpty()){ return t.kind()+"@"+t.line()+":"+t.column(); }
     var s= t.content().replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
-    return t.kind()+"\""+(s.length()<=24 ? s : s.substring(0, 21)+"...")+"\"@"+t.line()+":"+t.column();
+    return t.kind()+"\""+(s.length() <= 24 ? s : s.substring(0, 21)+"...")+"\"@"+t.line()+":"+t.column();
   }
   public Span span(){ return span; }
   public Span spanLast(){

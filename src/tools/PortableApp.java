@@ -28,8 +28,8 @@ public record PortableApp(
     JavacTool.jpackage(out, packaging, appName, versionId, moduleMain, stdLib);
   }
   private static void removeOtherPlatformSkijaJars(Path modsDir){
-    var currentTag= (Fs.isWindows()? "windows" : Fs.isMac()? "macos" : "linux")
-      +"-"+(System.getProperty("os.arch").contains("aarch64")? "arm64" : "x64");
+    var currentTag= (Fs.isWindows() ? "windows" : Fs.isMac() ? "macos" : "linux")
+      +"-"+(System.getProperty("os.arch").contains("aarch64") ? "arm64" : "x64");
     Fs.walk(modsDir, s -> s
       .filter(Files::isRegularFile)
       .filter(p -> {

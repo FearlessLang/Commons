@@ -26,7 +26,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
   public int await() throws InterruptedException{
     var lifeline= p.getOutputStream();
     int ec; try{ ec= p.waitFor(); }
-    catch (InterruptedException | RuntimeException | Error e){
+    catch (InterruptedException|RuntimeException|Error e){
       closeQuietly(lifeline);
       waitForUninterruptibly(p, 200);
       kill();
@@ -61,7 +61,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
         if (millis == 0){ p.waitFor(); }
         else{ p.waitFor(end - System.nanoTime(), TimeUnit.NANOSECONDS); }
       }
-      catch (InterruptedException e){ interrupted = true; }
+      catch (InterruptedException _){ interrupted = true; }
     }
     if (interrupted){ Thread.currentThread().interrupt(); }
   }
@@ -69,7 +69,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
     boolean interrupted= false;
     while (t.isAlive()){
       try{ t.join(); }
-      catch (InterruptedException e){ interrupted = true; }
+      catch (InterruptedException _){ interrupted = true; }
     }
     if (interrupted){ Thread.currentThread().interrupt(); }
   }

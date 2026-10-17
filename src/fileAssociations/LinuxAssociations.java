@@ -226,8 +226,7 @@ public final class LinuxAssociations{
   private static Stream<String> split(String types){ return Stream.of(types.split(";")).map(String::strip).filter(s -> !s.isEmpty()); }
   private static List<Path> listed(Path dir, String suffix){
     if (!Files.isDirectory(dir)){ return List.of(); }
-    return Fs.of(() -> { try (var s= Files.list(dir)){
-      return s.filter(p -> p.getFileName().toString().endsWith(suffix) && Files.isRegularFile(p)).sorted().toList(); }});
+    return Fs.of(() -> { try (var s= Files.list(dir)){ return s.filter(p -> p.getFileName().toString().endsWith(suffix) && Files.isRegularFile(p)).sorted().toList(); } });
   }
   private static List<String> lines(Path file){
     if (!Files.isRegularFile(file)){ return List.of(); }

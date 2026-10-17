@@ -7,7 +7,7 @@ public final class Range{
   public static Iterable<Integer> of(int from, int to){
     return IntStream.range(from, to)::iterator;
   }
-  public static Iterable<Integer> of(List<?>es){
+  public static Iterable<Integer> of(List<?> es){
     return IntStream.range(0, es.size())::iterator;
   }
 }

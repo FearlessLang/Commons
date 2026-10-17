@@ -81,7 +81,7 @@ public abstract class MetaTokenizer<
     assert !tks.contains(sof) && !tks.contains(eof) : "do not include SOF/EOF in kinds";
     this.sof = Objects.requireNonNull(sof);
     this.eof = Objects.requireNonNull(eof);
-    this.kinds = List.copyOf(tks);
+    kinds = List.copyOf(tks);
     return self();
   }
   public Tokenizer setErrFactory(Err errFactory){
@@ -91,8 +91,8 @@ public abstract class MetaTokenizer<
   }
   public Tokenizer whiteList(String whiteList){
     assert !frozen : "cannot call .whiteList during .tokenize, .postTokenize, .buildTokenTree";
-    assert errFactory!=null: "call method .errFactory before tokenize";
-    assert input!=null:      "call method .input before tokenize";
+    assert errFactory != null : "call method .errFactory before tokenize";
+    assert input != null : "call method .input before tokenize";
     int l= 1, c= 1;
     for (int cp : input.codePoints().toArray()){
       if (whiteList.indexOf(cp) < 0){ var at= new Span(fileName, l, c, l, c); throw withFrozen(() -> errFactory().illegalCharAt(at, cp, self())); }
@@ -104,17 +104,19 @@ public abstract class MetaTokenizer<
   public Tokenizer tokenize(){
     assert !frozen : "cannot call .tokenize during .tokenize, .postTokenize, .buildTokenTree";
     var tmp= new ArrayList<T>();
-    assert input != null:      "call method .input before .tokenize";
-    assert kinds != null:      "call method .tokenKinds before .tokenize";
-    assert errFactory != null: "call method .errFactory before .tokenize";
+    assert input != null : "call method .input before .tokenize";
+    assert kinds != null : "call method .tokenKinds before .tokenize";
+    assert errFactory != null : "call method .errFactory before .tokenize";
     tmp.add(make(sof, "", line, col, List.of()));
     withFrozen(() -> {
       while (pos < input.length()){
         var best= findNext().orElseThrow(this::error);
-        assert !best.content().isEmpty() : "lexer produced a zero-length token for " + best.kind();
+        assert !best.content().isEmpty() : "lexer produced a zero-length token for "+best.kind();
         tmp.add(best);
         advance(best.content());
-      }return null;});
+      }
+      return null;
+    });
     tmp.add(make(eof, "", line, col, List.of()));
     allTokens = List.copyOf(tmp);
     base = new Span(fileName, 1, 1, line, col);
@@ -122,7 +124,7 @@ public abstract class MetaTokenizer<
     return self();
   }
   public Tokenizer postTokenize(TokenProcessor.Map<T,TK,E,Tokenizer,Parser,Err> map){
-    assert !allTokens.isEmpty(): "call method .postTokenizer after .tokenize";
+    assert !allTokens.isEmpty() : "call method .postTokenizer after .tokenize";
     postTokens = withFrozen(() -> IntStream.range(0, allTokens.size()).boxed()
       .flatMap(i -> map.process(i, allTokens.get(i), self())).toList());
     assertMonotonic(postTokens);
@@ -131,7 +133,7 @@ public abstract class MetaTokenizer<
   List<T> tokensForTree(){ return postTokens == null ? allTokens : postTokens; }
   public Tokenizer buildTokenTree(TokenTreeSpec<T,TK> spec){
     assert !frozen : "cannot call .buildTokenTree during .tokenize, .postTokenize, .buildTokenTree";
-    assert !allTokens.isEmpty(): "call method .buildTokenTree after .tokenize";
+    assert !allTokens.isEmpty() : "call method .buildTokenTree after .tokenize";
     var tmp= tokensForTree();
     assert tmp.getFirst().kind() == sof : "first token must be SOF";
     assert tmp.getLast().kind() == eof : "last token must be EOF";
@@ -150,7 +152,7 @@ public abstract class MetaTokenizer<
     for (var tok : toks){
       int l= tok.line(), c= tok.column();
       assert (l > prevLine) || (l == prevLine && c >= prevCol)
-        : "tokens out of order at " + l + ":" + c;
+        : "tokens out of order at "+l+":"+c;
       prevLine = l; prevCol = c;
     }
   }

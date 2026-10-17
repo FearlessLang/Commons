@@ -208,6 +208,6 @@ public final class WindowsAssociations{
         FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
       notify.invokeWithArguments(assocChanged, 0, MemorySegment.NULL, MemorySegment.NULL);
     }
-    catch (Throwable t){ throw Bug.of(t); }
+    catch (Throwable e){ throw Bug.of(e); }
   }
 }

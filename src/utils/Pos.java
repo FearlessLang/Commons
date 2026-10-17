@@ -11,7 +11,7 @@ public record Pos(URI fileName, int line, int column) implements Serializable{
   }
 
   @Override public String toString(){
-    return fileName + ":" + line + ":" + column;
+    return fileName+":"+line+":"+column;
   }
   /**
    * We do not consider Pos in any equality or hashing. This will always return true.

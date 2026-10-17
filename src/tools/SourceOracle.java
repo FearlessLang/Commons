@@ -51,11 +51,11 @@ public interface SourceOracle{
     return OneOr.of("Expected one source for "+uri, allFiles().stream().filter(f -> f.fearURI().equals(uri))).loadString();
   }
   static URI defaultDbgFearPath(int index){
-    return URI.create(root+"___DBG___/"+(index==0 ? "_rank_app999.fear" : "in_memory"+index+".fear"));
+    return URI.create(root+"___DBG___/"+(index == 0 ? "_rank_app999.fear" : "in_memory"+index+".fear"));
   }
   default SourceOracle withFallback(SourceOracle fb){
     var all= Push.of(allFiles(), fb.allFiles());
-    assert all.stream().map(Ref::fearPath).distinct().count()== all.size();
+    assert all.stream().map(Ref::fearPath).distinct().count() == all.size();
     return () -> all;
   }
   static Builder debugBuilder(){ return new Builder(); }
@@ -68,7 +68,7 @@ public interface SourceOracle{
     private record Debug(List<Ref> allFiles) implements SourceOracle{//should be private inside builder?
       Debug{
         assert Require.unmodifiable(allFiles, "Debug.fileList");//still should be guaranteed by builder?
-        assert allFiles.stream().map(Ref::fearPath).distinct().count()== allFiles.size();
+        assert allFiles.stream().map(Ref::fearPath).distinct().count() == allFiles.size();
       }
     }
     private final ArrayList<Ref> allFiles= new ArrayList<>();

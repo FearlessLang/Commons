@@ -63,15 +63,17 @@ record TreeDiagnostics<
   @SuppressWarnings("unchecked")
   private int ofRemoval(T remove){
     if (remove.is(tz.sof(), tz.eof())){ return -1; }
-    return ofRecovery(tz.tokensForTree().stream().filter(t -> t!=remove).toList());
+    return ofRecovery(tz.tokensForTree().stream().filter(t -> t != remove).toList());
   }
   private int ofRecovery(List<T> tokens){
     var li= tokens.listIterator();
-    try{ new TokenTrees<T,TK,E,Tokenizer,Parser,Err>(spec, tz){
-      @Override E diagOnBadCloser(T open, T stop){ throw new Out(); }
-      @Override E diagOnBadBarrier(T open, T stop){ throw new Out(); }
-    }.of(li);}
-    catch (Out _){/*eated*/ return li.previousIndex(); }
+    try{
+      new TokenTrees<T,TK,E,Tokenizer,Parser,Err>(spec, tz){
+        @Override E diagOnBadCloser(T open, T stop){ throw new Out(); }
+        @Override E diagOnBadBarrier(T open, T stop){ throw new Out(); }
+      }.of(li);
+    }
+    catch (Out _){ /*eated*/ return li.previousIndex(); }
     return li.nextIndex();
   }
   private List<T> betweenExclusive(T a, T b, List<T> tokens){

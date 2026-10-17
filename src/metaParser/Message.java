@@ -22,7 +22,7 @@ public final class Message{
     try{ return _of(loader, frames, msg); }
     catch (Throwable e){
       String locs= frames.stream().map(f -> f.s().toString()).collect(Collectors.joining("\n"));
-      throw new Error("Exception while formatting the following error:\n" + locs + "\n" + msg, e);
+      throw new Error("Exception while formatting the following error:\n"+locs+"\n"+msg, e);
     }
   }
   private static String _of(Function<URI,String> loader, List<Frame> frames, String msg){
@@ -33,13 +33,13 @@ public final class Message{
     Optional<String> caretLine= g.singles().isEmpty() ? Optional.empty() : Optional.of(makeCaretLine(lines, g, width));
     String body= (g.multiLine() != null)
       ? renderMulti(lines, g, width, caretLine)
-      : numberedCaret(lines, g.caretLine(), width) + "\n" + caretLine.orElse("");
+      : numberedCaret(lines, g.caretLine(), width)+"\n"+caretLine.orElse("");
     var names= frames.stream().filter(f -> !f.name().isBlank()).map(Frame::name).collect(Collectors.joining(" > "));
-    String framesLine= names.isEmpty() ? "While inspecting the file" : "While inspecting " + names;
-    return "In file: " + PrettyFileName.displayFileName(g.file()) + "\n\n" + body + "\n\n" + framesLine + "\n" + msg;
+    String framesLine= names.isEmpty() ? "While inspecting the file" : "While inspecting "+names;
+    return "In file: "+PrettyFileName.displayFileName(g.file())+"\n\n"+body+"\n\n"+framesLine+"\n"+msg;
   }
   private static String numbered(String[] lines, int lineNum, int width){
-    return padLineNum(lineNum, width) + "| " + expandTabs(get(lines, lineNum));
+    return padLineNum(lineNum, width)+"| "+expandTabs(get(lines, lineNum));
   }
   private static List<Frame> ensureContainment(List<Frame> fs){
     ArrayList<Frame> out= new ArrayList<>(fs);
@@ -97,7 +97,7 @@ public final class Message{
     }
     return new Pos(start.line, start.col);
   }
-  private static boolean isVisible(char c){ return c!=' ' && c!='\t' && c!='\n' && c!='\r'; }
+  private static boolean isVisible(char c){ return c != ' ' && c != '\t' && c != '\n' && c != '\r'; }
 
   private record Grouping(URI file, List<Span> singles, Span multiLine, int caretLine){}
 
@@ -267,7 +267,7 @@ public final class Message{
       "Unit Separator"
     };
     for (int i : Range.of(0, c0.length)){
-      named.put(i, c0[i] + " 0x" + String.format(Locale.ROOT, "%02X", i));
+      named.put(i, c0[i]+" 0x"+String.format(Locale.ROOT, "%02X", i));
     }
     // DEL and a couple C1s commonly seen
     named.put(0x7F, "Delete 0x7F");
@@ -348,12 +348,12 @@ public final class Message{
         if (idx < carr.length){ carr[idx] = marks.charAt(i); }
       }
     }
-    return " ".repeat(width) + '|' + ' ' + new String(carr);
+    return " ".repeat(width)+'|'+' '+new String(carr);
   }
   //Numbered line used specifically for the caret-bearing line:
   //identical to numbered(), except we sanitize the display to be monospace-safe.
   private static String numberedCaret(String[] lines, int lineNum, int width){
-    return padLineNum(lineNum, width) + "| " + sanitizeForCaret(expandTabs(get(lines, lineNum)));
+    return padLineNum(lineNum, width)+"| "+sanitizeForCaret(expandTabs(get(lines, lineNum)));
   }
   /**
    * Make the caret-bearing source line monospace-safe without external deps:

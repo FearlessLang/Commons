@@ -40,7 +40,7 @@ public final class NameSuggester{
   public static <R> R suggest(String name, List<String> candidates, Renderer<R> renderer){
     assert !name.isEmpty();
     assert !candidates.isEmpty();
-    assert candidates.equals(candidates.stream().distinct().sorted().toList()): candidates;
+    assert candidates.equals(candidates.stream().distinct().sorted().toList()) : candidates;
     assert candidates.stream().allMatch(s -> !s.isEmpty());
     assert !candidates.contains(name);
     var best= pickBest(name, candidates);
@@ -118,7 +118,7 @@ public final class NameSuggester{
 
   private static String stripQuotes(String s){
     var res= s.replaceFirst("'+\\z", "");
-    assert !res.isEmpty(): s;
+    assert !res.isEmpty() : s;
     return res;
   }
 

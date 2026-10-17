@@ -24,10 +24,10 @@ public final class Require{
   public static <E> boolean unmodifiable(List<E> xs, String what){
     var name= xs.getClass().getName();
     if (name.startsWith("java.util.ReverseOrderListView")){ return unmodifiable(xs.reversed(), what); }
-    assert jdkUmodLists.contains(name): what+" must be unmodifiable. Name is: "+name;
+    assert jdkUmodLists.contains(name) : what+" must be unmodifiable. Name is: "+name;
     return true;
   }
-  public static boolean nonNull(Object...os){
+  public static boolean nonNull(Object... os){
     for (var o : os){ Objects.requireNonNull(o); }
     return true;
   }
@@ -47,7 +47,7 @@ public final class Require{
   public static <E> boolean unmodifiableDistinct(List<E> xs, String what){
     unmodifiable(xs, what);
     var seen= Collections.newSetFromMap(new IdentityHashMap<E,Boolean>());
-    assert xs.stream().allMatch(seen::add): what+" must have distinct elements (==)";
+    assert xs.stream().allMatch(seen::add) : what+" must have distinct elements (==)";
     return true;
   }
   public static void check(boolean ok, String msg){

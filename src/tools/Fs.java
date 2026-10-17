@@ -80,7 +80,7 @@ public final class Fs{
   public static long lastModified(Path file){
     try{ return Files.getLastModifiedTime(file).toMillis(); }
     catch (NoSuchFileException _){ return -1; }
-    catch (IOException ioe){ throw new UncheckedIOException(ioe); }
+    catch (IOException e){ throw new UncheckedIOException(e); }
   }
   // Writes (overwriting if needed) and guarantees mtime > minExclusiveMillis. Returns the actual mtime.
   public static long writeUtf8(Path file, String content, long minExclusiveMillis){
@@ -89,7 +89,7 @@ public final class Fs{
       var m= lastModified(file);
       if (m > minExclusiveMillis){ return m; }
       try{ Thread.sleep(10); }
-      catch (InterruptedException ie){ Thread.currentThread().interrupt(); throw Bug.of(ie); }
+      catch (InterruptedException e){ Thread.currentThread().interrupt(); throw Bug.of(e); }
     }
   }
   public static void reqDir(Path p, String what){ Require.check(Files.isDirectory(p), "Expected a directory for "+what+": "+p); }
@@ -155,25 +155,25 @@ public final class Fs{
   public static boolean isMac(){ return osName().contains("mac"); }
   public static boolean isLinux(){ return osName().contains("linux"); }
   private static String osName(){ return System.getProperty("os.name").toLowerCase(Locale.ROOT); }
-  public interface RunVoid{void run() throws IOException;}
-  public interface Run<T>{T run() throws IOException;}
-  public interface WalkVoid{void walk(Stream<Path> p) throws IOException;}
-  public interface Walk<T>{T walk(Stream<Path> p) throws IOException;}
+  public interface RunVoid{ void run() throws IOException; }
+  public interface Run<T>{ T run() throws IOException; }
+  public interface WalkVoid{ void walk(Stream<Path> p) throws IOException; }
+  public interface Walk<T>{ T walk(Stream<Path> p) throws IOException; }
   public static void ofV(RunVoid f){
     try{ f.run(); }
-    catch (IOException io){ throw new UncheckedIOException(io); }
+    catch (IOException e){ throw new UncheckedIOException(e); }
   }
   public static <T> T of(Run<T> f){
     try{ return f.run(); }
-    catch (IOException io){ throw new UncheckedIOException(io); }
+    catch (IOException e){ throw new UncheckedIOException(e); }
   }
   public static void walkV(Path p, WalkVoid f, FileVisitOption... os){
     try (Stream<Path> s= Files.walk(p, os)){ f.walk(s); }
-    catch (IOException io){ throw new UncheckedIOException(io); }
+    catch (IOException e){ throw new UncheckedIOException(e); }
   }
   public static <T> T walk(Path p, Walk<T> f, FileVisitOption... os){
     try (Stream<Path> s= Files.walk(p, os)){ return f.walk(s); }
-    catch (IOException io){ throw new UncheckedIOException(io); }
+    catch (IOException e){ throw new UncheckedIOException(e); }
   }
   public static void copyTreeFlat(Path from, Path to){
     var files= walk(from, s -> s
