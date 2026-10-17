@@ -67,22 +67,25 @@ public final class LinuxAssociations{
     extensions.stream().map(Icon::extension).filter(e -> !Icon.system(e)).forEach(e -> foreign.put(e, held(e, globs, openers)));
     foreign.values().removeIf(List::isEmpty);
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
-    var unwritable= registrations().stream().filter(f -> existing.contains(baseName(f)) && !Files.isWritable(f));
+    var unwritable= registrations().stream().filter(f -> existing.contains(baseName(f)))
+      .flatMap(f -> Stream.of(f, f.getParent())).distinct().filter(f -> !Files.isWritable(f));
     var targets= extensions.isEmpty() && existing.isEmpty() ? Stream.<Path>of()
       : Stream.of(home("applications"), home("mime/packages"), iconDir("mimetypes"), iconDir("apps")).filter(d -> !writableForCreation(d));
     var refused= Stream.concat(unwritable, targets).map(Path::toString).toList();
     if (!refused.isEmpty()){ throw notWritable.apply(String.join("\n", refused)); }
     var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, command, extensions, programPng, globs);
     if (alreadyMatches(existing, identity, wanted)){ return; }
-    owned(Push.of(existing, identity)::contains).forEach(f -> Fs.ofV(() -> Files.delete(f)));
+    var gone= owned(Push.of(existing, identity)::contains);
+    gone.forEach(f -> Fs.ofV(() -> Files.delete(f)));
     wanted.keySet().forEach(f -> Fs.ensureDir(f.getParent()));
     wanted.forEach((f,bytes) -> Fs.ofV(() -> Files.write(f, bytes)));
-    rebuild(halfDone);
+    rebuild(gone, halfDone);
   }
   static void eradicateAll(Predicate<String> belongsToFamily, Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
-    owned(belongsToFamily).forEach(f -> Fs.ofV(() -> Files.delete(f)));
-    if (!existing.isEmpty()){ rebuild(halfDone); }
+    var gone= owned(belongsToFamily);
+    gone.forEach(f -> Fs.ofV(() -> Files.delete(f)));
+    if (!existing.isEmpty()){ rebuild(gone, halfDone); }
   }
   private static List<String> held(String ext, List<Glob> globs, List<Opener> openers){
     var programs= openers.stream().filter(o -> o.type().equals(typeOf(ext)) && !(ext.equals(".fearless") && o.section().equals(added))).map(Opener::program);
@@ -103,8 +106,7 @@ public final class LinuxAssociations{
   private static List<Path> owned(Predicate<String> owner){
     var icons= listed(iconDir("mimetypes"), ".png").stream()
       .filter(f -> baseName(f).matches(".+-[0-9a-f]+") && owner.test(baseName(f).replaceFirst("-[0-9a-f]+$", "")));
-    var named= Stream.of(listed(home("applications"), ".desktop"), listed(home("mime/packages"), ".xml"), listed(iconDir("apps"), ".png"))
-      .flatMap(List::stream).filter(f -> owner.test(baseName(f)));
+    var named= Stream.concat(registrations().stream(), listed(iconDir("apps"), ".png").stream()).filter(f -> owner.test(baseName(f)));
     return Stream.concat(icons, named).toList();
   }
   private static List<Glob> globs(Predicate<String> belongsToFamily){
@@ -176,8 +178,9 @@ public final class LinuxAssociations{
     if (!exactlyWanted){ return false; }
     return wanted.entrySet().stream().allMatch(e -> Arrays.equals(Fs.of(() -> Files.readAllBytes(e.getKey())), e.getValue()));
   }
-  private static void rebuild(Function<String,RuntimeException> halfDone){
-    run.accept(List.of("update-mime-database", home("mime").toString()), halfDone);
+  private static void rebuild(List<Path> gone, Function<String,RuntimeException> halfDone){
+    mimeDirs().stream().filter(d -> d.equals(home("mime")) || gone.stream().anyMatch(f -> f.getParent().equals(d.resolve("packages"))))
+      .forEach(d -> run.accept(List.of("update-mime-database", d.toString()), halfDone));
     Xdg.appDirs().stream().filter(Files::isDirectory).filter(Files::isWritable)
       .forEach(d -> run.accept(List.of("update-desktop-database", d.toString()), halfDone));
   }
