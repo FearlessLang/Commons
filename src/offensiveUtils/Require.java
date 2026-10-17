@@ -15,13 +15,16 @@ public final class Require{
     "java.util.ImmutableCollections$List12",
     "java.util.ImmutableCollections$ListN",
     "java.util.ImmutableCollections$SubList",
+    "java.util.Collections$CopiesList",
     "java.util.Collections$EmptyList",
     "java.util.Collections$SingletonList",
     "java.util.Collections$UnmodifiableList",
     "java.util.Collections$UnmodifiableRandomAccessList"
   );
   public static <E> boolean unmodifiable(List<E> xs, String what){
-    assert jdkUmodLists.contains(xs.getClass().getName()): what+" must be unmodifiable. Name is: "+xs.getClass().getName();
+    var name= xs.getClass().getName();
+    if (name.startsWith("java.util.ReverseOrderListView")){ return unmodifiable(xs.reversed(), what); }
+    assert jdkUmodLists.contains(name): what+" must be unmodifiable. Name is: "+name;
     return true;
   }
   public static boolean nonNull(Object...os){

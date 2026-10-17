@@ -6,6 +6,7 @@ import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessDeniedException;
+import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
@@ -38,8 +39,9 @@ public final class Fs{
   public static void ensureDir(Path p){ ofV(() -> Files.createDirectories(p)); }
   public static void cleanDirContents(Path p){
     reqDir(p, "cleaning");
-    var xs= walk(p, s -> s
-      .filter(x -> !x.equals(p))
+    var real= of(p::toRealPath);
+    var xs= walk(real, s -> s
+      .filter(x -> !x.equals(real))
       .sorted(Comparator.reverseOrder())
       .toList()
     );
@@ -66,7 +68,7 @@ public final class Fs{
   }
   public static String readUtf8(Path file){ return of(() -> Files.readString(file)); }
   public static void copyTree(Path from, Path to){
-    walkV(from, s -> s.forEach(src -> ofV(() -> copyOne(from, to, src))));
+    walkV(from, s -> s.forEach(src -> ofV(() -> copyOne(from, to, src))), FileVisitOption.FOLLOW_LINKS);
   }
   private static void copyOne(Path fromRoot, Path toRoot, Path src) throws IOException{
     var rel= fromRoot.relativize(src);
@@ -76,7 +78,7 @@ public final class Fs{
     Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
   }
   public static long lastModified(Path file){
-    try{ return Files.getLastModifiedTime(file, LinkOption.NOFOLLOW_LINKS).toMillis(); }
+    try{ return Files.getLastModifiedTime(file).toMillis(); }
     catch (NoSuchFileException _){ return -1; }
     catch (IOException ioe){ throw new UncheckedIOException(ioe); }
   }
@@ -96,7 +98,7 @@ public final class Fs{
     cleanDirContents(p);
   }
   public static void rmTree(Path p){
-    if (Files.isDirectory(p)){ cleanDirContents(p); }
+    if (Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)){ cleanDirContents(p); }
     ofV(() -> Files.deleteIfExists(p));
   }
   public static void copyFresh(Path from, Path to){
@@ -165,18 +167,18 @@ public final class Fs{
     try{ return f.run(); }
     catch (IOException io){ throw new UncheckedIOException(io); }
   }
-  public static void walkV(Path p, WalkVoid f){
-    try (Stream<Path> s= Files.walk(p)){ f.walk(s); }
+  public static void walkV(Path p, WalkVoid f, FileVisitOption... os){
+    try (Stream<Path> s= Files.walk(p, os)){ f.walk(s); }
     catch (IOException io){ throw new UncheckedIOException(io); }
   }
-  public static <T> T walk(Path p, Walk<T> f){
-    try (Stream<Path> s= Files.walk(p)){ return f.walk(s); }
+  public static <T> T walk(Path p, Walk<T> f, FileVisitOption... os){
+    try (Stream<Path> s= Files.walk(p, os)){ return f.walk(s); }
     catch (IOException io){ throw new UncheckedIOException(io); }
   }
   public static void copyTreeFlat(Path from, Path to){
     var files= walk(from, s -> s
       .filter(Files::isRegularFile)
-      .toList()
+      .toList(), FileVisitOption.FOLLOW_LINKS
     );
     var duplicates= files.stream()
       .collect(Collectors.groupingBy(p -> p.getFileName().toString()))
