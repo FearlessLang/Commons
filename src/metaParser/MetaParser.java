@@ -52,8 +52,7 @@ public abstract class MetaParser<
   @SafeVarargs @SuppressWarnings("varargs")
   public final boolean peek(TK... kinds){
     assert kinds.length > 0;
-    var t= peek();
-    return t.map(tt -> tt.is(kinds)).orElse(false);
+    return peekIf(t -> t.is(kinds));
   }
   public T expectAny(String what){
     var t= peek();

@@ -172,11 +172,7 @@ public final class JavacTool{
   }
 
   private static List<String> jvmOpts(String launcherValue, String versionId){
-    var xs= new ArrayList<String>(javaOptions.size()+2);
-    xs.addAll(javaOptions);
-    xs.add("-D"+launcherKey+"="+launcherValue);
-    xs.add("-D"+versionIdKey+"="+versionId);
-    return xs;
+    return Push.<String>of(javaOptions, List.of("-D"+launcherKey+"="+launcherValue, "-D"+versionIdKey+"="+versionId));
   }
 
   public static void javac(List<Path> srcs, Path classesDir, Path modsDir){

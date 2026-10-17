@@ -39,7 +39,7 @@ public final class WindowsAssociations{
     var existing= existingIdentities(belongsToFamily);
     if (existing.size() > 1){ throw ambiguous.apply(String.join("\n", existing)); }
     var locked= extensions.stream().map(Icon::extension)
-      .filter(e -> userChoice(e).isPresent() || userChoiceLatest(e).isPresent()).toList();
+      .filter(e -> regValue(userChoiceKey(e), "ProgId").isPresent() || regValue(hkcu(fileExts+e+"\\UserChoiceLatest\\ProgId"), "ProgId").isPresent()).toList();
     if (!locked.isEmpty()){ throw userLocked.apply(locked); }
     var foreign= new LinkedHashMap<String,List<String>>();
     extensions.stream().map(Icon::extension).filter(e -> !Icon.system(e)).forEach(e -> foreign.put(e, held(e, belongsToFamily)));
@@ -69,10 +69,6 @@ public final class WindowsAssociations{
     return res.stream().filter(belongsToFamily).sorted().toList();
   }
   public static String userChoiceKey(String ext){ return hkcu(fileExts+ext+"\\UserChoice"); }
-  private static Optional<String> userChoice(String ext){ return regValue(userChoiceKey(ext), "ProgId"); }
-  private static Optional<String> userChoiceLatest(String ext){
-    return regValue(hkcu(fileExts+ext+"\\UserChoiceLatest\\ProgId"), "ProgId");
-  }
   private static List<String> held(String ext, Predicate<String> belongsToFamily){
     var progIds= Stream.concat(regValue(hkcu(classes)+ext, "").stream(), regValues(hkcu(classes)+ext+"\\OpenWithProgids").keySet().stream());
     return progIds.distinct().filter(p -> !belongsToFamily.test(owner(p, ext))).toList();

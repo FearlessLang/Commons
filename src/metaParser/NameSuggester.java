@@ -49,19 +49,16 @@ public final class NameSuggester{
 
   private static Optional<String> pickBest(String t, List<String> candidates){
     var tScore= simpleName(stripQuotes(t));
-
     List<Suggestion> scored= new ArrayList<>(candidates.size());
     for (String c : candidates){
       var cScore= simpleName(stripQuotes(c));
       scored.add(new Suggestion(c, cScore, score(tScore, cScore)));
     }
-
     scored.sort(Comparator
       .<Suggestion>comparingDouble(s -> -s.score)
       .thenComparingInt(s -> Math.abs(s.scoreName.length() - tScore.length()))
       .thenComparingInt(s -> s.value.length())
       .thenComparing(s -> s.value));
-
     var top= scored.getFirst();
     double topScore= top.score;
     double runnerUp= scored.size() > 1 ? scored.get(1).score : -1;
@@ -73,10 +70,8 @@ public final class NameSuggester{
 
   private static double score(String tScore, String cScore){
     double score= 0.55 * componentScore(splitCamel(tScore), splitCamel(cScore)) + 0.45 * wholeScore(tScore, cScore);
-
     if (kindsCompatible(tScore, cScore)){ score += 0.03; }
     else{ score -= 0.10; }
-
     return Math.clamp(score, 0, 1);
   }
 
@@ -151,11 +146,9 @@ public final class NameSuggester{
 
   private static int levenshtein(String a, String b){
     int n= a.length(), m= b.length();
-
     int[] prev= new int[m + 1];
     int[] curr= new int[m + 1];
     for (int j= 0; j <= m; j += 1){ prev[j] = j; }
-
     for (int i= 1; i <= n; i += 1){
       curr[0] = i;
       char ca= a.charAt(i - 1);
