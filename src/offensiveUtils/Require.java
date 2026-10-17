@@ -11,7 +11,7 @@ public final class Require{
   //pattern: the methods return a boolean so we can use them as
   //assert check.., but the method take control of the error to report if any.
   //in this way, we can disable all those checks while disabling assertions.
-  private static final List<String> jdkUmodLists= List.of(
+  private static final List<String> jdkUnmodifiableLists= List.of(
     "java.util.ImmutableCollections$List12",
     "java.util.ImmutableCollections$ListN",
     "java.util.ImmutableCollections$SubList",
@@ -21,10 +21,10 @@ public final class Require{
     "java.util.Collections$UnmodifiableList",
     "java.util.Collections$UnmodifiableRandomAccessList"
   );
-  public static <E> boolean unmodifiable(List<E> xs, String what){
+  public static <T> boolean unmodifiable(List<T> xs, String what){
     var name= xs.getClass().getName();
     if (name.startsWith("java.util.ReverseOrderListView")){ return unmodifiable(xs.reversed(), what); }
-    assert jdkUmodLists.contains(name) : what+" must be unmodifiable. Name is: "+name;
+    assert jdkUnmodifiableLists.contains(name) : what+" must be unmodifiable. Name is: "+name;
     return true;
   }
   public static boolean nonNull(Object... os){
@@ -39,14 +39,14 @@ public final class Require{
     o.ifPresent(p);//the consumer itself would throw the error
     return true;
   }
-  public static <T> boolean unmodifiable(List<T> l, String what, Consumer<T> p){
-    unmodifiable(l, what);
-    l.forEach(p);//the consumer itself would throw the error
+  public static <T> boolean unmodifiable(List<T> xs, String what, Consumer<T> p){
+    unmodifiable(xs, what);
+    xs.forEach(p);//the consumer itself would throw the error
     return true;
   }
-  public static <E> boolean unmodifiableDistinct(List<E> xs, String what){
+  public static <T> boolean unmodifiableDistinct(List<T> xs, String what){
     unmodifiable(xs, what);
-    var seen= Collections.newSetFromMap(new IdentityHashMap<E,Boolean>());
+    var seen= Collections.newSetFromMap(new IdentityHashMap<T,Boolean>());
     assert xs.stream().allMatch(seen::add) : what+" must have distinct elements (==)";
     return true;
   }

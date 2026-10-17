@@ -91,8 +91,8 @@ public abstract class MetaTokenizer<
   }
   public Tokenizer whiteList(String whiteList){
     assert !frozen : "cannot call .whiteList during .tokenize, .postTokenize, .buildTokenTree";
-    assert errFactory != null : "call method .errFactory before tokenize";
-    assert input != null : "call method .input before tokenize";
+    assert errFactory != null : "call method .setErrFactory before .whiteList";
+    assert input != null : "call method .input before .whiteList";
     int l= 1, c= 1;
     for (int cp : input.codePoints().toArray()){
       if (whiteList.indexOf(cp) < 0){ var at= new Span(fileName, l, c, l, c); throw withFrozen(() -> errFactory().illegalCharAt(at, cp, self())); }
@@ -106,7 +106,7 @@ public abstract class MetaTokenizer<
     var tmp= new ArrayList<T>();
     assert input != null : "call method .input before .tokenize";
     assert kinds != null : "call method .tokenKinds before .tokenize";
-    assert errFactory != null : "call method .errFactory before .tokenize";
+    assert errFactory != null : "call method .setErrFactory before .tokenize";
     tmp.add(make(sof, "", line, col, List.of()));
     withFrozen(() -> {
       while (pos < input.length()){
@@ -124,7 +124,8 @@ public abstract class MetaTokenizer<
     return self();
   }
   public Tokenizer postTokenize(TokenProcessor.Map<T,TK,E,Tokenizer,Parser,Err> map){
-    assert !allTokens.isEmpty() : "call method .postTokenizer after .tokenize";
+    assert !frozen : "cannot call .postTokenize during .tokenize, .postTokenize, .buildTokenTree";
+    assert allTokens != null : "call method .tokenize before .postTokenize";
     postTokens = withFrozen(() -> IntStream.range(0, allTokens.size()).boxed()
       .flatMap(i -> map.process(i, allTokens.get(i), self())).toList());
     assertMonotonic(postTokens);
@@ -133,7 +134,7 @@ public abstract class MetaTokenizer<
   List<T> tokensForTree(){ return postTokens == null ? allTokens : postTokens; }
   public Tokenizer buildTokenTree(TokenTreeSpec<T,TK> spec){
     assert !frozen : "cannot call .buildTokenTree during .tokenize, .postTokenize, .buildTokenTree";
-    assert !allTokens.isEmpty() : "call method .buildTokenTree after .tokenize";
+    assert allTokens != null : "call method .tokenize before .buildTokenTree";
     var tmp= tokensForTree();
     assert tmp.getFirst().kind() == sof : "first token must be SOF";
     assert tmp.getLast().kind() == eof : "last token must be EOF";

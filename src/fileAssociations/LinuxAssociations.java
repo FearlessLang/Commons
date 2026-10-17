@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 import javax.imageio.ImageIO;
 
 import tools.Fs;
+import utils.Join;
 import utils.Push;
 
 public final class LinuxAssociations{
@@ -57,7 +58,7 @@ public final class LinuxAssociations{
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
-    if (existing.size() > 1){ throw ambiguous.apply(String.join("\n", existing)); }
+    if (existing.size() > 1){ throw ambiguous.apply(Join.of(existing, "", "\n", "")); }
     var globs= globs(belongsToFamily);
     var openers= openers().stream().filter(o -> !belongsToFamily.test(o.program())).toList();
     var locked= extensions.stream().map(Icon::extension).filter(Icon::system)
@@ -72,7 +73,7 @@ public final class LinuxAssociations{
     var targets= extensions.isEmpty() && existing.isEmpty() ? Stream.<Path>of()
       : Stream.of(home("applications"), home("mime/packages"), iconDir("mimetypes"), iconDir("apps")).filter(d -> !writableForCreation(d));
     var refused= Stream.concat(unwritable, targets).map(Path::toString).toList();
-    if (!refused.isEmpty()){ throw notWritable.apply(String.join("\n", refused)); }
+    if (!refused.isEmpty()){ throw notWritable.apply(Join.of(refused, "", "\n", "")); }
     var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, command, extensions, programPng, globs);
     if (alreadyMatches(existing, identity, wanted)){ return; }
     var gone= owned(Push.of(existing, identity)::contains);
@@ -130,7 +131,7 @@ public final class LinuxAssociations{
     var family= packages.get(true).stream().flatMap(f -> lines(f).stream()).filter(l -> l.contains("<glob "))
       .map(declared::matcher).filter(Matcher::find).map(m -> m.group(1)).collect(Collectors.toUnmodifiableSet());
     if (!dir.equals(home("mime"))){ return t -> !family.contains(t); }
-    var others= packages.get(false).stream().map(f -> String.join("\n", lines(f))).collect(Collectors.joining("\n"));
+    var others= Join.of(packages.get(false).stream().flatMap(f -> lines(f).stream()), "", "\n", "", "");
     return t -> !family.contains(t) && (others.contains("\""+t+"\"") || others.contains("'"+t+"'"));
   }
   private static Stream<List<String>> fields(Path file){
@@ -197,7 +198,7 @@ public final class LinuxAssociations{
     return Long.toHexString(h);
   }
   private static String mimeType(String identity, String ext, String icon, List<String> supertypes){
-    var subclass= supertypes.stream().map(t -> "<sub-class-of type=\"%s\"/>".formatted(t)).collect(Collectors.joining());
+    var subclass= Join.of(supertypes.stream().map(t -> "<sub-class-of type=\"%s\"/>".formatted(t)), "", "", "", "");
     return ("  <mime-type type=\"%s\"><comment>%s</comment>"
       +"<glob pattern=\"*%s\" weight=\"100\"/>%s<icon name=\"%s\"/></mime-type>\n")
       .formatted(typeOf(ext), identity, ext, subclass, icon);
@@ -212,7 +213,7 @@ public final class LinuxAssociations{
       StartupWMClass=%s
       Terminal=false
       MimeType=%s;
-      """.formatted(identity, execArg(command), identity, windowClass, String.join(";", types));
+      """.formatted(identity, execArg(command), identity, windowClass, Join.of(types, "", ";", ""));
   }
   private static String execArg(String s){
     return ("\""+s.replaceAll("[\"`$\\\\]", "\\\\$0")+"\"").replace("%", "%%").replace("\\", "\\\\");

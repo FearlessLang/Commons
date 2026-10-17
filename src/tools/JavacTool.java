@@ -11,6 +11,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import offensiveUtils.Require;
+import utils.Join;
 import utils.Push;
 
 public final class JavacTool{
@@ -48,7 +49,7 @@ public final class JavacTool{
   }
 
   static List<Path> javaSourcesUnder(Path root){
-    return Fs.walk(root, pi -> pi
+    return Fs.walk(root, s -> s
       .filter(p -> p.toString().endsWith(".java"))
       .sorted(Comparator.comparing(p -> root.relativize(p).toString()))
       .toList());
@@ -63,9 +64,7 @@ public final class JavacTool{
 
   private static String runJavacArgFile(Path dir, List<String> args){
     var file= dir.resolve(javacArgFile);
-    Fs.writeUtf8(file, args.stream()
-      .map(JavacTool::argToken)
-      .collect(Collectors.joining("\n", "", "\n")));
+    Fs.writeUtf8(file, Join.of(args.stream().map(JavacTool::argToken), "", "\n", "\n"));
     return Fs.runTool("javac", List.of("@"+abs(file)));
   }
 
@@ -73,7 +72,7 @@ public final class JavacTool{
 
   private static String argToken(String s){ return "\""+s.replace("\\", "\\\\").replace("\"", "\\\"")+"\""; }
 
-  public static Path reqAppDir(Supplier<? extends RuntimeException> onMissing){
+  public static Path reqAppDir(Supplier<RuntimeException> onMissing){
     var launcher= System.getProperty(launcherKey);
     var appDir= System.getProperty(appDirKey);
     if (launcher == null || appDir == null){ throw onMissing.get(); }
@@ -81,7 +80,7 @@ public final class JavacTool{
     if (!res.isAbsolute()){ throw onMissing.get(); }
     return res;
   }
-  public static String reqVersionId(Supplier<? extends RuntimeException> onMissing){
+  public static String reqVersionId(Supplier<RuntimeException> onMissing){
     var versionId= System.getProperty(versionIdKey);
     if (versionId == null){ throw onMissing.get(); }
     return versionId;
@@ -108,13 +107,12 @@ public final class JavacTool{
     Fs.reqDir(jmods, "the jmods of a full JDK (a JRE has none)");
     var appModules= ModuleFinder.of(modsDir).findAll();
     var appModuleNames= appModules.stream().map(m -> m.descriptor().name()).collect(Collectors.toUnmodifiableSet());
-    var platformModules= appModules.stream()
+    var platformModules= Join.of(appModules.stream()
       .flatMap(m -> m.descriptor().requires().stream())
       .filter(r -> !r.modifiers().contains(Requires.Modifier.STATIC))
       .map(Requires::name)
       .filter(n -> !appModuleNames.contains(n))
-      .distinct().sorted()
-      .collect(Collectors.joining(","));
+      .distinct().sorted(), "", ",", "");
     var runtimeImage= tmp.resolve("_runtime");
     Fs.runTool("jlink", List.of(
       "--module-path", jmods.toString(),
@@ -140,7 +138,7 @@ public final class JavacTool{
     var icon= iconForCurrentOs(packaging);
     var wProps= tmp.resolve(wName+".properties");
     var winConsole= Fs.isWindows() ? "win-console=false\n" : "";
-    Fs.writeUtf8(wProps, "module="+moduleMain+"\njava-options="+String.join(" ", jvmOpts(winKey, versionId))+"\n"+winConsole+"icon="+icon.toString().replace("\\", "\\\\")+"\n");
+    Fs.writeUtf8(wProps, "module="+moduleMain+"\njava-options="+Join.of(jvmOpts(winKey, versionId), "", " ", "")+"\n"+winConsole+"icon="+icon.toString().replace("\\", "\\\\")+"\n");
     var args= new ArrayList<String>(96);
     args.add("--type"); args.add("app-image");
     args.add("--dest"); args.add(dest.toString());
@@ -149,7 +147,7 @@ public final class JavacTool{
     args.add("--module-path"); args.add(modsDir.toString());
     args.add("--module"); args.add(moduleMain);
     args.add("--runtime-image"); args.add(runtimeImage.toString());
-    args.add("--java-options"); args.add(String.join(" ", jvmOpts(consoleKey, versionId)));
+    args.add("--java-options"); args.add(Join.of(jvmOpts(consoleKey, versionId), "", " ", ""));
     if (Fs.isWindows()){ args.add("--win-console"); }
     args.add("--add-launcher"); args.add(wName+"="+wProps);
     args.add("--app-content"); args.add(appContent.toString());

@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 ///Note: call this with
@@ -41,7 +40,7 @@ public final class Err{
     return regexResult;
   }
   private static boolean strCmpAuxRegex(String expected, String actual, String hole){
-    var regex= Stream.of(expected.split(Pattern.quote(hole), -1)).map(Pattern::quote).collect(Collectors.joining(".*"));
+    var regex= Join.of(Stream.of(expected.split(Pattern.quote(hole), -1)).map(Pattern::quote), "", ".*", "");
     return Pattern.compile(regex, Pattern.DOTALL).matcher(actual).matches();
   }
   private static boolean strCmpAuxLegacy(String cmp2, String cmp1, String stringHole){

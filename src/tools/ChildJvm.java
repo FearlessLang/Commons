@@ -2,12 +2,12 @@ package tools;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import utils.Bug;
 import utils.Push;
 
 public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<String> cmd){
@@ -35,7 +35,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
     }
     finally{ closeQuietly(lifeline); }
     joinUninterruptibly(pump);
-    if (pumpErr[0] != null){ throw Bug.of(pumpErr[0]); }
+    if (pumpErr[0] != null){ throw new UncheckedIOException(pumpErr[0]); }
     return ec;
   }
   public void kill(){

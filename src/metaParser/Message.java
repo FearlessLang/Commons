@@ -8,9 +8,9 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import utils.Bug;
+import utils.Join;
 import utils.Range;
 
 public final class Message{
@@ -21,7 +21,7 @@ public final class Message{
   public static String of(Function<URI,String> loader, List<Frame> frames, String msg){
     try{ return _of(loader, frames, msg); }
     catch (Throwable e){
-      String locs= frames.stream().map(f -> f.s().toString()).collect(Collectors.joining("\n"));
+      String locs= Join.of(frames.stream().map(Frame::s), "", "\n", "");
       throw new Error("Exception while formatting the following error:\n"+locs+"\n"+msg, e);
     }
   }
@@ -34,8 +34,7 @@ public final class Message{
     String body= (g.multiLine() != null)
       ? renderMulti(lines, g, width, caretLine)
       : numberedCaret(lines, g.caretLine(), width)+"\n"+caretLine.orElse("");
-    var names= frames.stream().filter(f -> !f.name().isBlank()).map(Frame::name).collect(Collectors.joining(" > "));
-    String framesLine= names.isEmpty() ? "While inspecting the file" : "While inspecting "+names;
+    String framesLine= Join.of(frames.stream().map(Frame::name).filter(n -> !n.isBlank()), "While inspecting ", " > ", "", "While inspecting the file");
     return "In file: "+PrettyFileName.displayFileName(g.file())+"\n\n"+body+"\n\n"+framesLine+"\n"+msg;
   }
   private static String numbered(String[] lines, int lineNum, int width){
@@ -210,10 +209,10 @@ public final class Message{
       out.add(cp == '\n' ? "|" : displayChar(cp));
     }
     flushLiteral(out, lit);
-    return String.join(" ", out);
+    return Join.of(out, "", " ", "");
   }
 
-  private static boolean literalChar(int cp){
+  static boolean literalChar(int cp){
     return cp >= 0x20 && cp <= 0x7E;
   }
 
@@ -365,7 +364,7 @@ public final class Message{
   private static String sanitizeForCaret(String s){
     StringBuilder out= new StringBuilder(s.length());
     for (int cp : s.codePoints().toArray()){
-      if (cp >= 0x20 && cp <= 0x7E){ // printable ASCII
+      if (literalChar(cp)){ // printable ASCII
         out.append((char)cp);
         continue;
       }
@@ -405,6 +404,6 @@ public final class Message{
       addElision(out, lines, width, afterCount, caret + 1);
       out.add(numbered(lines, end, width));
     }
-    return String.join("\n", out);
+    return Join.of(out, "", "\n", "");
   }
 }

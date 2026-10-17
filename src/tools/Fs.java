@@ -21,6 +21,7 @@ import java.util.stream.Stream;
 
 import offensiveUtils.Require;
 import utils.Bug;
+import utils.Join;
 
 public final class Fs{
   // ASCII whitelist
@@ -118,7 +119,7 @@ public final class Fs{
     Require.check(rc == 0,
       "Tool error: "+tool+
       "\nExit code: "+rc+
-      "\nArgs:\n"+String.join("\n", args)+
+      "\nArgs:\n"+Join.of(args, "", "\n", "", "")+
       "\nOutput length: "+out.length()+
       "\nOutput:\n<<<\n"+out+"\n>>>");
   }

@@ -5,10 +5,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import utils.Bug;
+import utils.Join;
 import utils.Range;
 
 public abstract class MetaParser<
@@ -289,7 +289,7 @@ public abstract class MetaParser<
   }
 
   private String range(int from, int to){
-    return ts.subList(from, to).stream().map(this::show).collect(Collectors.joining(", ", "[", "]"));
+    return Join.of(ts.subList(from, to).stream().map(this::show), "[", ", ", "]", "[]");
   }
   private Optional<T> leaf(T t, boolean first){
     if (skip(t)){ return Optional.empty(); } 
