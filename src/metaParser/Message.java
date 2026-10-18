@@ -384,7 +384,7 @@ public final class Message{
   //helper: push either an elision counter or the single in-between line
   private static void addElision(ArrayList<String> out, String[] lines, int width, int count, int oneLineNum){
     if (count == 1){ out.add(numbered(lines, oneLineNum, width)); return; }
-    if (count > 1){ out.add(" ".repeat(width) + '|' + ' ' + "... " + count + " lines ..."); }
+    if (count > 1){ out.add(" ".repeat(width)+"| ... "+count+" lines ..."); }
   }
   private static String renderMulti(String[] lines, Grouping g, int width, Optional<String> caretLine){
     Span group= g.multiLine();

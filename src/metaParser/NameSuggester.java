@@ -57,7 +57,7 @@ public final class NameSuggester{
 
   private static Optional<String> pickBest(String t, List<String> candidates){
     var tScore= simpleName(stripQuotes(t));
-    List<Suggestion> scored= new ArrayList<>(candidates.size());
+    var scored= new ArrayList<Suggestion>(candidates.size());
     for (String c : candidates){
       var cScore= simpleName(stripQuotes(c));
       scored.add(new Suggestion(c, cScore, score(tScore, cScore)));
