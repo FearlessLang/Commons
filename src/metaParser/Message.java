@@ -52,12 +52,12 @@ public final class Message{
   private static Span union(Span a, Span b){
     int startLine= Math.min(a.startLine(), b.startLine());
     int endLine= Math.max(a.endLine(), b.endLine());
-    int startCol= (a.startLine() == startLine && b.startLine() == startLine)
+    int startCol= (a.startLine()==startLine && b.startLine()==startLine)
         ? Math.min(a.startCol(), b.startCol())
-        : (a.startLine() == startLine ? a.startCol() : b.startCol());
-    int endCol= (a.endLine() == endLine && b.endLine() == endLine)
+        : (a.startLine()==startLine ? a.startCol() : b.startCol());
+    int endCol= (a.endLine()==endLine && b.endLine()==endLine)
         ? Math.max(a.endCol(), b.endCol())
-        : (a.endLine() == endLine ? a.endCol() : b.endCol());
+        : (a.endLine()==endLine ? a.endCol() : b.endCol());
     return new Span(a.fileName(), startLine, startCol, endLine, endCol);
   }
   private static List<Frame> trimInvisible(Function<URI,String> loader, List<Frame> fs){
@@ -86,7 +86,7 @@ public final class Message{
     int col= Math.max(1, p.col);
     while (afterOrEqual(line, col, start)){
       String ln= get(lines, line);
-      var visible= col <= ln.length() && isVisible(ln.charAt(col - 1));
+      var visible= col<=ln.length() && isVisible(ln.charAt(col - 1));
       if (visible){ return new Pos(line, col); }
       col -= 1;
       if (col >= 1){ continue; }
@@ -113,7 +113,7 @@ public final class Message{
     Span firstMulti= spans.stream().filter(s -> !s.isSingleLine()).findFirst().orElse(null);
 
     int caretLine= !chosenSingles.isEmpty() ? chosenSingles.getLast().startLine()
-                   : (firstMulti != null ? firstMulti.startLine() : spans.getLast().startLine());
+                   : (firstMulti!=null ? firstMulti.startLine() : spans.getLast().startLine());
 
     return new Grouping(file, chosenSingles, firstMulti, caretLine);
   }
@@ -127,7 +127,7 @@ public final class Message{
 
   private static String[] splitLines(String s){ return MetaTokenizer.normalizeSource(s).split("\n", -1); }
   private static String get(String[] lines, int oneBased){
-    if (oneBased < 1 || oneBased > lines.length){ return ""; }
+    if (oneBased<1 || oneBased>lines.length){ return ""; }
     return lines[oneBased-1];
   }
 
@@ -157,7 +157,7 @@ public final class Message{
 
   private static int tabAwareWidth(String rawLine, int fromIdxIncl, int toIdxExcl, int baseVis){
     int vis= baseVis;
-    for (int i : Range.of(fromIdxIncl, toIdxExcl)){ vis += rawLine.charAt(i) == '\t' ? tabWidth - (vis % tabWidth) : 1; }
+    for (int i : Range.of(fromIdxIncl, toIdxExcl)){ vis += rawLine.charAt(i)=='\t' ? tabWidth-(vis % tabWidth) : 1; }
     return vis;
   }
 
@@ -176,21 +176,21 @@ public final class Message{
   }
 
   private static boolean beforeOrEqual(int l, int c, Pos limit){
-    return l < limit.line || (l == limit.line && c <= limit.col);
+    return l<limit.line || (l==limit.line && c<=limit.col);
   }
   private static boolean afterOrEqual(int l, int c, Pos start){
-    return l > start.line || (l == start.line && c >= start.col);
+    return l>start.line || (l==start.line && c>=start.col);
   }
   private record Pos(int line, int col){}
   private static String uPlus(int cp){
-    return "U+"+String.format(Locale.ROOT, cp <= 0xFFFF ? "%04X" : "%06X", cp);
+    return "U+"+String.format(Locale.ROOT, cp<=0xFFFF ? "%04X" : "%06X", cp);
   }
   public static String displayChar(int cp){
-    if (cp < 0 || cp > Character.MAX_CODE_POINT){
+    if (cp<0 || cp>Character.MAX_CODE_POINT){
       return "[Out of character range: "+uPlus(cp)+"]";
     }
-    if (cp >= 0xD800 && cp <= 0xDFFF){
-      return "["+(cp <= 0xDBFF ? "HIGH" : "LOW")+" SURROGATE "+uPlus(cp)+"]";
+    if (cp>=0xD800 && cp<=0xDFFF){
+      return "["+(cp<=0xDBFF ? "HIGH" : "LOW")+" SURROGATE "+uPlus(cp)+"]";
     }
     String name= named.get(cp);
     if (name != null){ return "["+name+"]"; }
@@ -203,17 +203,17 @@ public final class Message{
     ArrayList<String> out= new ArrayList<>();
     StringBuilder lit= new StringBuilder();
     for (int cp : s.codePoints().toArray()){
-      boolean clash= (cp == '"' && lit.indexOf("`") >= 0) || (cp == '`' && lit.indexOf("\"") >= 0);
+      boolean clash= (cp=='"' && lit.indexOf("`")>=0) || (cp=='`' && lit.indexOf("\"")>=0);
       if (literalChar(cp) && !clash){ lit.append((char)cp); continue; }
       flushLiteral(out, lit);
-      out.add(cp == '\n' ? "|" : displayChar(cp));
+      out.add(cp=='\n' ? "|" : displayChar(cp));
     }
     flushLiteral(out, lit);
     return Join.of(out, "", " ", "");
   }
 
   static boolean literalChar(int cp){
-    return cp >= 0x20 && cp <= 0x7E;
+    return cp>=0x20 && cp<=0x7E;
   }
 
   private static void flushLiteral(ArrayList<String> out, StringBuilder lit){
@@ -325,7 +325,7 @@ public final class Message{
     // decide marks so a single span uses '^'
     List<Span> sps= g.singles();
     int n= sps.size();
-    String marks= n == 1 ? "^" : n == 2 ? "-^" : "-~^";
+    String marks= n==1 ? "^" : n==2 ? "-^" : "-~^";
     // find rightmost visual column we will draw (1-based), clamp to caret-line length
     int rightMost= 0;
     for (int i : Range.of(0, n)){
@@ -369,10 +369,10 @@ public final class Message{
         continue;
       }
       // Unicode spaces (a small explicit set) and zero-widths
-      if (cp == 0x00A0 /* NBSP */ ||
-          cp == 0x1680 || (cp >= 0x2000 && cp <= 0x200A) ||
-          cp == 0x202F || cp == 0x205F || cp == 0x3000 ||
-          cp == 0x200B /* ZWSP */ || cp == 0x200C /* ZWNJ */ || cp == 0x200D /* ZWJ */){
+      if (cp==0x00A0 /* NBSP */ ||
+          cp==0x1680 || (cp>=0x2000 && cp<=0x200A) ||
+          cp==0x202F || cp==0x205F || cp==0x3000 ||
+          cp==0x200B /* ZWSP */ || cp==0x200C /* ZWNJ */ || cp==0x200D /* ZWJ */){
         out.append('_');
       }
       else{

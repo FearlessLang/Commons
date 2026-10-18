@@ -131,7 +131,7 @@ public abstract class MetaTokenizer<
     assertMonotonic(postTokens);
     return self();
   }
-  List<T> tokensForTree(){ return postTokens == null ? allTokens : postTokens; }
+  List<T> tokensForTree(){ return postTokens==null ? allTokens : postTokens; }
   public Tokenizer buildTokenTree(TokenTreeSpec<T,TK> spec){
     assert !frozen : "cannot call .buildTokenTree during .tokenize, .postTokenize, .buildTokenTree";
     assert allTokens != null : "call method .tokenize before .buildTokenTree";
@@ -152,7 +152,7 @@ public abstract class MetaTokenizer<
     int prevLine= -1, prevCol= -1;
     for (var tok : toks){
       int l= tok.line(), c= tok.column();
-      assert (l > prevLine) || (l == prevLine && c >= prevCol)
+      assert (l > prevLine) || (l==prevLine && c>=prevCol)
         : "tokens out of order at "+l+":"+c;
       prevLine = l; prevCol = c;
     }

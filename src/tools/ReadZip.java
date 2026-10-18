@@ -35,7 +35,7 @@ public record ReadZip(
   }
   private static String keyOf(String n){ return n.endsWith("/") ? n.substring(0, n.length()-1) : n; }
   private void reqZipNameOk(String n){
-    var bad= n.isEmpty() || n.startsWith("/") || n.indexOf('\0') >= 0;
+    var bad= n.isEmpty() || n.startsWith("/") || n.indexOf('\0')>=0;
     if (bad){ throw badNameErr.apply(n); }
     var sub= keyOf(n);
     for (var seg : sub.split("/", -1)){
@@ -49,7 +49,7 @@ public record ReadZip(
   }
   private Map<String,byte[]> cleanUp(LinkedHashMap<String,byte[]> map){
     for (var e : map.entrySet()){
-      var emptyDir= e.getValue() == null && map.keySet().stream().noneMatch(k -> k.startsWith(e.getKey()+"/"));
+      var emptyDir= e.getValue()==null && map.keySet().stream().noneMatch(k -> k.startsWith(e.getKey()+"/"));
       if (emptyDir){ throw emptyDirErr.apply(e.getKey()); }
     }
     map.values().removeIf(v -> v == null);

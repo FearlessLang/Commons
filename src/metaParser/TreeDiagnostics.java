@@ -29,9 +29,9 @@ record TreeDiagnostics<
     int closer= ofRemoval(stop);
     int opener= ofRemoval(open);
     int best= Math.max(closer, opener);
-    var progress= best >= res + 5 || best >= tz.tokensForTree().size() - 2;
+    var progress= best>=res+5 || best>=tz.tokensForTree().size()-2;
     if (!progress){ return error(open, stop, LikelyCause.Unknown); }
-    return error(open, stop, opener > closer ? LikelyCause.StrayOpener : LikelyCause.StrayCloser);
+    return error(open, stop, opener>closer ? LikelyCause.StrayOpener : LikelyCause.StrayCloser);
   }
   private E error(T open, T stop, LikelyCause l){
     return tz.errFactory().groupHalt(open, stop, closersForOpener(open.kind()), l, tz.self());
