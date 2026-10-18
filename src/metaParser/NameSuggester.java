@@ -1,8 +1,16 @@
 package metaParser;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
+
+import utils.Join;
 import utils.Range;
 
 public final class NameSuggester{
@@ -30,7 +38,7 @@ public final class NameSuggester{
         .append(" ?\n"));
       if (cs.size() <= maxScopeToList){
         out.append("In scope: ")
-          .append(cs.stream().map(Message::displayString).collect(Collectors.joining(", ")))
+          .append(Join.of(cs.stream().map(Message::displayString), "", ", ", ""))
           .append(".\n");
       }
       return out.toString();
@@ -40,7 +48,7 @@ public final class NameSuggester{
   public static <R> R suggest(String name, List<String> candidates, Renderer<R> renderer){
     assert !name.isEmpty();
     assert !candidates.isEmpty();
-    assert candidates.equals(candidates.stream().distinct().sorted().toList()): candidates;
+    assert candidates.equals(candidates.stream().distinct().sorted().toList()) : candidates;
     assert candidates.stream().allMatch(s -> !s.isEmpty());
     assert !candidates.contains(name);
     var best= pickBest(name, candidates);
@@ -49,7 +57,7 @@ public final class NameSuggester{
 
   private static Optional<String> pickBest(String t, List<String> candidates){
     var tScore= simpleName(stripQuotes(t));
-    List<Suggestion> scored= new ArrayList<>(candidates.size());
+    var scored= new ArrayList<Suggestion>(candidates.size());
     for (String c : candidates){
       var cScore= simpleName(stripQuotes(c));
       scored.add(new Suggestion(c, cScore, score(tScore, cScore)));
@@ -97,7 +105,7 @@ public final class NameSuggester{
 
   private static double window(List<String> small, List<String> big, double front, double back, double extra){
     double best= 0.0;
-    for (int start= 0; start <= big.size() - small.size(); start += 1){
+    for (int start : Range.of(0, big.size() - small.size() + 1)){
       double sum= 0.0;
       for (int i : Range.of(small)){ sum += tokenScore(small.get(i), big.get(start + i)); }
       double avg= sum / small.size();
@@ -118,7 +126,7 @@ public final class NameSuggester{
 
   private static String stripQuotes(String s){
     var res= s.replaceFirst("'+\\z", "");
-    assert !res.isEmpty(): s;
+    assert !res.isEmpty() : s;
     return res;
   }
 

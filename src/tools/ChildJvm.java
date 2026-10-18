@@ -2,12 +2,12 @@ package tools;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import utils.Bug;
 import utils.Push;
 
 public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<String> cmd){
@@ -26,7 +26,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
   public int await() throws InterruptedException{
     var lifeline= p.getOutputStream();
     int ec; try{ ec= p.waitFor(); }
-    catch (InterruptedException | RuntimeException | Error e){
+    catch (InterruptedException|RuntimeException|Error e){
       closeQuietly(lifeline);
       waitForUninterruptibly(p, 200);
       kill();
@@ -35,7 +35,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
     }
     finally{ closeQuietly(lifeline); }
     joinUninterruptibly(pump);
-    if (pumpErr[0] != null){ throw Bug.of(pumpErr[0]); }
+    if (pumpErr[0] != null){ throw new UncheckedIOException(pumpErr[0]); }
     return ec;
   }
   public void kill(){
@@ -61,7 +61,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
         if (millis == 0){ p.waitFor(); }
         else{ p.waitFor(end - System.nanoTime(), TimeUnit.NANOSECONDS); }
       }
-      catch (InterruptedException e){ interrupted = true; }
+      catch (InterruptedException _){ interrupted = true; }
     }
     if (interrupted){ Thread.currentThread().interrupt(); }
   }
@@ -69,7 +69,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
     boolean interrupted= false;
     while (t.isAlive()){
       try{ t.join(); }
-      catch (InterruptedException e){ interrupted = true; }
+      catch (InterruptedException _){ interrupted = true; }
     }
     if (interrupted){ Thread.currentThread().interrupt(); }
   }

@@ -5,8 +5,8 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
+import utils.Join;
 import utils.Push;
 
 public final class JavaTool{
@@ -31,10 +31,8 @@ public final class JavaTool{
     return sb.toString();
   }
   static String jarsCp(List<Path> jarDirs){
-    return jarDirs.stream()
+    return Join.of(jarDirs.stream()
       .flatMap(dir -> Fs.walk(dir, s -> s.filter(p -> p.toString().endsWith(".jar")).toList()).stream())
-      .sorted(Comparator.comparing(p -> p.getFileName().toString()))
-      .map(Path::toString)
-      .collect(Collectors.joining(File.pathSeparator));
+      .sorted(Comparator.comparing(p -> p.getFileName().toString())), "", File.pathSeparator, "", "");
   }
 }

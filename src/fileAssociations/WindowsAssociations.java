@@ -21,6 +21,7 @@ import java.util.stream.Stream;
 
 import tools.Fs;
 import utils.Bug;
+import utils.Join;
 
 public final class WindowsAssociations{
   private static final String classes= "HKEY_CURRENT_USER\\Software\\Classes\\";
@@ -37,7 +38,7 @@ public final class WindowsAssociations{
       Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
-    if (existing.size() > 1){ throw ambiguous.apply(String.join("\n", existing)); }
+    if (existing.size() > 1){ throw ambiguous.apply(Join.of(existing, "", "\n", "")); }
     var locked= extensions.stream().map(Icon::extension)
       .filter(e -> regValue(userChoiceKey(e), "ProgId").isPresent() || regValue(hkcu(fileExts+e+"\\UserChoiceLatest\\ProgId"), "ProgId").isPresent()).toList();
     if (!locked.isEmpty()){ throw userLocked.apply(locked); }
@@ -64,7 +65,7 @@ public final class WindowsAssociations{
     var res= new LinkedHashSet<String>();
     res.addAll(regValues(hkcu(registeredApplications)).keySet());
     for (var name : listSubkeys(hkcu(softwareRoot))){
-      if (keyExists(hkcu(softwareRoot)+"\\"+name+"\\Capabilities")){ res.add(name); }
+      if (keyExists(hkcu(capabilities(name)))){ res.add(name); }
     }
     return res.stream().filter(belongsToFamily).sorted().toList();
   }
@@ -149,7 +150,7 @@ public final class WindowsAssociations{
       +regEntry(fileAssociations(identity), ext, progId);
   }
   private static String openCommand(Path command){ return "\""+command+"\" \"%1\""; }
-  private static String capabilities(String identity){ return "HKEY_CURRENT_USER\\Software\\"+identity+"\\Capabilities"; }
+  private static String capabilities(String identity){ return softwareRoot+"\\"+identity+"\\Capabilities"; }
   public static String fileAssociations(String identity){ return capabilities(identity)+"\\FileAssociations"; }
   public static String progId(String identity, String ext){ return identity+"."+ext.substring(1); }
   private static String regEntry(String key, String data){ return regEntry(key, "", data); }
@@ -208,6 +209,6 @@ public final class WindowsAssociations{
         FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
       notify.invokeWithArguments(assocChanged, 0, MemorySegment.NULL, MemorySegment.NULL);
     }
-    catch (Throwable t){ throw Bug.of(t); }
+    catch (Throwable e){ throw Bug.of(e); }
   }
 }

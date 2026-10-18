@@ -2,7 +2,6 @@ package metaParser;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -13,9 +12,9 @@ public final class TokenTreeSpec<
     T extends Token<T,TK>,
     TK extends TokenKind
   >{
-  final LinkedHashMap<TK,Map<TK,TK>> openClose= new LinkedHashMap<>();
+  final LinkedHashMap<TK,LinkedHashMap<TK,TK>> openClose= new LinkedHashMap<>();
   final LinkedHashSet<TK> closers= new LinkedHashSet<>();
-  final LinkedHashMap<TK,Set<TK>> barriers= new LinkedHashMap<>();
+  final LinkedHashMap<TK,LinkedHashSet<TK>> barriers= new LinkedHashMap<>();
   final LinkedHashMap<TK,Function<T,Optional<T>>> closerEaters= new LinkedHashMap<>();
   final LinkedHashMap<TK,Function<T,Optional<T>>> openerEaters= new LinkedHashMap<>();
 
@@ -43,6 +42,6 @@ public final class TokenTreeSpec<
     return this;
   }
   boolean isBarrierFor(T current, T open){
-    return barriers.getOrDefault(open.kind(), Set.of()).contains(current.kind());
+    return barriers.getOrDefault(open.kind(), new LinkedHashSet<>()).contains(current.kind());
   }
 }

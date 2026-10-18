@@ -3,7 +3,6 @@ package metaParser;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 
 //package private so we do not need to make private fields or to otherwise protect from the library user
 class TokenTrees<
@@ -19,7 +18,7 @@ class TokenTrees<
     this.spec= spec; this.tokenizer= tokenizer;
   }
   TK closesMe(TK open, TK close){//null for not valid closing
-    return spec.openClose.getOrDefault(open, Map.of()).get(close);
+    return spec.openClose.get(open).get(close);
   }
   T of(ListIterator<T> it){
     var first= it.next();
