@@ -192,7 +192,7 @@ public final class WindowsAssociations{
   public static String regName(String line){ return line.substring(0, line.indexOf("REG_")).strip(); }
   private static String regQueried(String line){
     var end= line.indexOf(' ', line.indexOf("REG_"));
-    return end < 0 ? "" : line.substring(end).strip();
+    return end<0 ? "" : line.substring(end).strip();
   }
   private static String hkcu(String key){ return "HKCU"+key.substring("HKEY_CURRENT_USER".length()); }
   private static List<String> importReg(String content){

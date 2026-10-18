@@ -43,7 +43,7 @@ public abstract class MetaParser<
 
   public Optional<T> peek(){ return peek(0); }
   public Optional<T> peekAbs(int index){
-    if (index < 0 || index >= limit){ return Optional.empty(); }
+    if (index<0 || index>=limit){ return Optional.empty(); }
     return Optional.of(ts.get(index));
   }
   public Optional<T> peek(int la){ return peekAbs(index + la); }
@@ -126,10 +126,10 @@ public abstract class MetaParser<
   public Span spanAround(int low, int high){
     if (ts.isEmpty()){ return span; }
     if (low == ts.size()){ low -= 1; }
-    if (high == ts.size() || high < 0){ high = ts.size() - 1; }
+    if (high==ts.size() || high<0){ high = ts.size() - 1; }
     if (low > high){ low = high; }
-    assert low >= 0 && low < ts.size();
-    assert high >= 0 && high < ts.size();
+    assert low>=0 && low<ts.size();
+    assert high>=0 && high<ts.size();
     var here= span(ts.get(low), ts.get(high));
     if (here.isPresent()){ return here.get(); }
     int startLine= span.startLine();
@@ -261,13 +261,13 @@ public abstract class MetaParser<
     check.accept(make(spanAround(index, limit-1), ts.subList(index, limit)));
   }
   private void checkProbeErrorFront(boolean emptyAllowed, int start, int end, int drop, String frameName){
-    if (drop < 0 || start > end - drop){ throw errFactory().badProbeDropIn(frameName, spanAround(start, start), start, end, drop, self()); }
-    if (!emptyAllowed && start >= end){ throw errFactory().probeStalledIn(frameName, spanAround(start, start), start, end, self()); }
+    if (drop<0 || start>end-drop){ throw errFactory().badProbeDropIn(frameName, spanAround(start, start), start, end, drop, self()); }
+    if (!emptyAllowed && start>=end){ throw errFactory().probeStalledIn(frameName, spanAround(start, start), start, end, self()); }
   }
   public enum SplitMode{ Skipped, Left, Right }
   public int splitOn(SplitMode split, TK k){ return splitOn(split, t -> t.is(k)); }
   public int splitOn(SplitMode split, Predicate<T> p){
-    fwdIf(index() != 0 && !end() && split == SplitMode.Right);
+    fwdIf(index()!=0 && !end() && split==SplitMode.Right);
     while (!end()){
       var t= expectAny("");
       if (!p.test(t)){ continue; }
@@ -304,7 +304,7 @@ public abstract class MetaParser<
   }
   public Span span(){ return span; }
   public Span spanLast(){
-    if (limit - 1 < 0){ return span; }
+    if (limit-1 < 0){ return span; }
     return span(ts.get(limit - 1)).orElse(span);
   }
   public Span remainingSpan(){

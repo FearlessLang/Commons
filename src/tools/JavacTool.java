@@ -75,7 +75,7 @@ public final class JavacTool{
   public static Path reqAppDir(Supplier<RuntimeException> onMissing){
     var launcher= System.getProperty(launcherKey);
     var appDir= System.getProperty(appDirKey);
-    if (launcher == null || appDir == null){ throw onMissing.get(); }
+    if (launcher==null || appDir==null){ throw onMissing.get(); }
     var res= Path.of(appDir);
     if (!res.isAbsolute()){ throw onMissing.get(); }
     return res;

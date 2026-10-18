@@ -69,9 +69,9 @@ public final class NameSuggester{
       .thenComparing(s -> s.value));
     var top= scored.getFirst();
     double topScore= top.score;
-    double runnerUp= scored.size() > 1 ? scored.get(1).score : -1;
+    double runnerUp= scored.size()>1 ? scored.get(1).score : -1;
     boolean strongEnough= topScore >= strongSimilarity;
-    boolean clearMargin= (runnerUp < 0) || (topScore - runnerUp >= margin);
+    boolean clearMargin= (runnerUp < 0) || (topScore-runnerUp >= margin);
     if (!strongEnough || !clearMargin){ return Optional.empty(); }
     return Optional.of(top.value);
   }
@@ -172,8 +172,8 @@ public final class NameSuggester{
     return prev[m];
   }
 
-  private static boolean isAsciiUpper(char c){ return c >= 'A' && c <= 'Z'; }
-  private static boolean isAsciiLower(char c){ return c >= 'a' && c <= 'z'; }
+  private static boolean isAsciiUpper(char c){ return c>='A' && c<='Z'; }
+  private static boolean isAsciiLower(char c){ return c>='a' && c<='z'; }
 
   private static final List<Set<String>> aliases= aliases();
   private static List<Set<String>> aliases(){

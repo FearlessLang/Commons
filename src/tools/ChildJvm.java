@@ -56,7 +56,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
   private static void waitForUninterruptibly(Process p, long millis){
     boolean interrupted= false;
     long end= System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(millis);
-    while (p.isAlive() && (millis == 0 || end - System.nanoTime() > 0)){
+    while (p.isAlive() && (millis==0 || end-System.nanoTime()>0)){
       try{
         if (millis == 0){ p.waitFor(); }
         else{ p.waitFor(end - System.nanoTime(), TimeUnit.NANOSECONDS); }

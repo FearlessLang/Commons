@@ -16,7 +16,7 @@ final class Shell{
     var ran= exec(cmd);
     var out= ran.map(Ran::out).orElse("The program could not be started.");
     var reported= (Join.of(cmd, "", " ", "")+"\n"+out).strip();
-    if (ran.isEmpty() || ran.get().code() != 0){ throw stepFailed.apply(reported); }
+    if (ran.isEmpty() || ran.get().code()!=0){ throw stepFailed.apply(reported); }
   }
   static Optional<Ran> exec(List<String> cmd){
     var pb= Fs.processBuilder(cmd).redirectErrorStream(true);

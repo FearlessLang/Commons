@@ -70,7 +70,7 @@ public final class LinuxAssociations{
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
     var unwritable= registrations().stream().filter(f -> existing.contains(baseName(f)))
       .flatMap(f -> Stream.of(f, f.getParent())).distinct().filter(f -> !Files.isWritable(f));
-    var targets= extensions.isEmpty() && existing.isEmpty() ? Stream.<Path>of()
+    var targets= (extensions.isEmpty() && existing.isEmpty()) ? Stream.<Path>of()
       : Stream.of(home("applications"), home("mime/packages"), iconDir("mimetypes"), iconDir("apps")).filter(d -> !writableForCreation(d));
     var refused= Stream.concat(unwritable, targets).map(Path::toString).toList();
     if (!refused.isEmpty()){ throw notWritable.apply(Join.of(refused, "", "\n", "")); }
@@ -115,9 +115,9 @@ public final class LinuxAssociations{
     var cleared= new HashSet<String>();
     for (var dir : mimeDirs()){
       var keep= keep(dir, belongsToFamily);
-      var here= fields(dir.resolve("globs2")).filter(f -> f.size() > 2 && keep.test(f.get(1)) && !cleared.contains(f.get(1))).toList();
+      var here= fields(dir.resolve("globs2")).filter(f -> f.size()>2 && keep.test(f.get(1)) && !cleared.contains(f.get(1))).toList();
       here.stream().filter(f -> !f.get(2).equals("__NOGLOBS__"))
-        .forEach(f -> res.add(new Glob(f.get(1), f.get(2), f.size() > 3 && List.of(f.get(3).split(",")).contains("cs"))));
+        .forEach(f -> res.add(new Glob(f.get(1), f.get(2), f.size()>3 && List.of(f.get(3).split(",")).contains("cs"))));
       here.stream().filter(f -> f.get(2).equals("__NOGLOBS__")).forEach(f -> cleared.add(f.get(1)));
     }
     return List.copyOf(res);
@@ -146,7 +146,7 @@ public final class LinuxAssociations{
     for (var line : lines(file)){
       if (line.startsWith("[")){ section = line.strip(); continue; }
       var eq= line.indexOf('=');
-      if (eq < 0 || !List.of(defaults, added).contains(section)){ continue; }
+      if (eq<0 || !List.of(defaults, added).contains(section)){ continue; }
       var at= section;
       split(line.substring(eq+1)).forEach(n -> res.add(new Opener(n.replaceFirst("\\.desktop$", ""), line.substring(0, eq).strip(), at)));
     }

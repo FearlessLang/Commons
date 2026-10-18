@@ -29,13 +29,13 @@ final class Xdg{
   }
   private static Path dir(String name, Path fallback){
     var v= LinuxAssociations.env.apply(name);
-    if (v == null || v.isBlank()){ return fallback; }
+    if (v==null || v.isBlank()){ return fallback; }
     var res= Path.of(v);
     return res.isAbsolute() ? res.normalize() : fallback;
   }
   private static List<Path> dirs(String name, List<Path> fallback){
     var v= LinuxAssociations.env.apply(name);
-    if (v == null || v.isBlank()){ return fallback; }
+    if (v==null || v.isBlank()){ return fallback; }
     var res= Stream.of(v.split(":")).filter(part -> !part.isBlank()).map(Path::of).filter(Path::isAbsolute).map(Path::normalize).toList();
     return res.isEmpty() ? fallback : res;
   }

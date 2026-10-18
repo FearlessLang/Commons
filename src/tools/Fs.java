@@ -33,9 +33,9 @@ public final class Fs{
     "`'\"!?@#$%^&_|~\\" +
     " \n";
   public static final int maxExtSeg= 16;
-  public static boolean isExtSegChar(char c){ return ('a' <= c && c <= 'z') || ('0' <= c && c <= '9'); }
+  public static boolean isExtSegChar(char c){ return ('a'<=c && c<='z') || ('0'<=c && c<='9'); }
   public static boolean isExtSeg(String s){
-    return !s.isEmpty() && s.length() <= maxExtSeg && s.chars().allMatch(c -> isExtSegChar((char)c));
+    return !s.isEmpty() && s.length()<=maxExtSeg && s.chars().allMatch(c -> isExtSegChar((char)c));
   }
   public static void ensureDir(Path p){ ofV(() -> Files.createDirectories(p)); }
   public static void cleanDirContents(Path p){
@@ -53,7 +53,7 @@ public final class Fs{
     for (int attempt= 0; ; attempt += 1){
       try{ Files.deleteIfExists(p); return; }
       catch (AccessDeniedException e){
-        if (!isWindows() || attempt >= 9){ throw e; }
+        if (!isWindows() || attempt>=9){ throw e; }
         if (attempt == 0){ System.gc(); }
         sleepBriefly();
       }
@@ -138,18 +138,18 @@ public final class Fs{
   public static String fileNameWithoutExtension(String s){
     int slash= lastSlashIndex(s);
     int dot= s.indexOf('.', slash + 1); // first dot after last slash
-    assert dot > slash + 1 && dot + 1 < s.length();
+    assert dot>slash+1 && dot+1<s.length();
     return s.substring(slash + 1, dot);
   }
   public static String removeFileNameAllowTop(String s){
     int i= s.lastIndexOf('/');
     if (i == -1){ return ""; }
     int j= s.indexOf(":/");
-    return i == j+1 ? s.substring(0, i+1) : s.substring(0, i);
+    return i==j+1 ? s.substring(0, i+1) : s.substring(0, i);
   }
   private static int lastSlashIndex(String s){
     int i= s.lastIndexOf('/');
-    assert i >= 0 && i + 1 < s.length();
+    assert i>=0 && i+1<s.length();
     return i;
   }
   public static boolean isWindows(){ return osName().contains("win"); }

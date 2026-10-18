@@ -24,7 +24,7 @@ public interface Token<T extends Token<T,TK>,TK extends TokenKind>{
       if (cp == '\n'){ l += 1; c = 1; }
       else{ c += 1; }
     }
-    int minCol= first.line() == l ? first.column() : 1;
+    int minCol= first.line()==l ? first.column() : 1;
     return new Span(fileName, first.line(), first.column(), l, Math.max(minCol, c - 1));
   }
 }
