@@ -143,7 +143,7 @@ import utils.Bug;
  */
 public interface FileAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
-      List<Icon> extensions, Path programIco, Path programPng,
+      List<Icon> extensions, List<WindowIcon> windows, Path programIco, Path programPng,
       Function<String,RuntimeException> ambiguous,
       Function<List<String>,RuntimeException> userLocked,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
@@ -155,7 +155,7 @@ public interface FileAssociations{
       return;
     }
     if (Fs.isLinux()){
-      LinuxAssociations.reconcile(identity, belongsToFamily, command, extensions, programPng,
+      LinuxAssociations.reconcile(identity, belongsToFamily, command, extensions, windows, programPng,
         ambiguous, userLocked, notOurs, notWritable, halfDone);
       return;
     }

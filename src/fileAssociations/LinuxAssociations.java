@@ -51,7 +51,7 @@ public final class LinuxAssociations{
   }
   record Opener(String program, String type, String section){}
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
-      List<Icon> extensions, Path programPng,
+      List<Icon> extensions, List<WindowIcon> windows, Path programPng,
       Function<String,RuntimeException> ambiguous,
       Function<List<String>,RuntimeException> userLocked,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
@@ -74,7 +74,7 @@ public final class LinuxAssociations{
       : Stream.of(home("applications"), home("mime/packages"), iconDir("mimetypes"), iconDir("apps")).filter(d -> !writableForCreation(d));
     var refused= Stream.concat(unwritable, targets).map(Path::toString).toList();
     if (!refused.isEmpty()){ throw notWritable.apply(Join.of(refused, "", "\n", "")); }
-    var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, command, extensions, programPng, globs);
+    var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, command, extensions, windows, programPng, globs);
     if (alreadyMatches(existing, identity, wanted)){ return; }
     var gone= owned(Push.of(existing, identity)::contains);
     gone.forEach(f -> Fs.ofV(() -> Files.delete(f)));
@@ -102,13 +102,14 @@ public final class LinuxAssociations{
     return Stream.concat(desktops(), mimeDirs().stream().flatMap(d -> listed(d.resolve("packages"), ".xml").stream())).toList();
   }
   static List<String> existingIdentities(Predicate<String> belongsToFamily){
-    return registrations().stream().map(LinuxAssociations::baseName).filter(belongsToFamily).distinct().sorted().toList();
+    return registrations().stream().map(LinuxAssociations::identityOf).filter(belongsToFamily).distinct().sorted().toList();
   }
   private static List<Path> owned(Predicate<String> owner){
     var icons= listed(iconDir("mimetypes"), ".png").stream()
       .filter(f -> baseName(f).matches(".+-[0-9a-f]+") && owner.test(baseName(f).replaceFirst("-[0-9a-f]+$", "")));
-    var named= Stream.concat(registrations().stream(), listed(iconDir("apps"), ".png").stream()).filter(f -> owner.test(baseName(f)));
-    return Stream.concat(icons, named).toList();
+    var named= listed(iconDir("apps"), ".png").stream().filter(f -> owner.test(baseName(f)));
+    var registered= registrations().stream().filter(f -> owner.test(identityOf(f)));
+    return Stream.of(icons, named, registered).flatMap(s -> s).toList();
   }
   private static List<Glob> globs(Predicate<String> belongsToFamily){
     var res= new ArrayList<Glob>();
@@ -155,14 +156,15 @@ public final class LinuxAssociations{
   private static boolean writableForCreation(Path dir){
     return Stream.iterate(dir, Objects::nonNull, Path::getParent).filter(Files::exists).findFirst().filter(Files::isWritable).isPresent();
   }
-  private static Map<Path,byte[]> wanted(String identity, Path command, List<Icon> extensions, Path programPng, List<Glob> globs){
+  private static Map<Path,byte[]> wanted(String identity, Path command, List<Icon> extensions, List<WindowIcon> windows, Path programPng, List<Glob> globs){
     var res= new LinkedHashMap<Path,byte[]>();
     var body= new StringBuilder();
     for (var icon : extensions){
-      var bytes= desktopPng(icon.png());
-      var name= identity+"-"+hash(bytes);
-      res.put(iconDir("mimetypes").resolve(name+".png"), bytes);
-      body.append(mimeType(identity, icon.extension(), name, globTypes(icon.extension(), globs)));
+      body.append(mimeType(identity, icon.extension(), icon(res, identity, icon.png()), globTypes(icon.extension(), globs)));
+    }
+    for (var w : windows){
+      var entry= windowEntry(iconDir("mimetypes").resolve(icon(res, identity, w.png())+".png").toString(), command.toString(), w);
+      res.put(home("applications").resolve(identity+"-"+hash(utf8(w.windowClass()))+".desktop"), utf8(entry));
     }
     var types= extensions.stream().map(i -> typeOf(i.extension())).toList();
     res.put(home("applications").resolve(identity+".desktop"), utf8(desktopEntry(identity, command.toString(), windowClass(), types)));
@@ -173,6 +175,12 @@ public final class LinuxAssociations{
       """.formatted(body)));
     res.put(iconDir("apps").resolve(identity+".png"), desktopPng(programPng));
     return Collections.unmodifiableMap(res);
+  }
+  private static String icon(LinkedHashMap<Path,byte[]> res, String identity, Path png){
+    var bytes= desktopPng(png);
+    var name= identity+"-"+hash(bytes);
+    res.put(iconDir("mimetypes").resolve(name+".png"), bytes);
+    return name;
   }
   private static boolean alreadyMatches(List<String> existing, String identity, Map<Path,byte[]> wanted){
     var exactlyWanted= existing.stream().allMatch(identity::equals) && Set.copyOf(owned(identity::equals)).equals(wanted.keySet());
@@ -215,6 +223,18 @@ public final class LinuxAssociations{
       MimeType=%s;
       """.formatted(identity, execArg(command), identity, windowClass, Join.of(types, "", ";", ""));
   }
+  private static String windowEntry(String icon, String command, WindowIcon w){
+    return """
+      [Desktop Entry]
+      Type=Application
+      Name=%s
+      Exec=%s %s
+      Icon=%s
+      StartupWMClass=%s
+      NoDisplay=true
+      Terminal=false
+      """.formatted(w.name(), execArg(command), execArg(w.target().toString()), icon, w.windowClass());
+  }
   private static String execArg(String s){
     return ("\""+s.replaceAll("[\"`$\\\\]", "\\\\$0")+"\"").replace("%", "%%").replace("\\", "\\\\");
   }
@@ -233,6 +253,7 @@ public final class LinuxAssociations{
     if (!Files.isRegularFile(file)){ return List.of(); }
     return Fs.of(() -> Files.readAllLines(file));
   }
+  private static String identityOf(Path file){ return baseName(file).replaceFirst("-[0-9a-f]+$", ""); }
   private static String baseName(Path file){
     var name= file.getFileName().toString();
     return name.substring(0, name.lastIndexOf('.'));
