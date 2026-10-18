@@ -96,7 +96,7 @@ public final class Message{
     }
     return new Pos(start.line, start.col);
   }
-  private static boolean isVisible(char c){ return c != ' ' && c != '\t' && c != '\n' && c != '\r'; }
+  private static boolean isVisible(char c){ return c!=' ' && c!='\t' && c!='\n' && c!='\r'; }
 
   private record Grouping(URI file, List<Span> singles, Span multiLine, int caretLine){}
 

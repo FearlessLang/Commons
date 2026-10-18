@@ -300,7 +300,7 @@ public abstract class MetaParser<
   private String show(T t){
     if (!t.tokens().isEmpty()){ return t.kind()+"@"+t.line()+":"+t.column(); }
     var s= t.content().replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
-    return t.kind()+"\""+(s.length() <= 24 ? s : s.substring(0, 21)+"...")+"\"@"+t.line()+":"+t.column();
+    return t.kind()+"\""+(s.length()<=24 ? s : s.substring(0, 21)+"...")+"\"@"+t.line()+":"+t.column();
   }
   public Span span(){ return span; }
   public Span spanLast(){
