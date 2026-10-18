@@ -6,7 +6,7 @@ import java.nio.file.Path;
 public final class PrettyFileName{
   public static String displayFileName(URI uri){
     var s= "file".equals(uri.getScheme()) ? relativeToCwd(Path.of(uri)) : uri.toString();
-    var plain= s.chars().allMatch(c -> c != ' ' && Message.literalChar(c));
+    var plain= s.chars().allMatch(c -> c!=' ' && Message.literalChar(c));
     return plain ? s : uri.toASCIIString();
   }
   private static String relativeToCwd(Path p){
