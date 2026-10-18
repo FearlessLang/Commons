@@ -17,6 +17,8 @@ import utils.Bug;
  * - belongsToFamily: a predicate over strings, supplied by the caller.
  * - command: an absolute executable path.
  * - extensions: a list of (file extension, file icon) pairs. May be empty.
+ * - windows: a list of (window class, name, target, icon) entries. May be empty.
+ * [Linux only] Windows ignores it.
  * - programIco, programPng: one icon, independent of extensions.
  * - ambiguous, userLocked, notOurs, notWritable, halfDone: one function per kind of
  * failure, each turning what was found into the exception reconcile throws.
@@ -29,7 +31,8 @@ import utils.Bug;
  *
  * A ProgId (Windows) belongs to identity X if it equals X followed by "." followed by
  * the extension with its leading dot removed. A .desktop file or MIME-package file
- * (Linux) belongs to the identity equal to its own base name.
+ * (Linux) belongs to the identity equal to its own base name, without a final "-"
+ * followed by hex digits.
  *
  * [Linux only] A program opens MIME types, not extensions. The type of .fearless is
  * application/x-fearless; the type of every other extension is application/x-fearless-
@@ -49,8 +52,8 @@ import utils.Bug;
  *
  * 1. Every existing on-system identity for which belongsToFamily holds is collected -
  * Windows: every RegisteredApplications value name, and every name of a
- * Software\*\Capabilities key; Linux: every .desktop file base name, and every
- * MIME-package file base name. If more than one distinct such identity is found, the
+ * Software\*\Capabilities key; Linux: the identity of every .desktop file and of every
+ * MIME-package file. If more than one distinct such identity is found, the
  * operation refuses, naming all of them, and changes nothing.
  *
  * 2. Windows: for every extension in extensions,
@@ -92,7 +95,8 @@ import utils.Bug;
  * declares exactly extensions (same extensions, same per-extension icons), the same
  * command, and the same program icon, nothing further happens: this is a successful
  * call that changes nothing. [Linux only] It also requires the same system types for
- * every extension, and that no icon file of identity is left beyond those of extensions.
+ * every extension, the same windows, and that no icon file of identity is left beyond
+ * those of extensions and windows.
  *
  * 6. Otherwise, every identity found in step 1 is deleted in full - every registry key
  * or file it created, for every extension it declared, including extensions absent
@@ -114,6 +118,13 @@ import utils.Bug;
  * hash).png, and the program icon is apps/(identity).png there. Every file named
  * (identity)-(hex hash).png in mimetypes belongs to identity: deleting identity in
  * full, as step 6 and eradicateAll do, and recreating it delete those not wanted.
+ * [Linux only] Each window is a .desktop file (identity)-(hex hash of the window
+ * class).desktop with NoDisplay=true: the name of the window as its name, command
+ * followed by the target of the window as its command, the absolute path of the icon
+ * file of the window in mimetypes as its icon, and the window class as its
+ * StartupWMClass. GNOME and COSMIC show that icon for every window whose WM_CLASS is
+ * the window class; they do not find an icon named by its theme name in
+ * $XDG_DATA_HOME/icons.
  *
  * 8. One shell or database refresh is issued for the whole of steps 6-7 combined -
  * SHChangeNotify once (Windows) or update-mime-database/update-desktop-database once
