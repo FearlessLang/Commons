@@ -6,7 +6,6 @@ import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessDeniedException;
-import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
@@ -15,6 +14,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 import java.util.spi.ToolProvider;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -37,12 +37,17 @@ public final class Fs{
   public static boolean isExtSeg(String s){
     return !s.isEmpty() && s.length()<=maxExtSeg && s.chars().allMatch(c -> isExtSegChar((char)c));
   }
-  public static void ensureDir(Path p){ ofV(() -> Files.createDirectories(p)); }
+  public static Function<Path,RuntimeException> onSymbolicLink= p -> new IllegalArgumentException(
+    "\""+p+"\" is a symbolic link; Fs does not read, write, copy or delete through symbolic links: replace it with the file or folder it points to.");
+  private static Path noLink(Path p){
+    if (Files.isSymbolicLink(p)){ throw onSymbolicLink.apply(p); }
+    return p;
+  }
+  public static void ensureDir(Path p){ ofV(() -> Files.createDirectories(noLink(p))); }
   public static void cleanDirContents(Path p){
     reqDir(p, "cleaning");
-    var real= of(p::toRealPath);
-    var xs= walk(real, s -> s
-      .filter(x -> !x.equals(real))
+    var xs= walk(p, s -> s
+      .filter(x -> !x.equals(p))
       .sorted(Comparator.reverseOrder())
       .toList()
     );
@@ -65,21 +70,22 @@ public final class Fs{
   }
   public static void writeUtf8(Path file, String content){
     ensureDir(file.getParent());
-    ofV(() -> Files.writeString(file, content));
+    ofV(() -> Files.writeString(noLink(file), content));
   }
-  public static String readUtf8(Path file){ return of(() -> Files.readString(file)); }
+  public static String readUtf8(Path file){ return of(() -> Files.readString(noLink(file))); }
   public static void copyTree(Path from, Path to){
-    walkV(from, s -> s.forEach(src -> ofV(() -> copyOne(from, to, src))), FileVisitOption.FOLLOW_LINKS);
+    var srcs= walk(from, Stream::toList);
+    srcs.forEach(src -> ofV(() -> copyOne(from, noLink(to), src)));
   }
   private static void copyOne(Path fromRoot, Path toRoot, Path src) throws IOException{
     var rel= fromRoot.relativize(src);
-    var dst= toRoot.resolve(rel);
+    var dst= noLink(toRoot.resolve(rel));
     if (Files.isDirectory(src)){ Files.createDirectories(dst); return; }
     Files.createDirectories(dst.getParent());
     Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
   }
   public static long lastModified(Path file){
-    try{ return Files.getLastModifiedTime(file).toMillis(); }
+    try{ return Files.getLastModifiedTime(noLink(file)).toMillis(); }
     catch (NoSuchFileException _){ return -1; }
     catch (IOException e){ throw new UncheckedIOException(e); }
   }
@@ -93,13 +99,13 @@ public final class Fs{
       catch (InterruptedException e){ Thread.currentThread().interrupt(); throw Bug.of(e); }
     }
   }
-  public static void reqDir(Path p, String what){ Require.check(Files.isDirectory(p), "Expected a directory for "+what+": "+p); }
+  public static void reqDir(Path p, String what){ Require.check(Files.isDirectory(noLink(p)), "Expected a directory for "+what+": "+p); }
   public static void cleanDir(Path p){
-    if (!Files.exists(p)){ ensureDir(p); return; }
+    if (!Files.exists(noLink(p))){ ensureDir(p); return; }
     cleanDirContents(p);
   }
   public static void rmTree(Path p){
-    if (Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)){ cleanDirContents(p); }
+    if (Files.isDirectory(noLink(p))){ cleanDirContents(p); }
     ofV(() -> Files.deleteIfExists(p));
   }
   public static void copyFresh(Path from, Path to){
@@ -168,18 +174,18 @@ public final class Fs{
     try{ return f.run(); }
     catch (IOException e){ throw new UncheckedIOException(e); }
   }
-  public static void walkV(Path p, WalkVoid f, FileVisitOption... os){
-    try (Stream<Path> s= Files.walk(p, os)){ f.walk(s); }
+  public static void walkV(Path p, WalkVoid f){
+    try (Stream<Path> s= Files.walk(p)){ f.walk(s.map(Fs::noLink)); }
     catch (IOException e){ throw new UncheckedIOException(e); }
   }
-  public static <T> T walk(Path p, Walk<T> f, FileVisitOption... os){
-    try (Stream<Path> s= Files.walk(p, os)){ return f.walk(s); }
+  public static <T> T walk(Path p, Walk<T> f){
+    try (Stream<Path> s= Files.walk(p)){ return f.walk(s.map(Fs::noLink)); }
     catch (IOException e){ throw new UncheckedIOException(e); }
   }
   public static void copyTreeFlat(Path from, Path to){
     var files= walk(from, s -> s
       .filter(Files::isRegularFile)
-      .toList(), FileVisitOption.FOLLOW_LINKS
+      .toList()
     );
     var duplicates= files.stream()
       .collect(Collectors.groupingBy(p -> p.getFileName().toString()))
@@ -188,6 +194,6 @@ public final class Fs{
       .toList();
     Require.check(duplicates.isEmpty(), "Expected distinct file names to flatten "+from+" into "+to+", found:\n"+duplicates);
     ensureDir(to);
-    files.forEach(src -> ofV(() -> Files.copy(src, to.resolve(src.getFileName()), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)));
+    files.forEach(src -> ofV(() -> Files.copy(src, noLink(to.resolve(src.getFileName())), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)));
   }
 }
