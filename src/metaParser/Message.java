@@ -182,7 +182,7 @@ public final class Message{
     return l>start.line || (l==start.line && c>=start.col);
   }
   private record Pos(int line, int col){}
-  private static String uPlus(int cp){
+  static String uPlus(int cp){
     return "U+"+String.format(Locale.ROOT, cp<=0xFFFF ? "%04X" : "%06X", cp);
   }
   public static String displayChar(int cp){
