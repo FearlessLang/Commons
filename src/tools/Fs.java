@@ -2,15 +2,24 @@ package tools;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessDeniedException;
+import java.nio.file.CopyOption;
+import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
+import java.nio.file.attribute.FileTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -43,6 +52,29 @@ public final class Fs{
     if (Files.isSymbolicLink(p)){ throw onSymbolicLink.apply(p); }
     return p;
   }
+  public static boolean exists(Path p){ return Files.exists(noLink(p)); }
+  public static boolean notExists(Path p){ return Files.notExists(noLink(p)); }
+  public static boolean isDirectory(Path p){ return Files.isDirectory(noLink(p)); }
+  public static boolean isRegularFile(Path p){ return Files.isRegularFile(noLink(p)); }
+  public static boolean isWritable(Path p){ return Files.isWritable(noLink(p)); }
+  public static byte[] readAllBytes(Path p) throws IOException{ return Files.readAllBytes(noLink(p)); }
+  public static List<String> readAllLines(Path p) throws IOException{ return Files.readAllLines(noLink(p)); }
+  public static InputStream newInputStream(Path p) throws IOException{ return Files.newInputStream(noLink(p)); }
+  public static Path write(Path p, byte[] bytes, OpenOption... os) throws IOException{ return Files.write(noLink(p), bytes, os); }
+  public static Path writeString(Path p, CharSequence text, OpenOption... os) throws IOException{ return Files.writeString(noLink(p), text, os); }
+  public static Path move(Path from, Path to, CopyOption... os) throws IOException{ return Files.move(noLink(from), noLink(to), os); }
+  public static void delete(Path p) throws IOException{ Files.delete(noLink(p)); }
+  public static boolean deleteIfExists(Path p) throws IOException{ return Files.deleteIfExists(noLink(p)); }
+  public static Path createDirectories(Path p) throws IOException{ return Files.createDirectories(noLink(p)); }
+  public static Path createTempFile(String prefix, String suffix) throws IOException{ return Files.createTempFile(prefix, suffix); }
+  public static Stream<Path> list(Path p) throws IOException{ return Files.list(noLink(p)).map(Fs::noLink); }
+  public static long size(Path p) throws IOException{ return Files.size(noLink(p)); }
+  public static FileTime getLastModifiedTime(Path p) throws IOException{ return Files.getLastModifiedTime(noLink(p)); }
+  public static Path setLastModifiedTime(Path p, FileTime t) throws IOException{ return Files.setLastModifiedTime(noLink(p), t); }
+  public static Object getAttribute(Path p, String attribute) throws IOException{ return Files.getAttribute(noLink(p), attribute); }
+  public static FileStore getFileStore(Path p) throws IOException{ return Files.getFileStore(noLink(p)); }
+  public static FileChannel openChannel(Path p, OpenOption... os) throws IOException{ return FileChannel.open(noLink(p), os); }
+  public static WatchKey watch(Path dir, WatchService w, WatchEvent.Kind<?>... kinds) throws IOException{ return noLink(dir).register(w, kinds); }
   public static Path realPath(Path p){
     try{ return noLink(p).toRealPath(); }
     catch (NoSuchFileException _){ return p; }

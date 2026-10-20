@@ -1,11 +1,11 @@
 package fileAssociations;
 
+import java.io.ByteArrayInputStream;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
@@ -19,7 +19,7 @@ import utils.Range;
 public final class Ico{
   public static final List<Integer> sizes= List.of(16, 20, 24, 32, 40, 48, 64, 256);
   public static void fromPng(Path png, Path ico){
-    var src= Objects.requireNonNull(Fs.of(() -> ImageIO.read(png.toFile())));
+    var src= Objects.requireNonNull(Fs.of(() -> ImageIO.read(new ByteArrayInputStream(Fs.readAllBytes(png)))));
     Require.check(src.getWidth() == src.getHeight(), "The icon \""+png+"\" is "+src.getWidth()+"x"+src.getHeight()
       +" pixels, but an icon must be square: its width and its height must be equal, for example 256x256.");
     var frames= sizes.stream().map(s -> frame(scaled(src, s))).toList();
@@ -35,7 +35,7 @@ public final class Ico{
     var out= new ByteArrayOutputStream();
     out.writeBytes(header.array());
     frames.forEach(out::writeBytes);
-    Fs.ofV(() -> Files.write(ico, out.toByteArray()));
+    Fs.ofV(() -> Fs.write(ico, out.toByteArray()));
   }
   static BufferedImage scaled(BufferedImage img, int size){
     var res= img;
