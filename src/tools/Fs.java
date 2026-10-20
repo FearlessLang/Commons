@@ -19,6 +19,7 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.Comparator;
 import java.util.List;
@@ -202,12 +203,16 @@ public final class Fs{
     try{ return f.run(); }
     catch (IOException e){ throw new UncheckedIOException(e); }
   }
+  private static boolean noLink(Path p, BasicFileAttributes a){
+    if (a.isSymbolicLink()){ throw onSymbolicLink.apply(p); }
+    return true;
+  }
   public static void walkV(Path p, WalkVoid f){
-    try (Stream<Path> s= Files.walk(p)){ f.walk(s.map(Fs::noLink)); }
+    try (Stream<Path> s= Files.find(p, Integer.MAX_VALUE, Fs::noLink)){ f.walk(s); }
     catch (IOException e){ throw new UncheckedIOException(e); }
   }
   public static <T> T walk(Path p, Walk<T> f){
-    try (Stream<Path> s= Files.walk(p)){ return f.walk(s.map(Fs::noLink)); }
+    try (Stream<Path> s= Files.find(p, Integer.MAX_VALUE, Fs::noLink)){ return f.walk(s); }
     catch (IOException e){ throw new UncheckedIOException(e); }
   }
   public static void copyTreeFlat(Path from, Path to){
