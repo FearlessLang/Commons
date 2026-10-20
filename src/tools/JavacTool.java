@@ -21,7 +21,7 @@ public final class JavacTool{
   public static final String consoleKey= "console";
   public static final String winKey= "w";
   //--enable-native-access needed to coordinator (example, forcing english language)
-  public static final List<String> javaOptions= List.of("-ea", "--enable-native-access=Commons,Coordinator", "-D"+appDirKey+"=$APPDIR");
+  public static final List<String> javaOptions= List.of("-ea", "-Xss16m", "--enable-native-access=Commons,Coordinator", "-D"+appDirKey+"=$APPDIR");
   // Local build-time staging dir we hand to `jpackage --module-path`, holding
   // the module jars (Commons/FearlessFrontend/Coordinator + external jars).
   public static final String buildModsDirName= "_mods";
