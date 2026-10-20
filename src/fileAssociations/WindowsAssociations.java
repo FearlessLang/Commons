@@ -7,6 +7,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -195,8 +196,8 @@ public final class WindowsAssociations{
   }
   private static String hkcu(String key){ return "HKCU"+key.substring("HKEY_CURRENT_USER".length()); }
   private static List<String> importReg(String content){
-    var file= Fs.of(() -> Fs.createTempFile("association", ".reg"));
-    Fs.ofV(() -> Fs.write(file, ("\uFEFF"+content).getBytes(StandardCharsets.UTF_16LE)));
+    var file= Fs.of(() -> Files.createTempFile("association", ".reg"));
+    Fs.ofV(() -> Files.write(file, ("\uFEFF"+content).getBytes(StandardCharsets.UTF_16LE)));
     file.toFile().deleteOnExit();
     return List.of("reg", "import", file.toString());
   }

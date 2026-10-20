@@ -1,7 +1,7 @@
 package fileAssociations;
 
-import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,7 +69,7 @@ public final class LinuxAssociations{
     foreign.values().removeIf(List::isEmpty);
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
     var unwritable= registrations().stream().filter(f -> existing.contains(baseName(f)))
-      .flatMap(f -> Stream.of(f, f.getParent())).distinct().filter(f -> !Fs.isWritable(f));
+      .flatMap(f -> Stream.of(f, f.getParent())).distinct().filter(f -> !Files.isWritable(f));
     var targets= (extensions.isEmpty() && existing.isEmpty()) ? Stream.<Path>of()
       : Stream.of(home("applications"), home("mime/packages"), iconDir("mimetypes"), iconDir("apps")).filter(d -> !writableForCreation(d));
     var refused= Stream.concat(unwritable, targets).map(Path::toString).toList();
@@ -77,15 +77,15 @@ public final class LinuxAssociations{
     var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, command, extensions, windows, programPng, globs);
     if (alreadyMatches(existing, identity, wanted)){ return; }
     var gone= owned(Push.of(existing, identity)::contains);
-    gone.forEach(f -> Fs.ofV(() -> Fs.delete(f)));
+    gone.forEach(f -> Fs.ofV(() -> Files.delete(f)));
     wanted.keySet().forEach(f -> Fs.ensureDir(f.getParent()));
-    wanted.forEach((f,bytes) -> Fs.ofV(() -> Fs.write(f, bytes)));
+    wanted.forEach((f,bytes) -> Fs.ofV(() -> Files.write(f, bytes)));
     rebuild(gone, halfDone);
   }
   static void eradicateAll(Predicate<String> belongsToFamily, Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
     var gone= owned(belongsToFamily);
-    gone.forEach(f -> Fs.ofV(() -> Fs.delete(f)));
+    gone.forEach(f -> Fs.ofV(() -> Files.delete(f)));
     if (!existing.isEmpty()){ rebuild(gone, halfDone); }
   }
   private static List<String> held(String ext, List<Glob> globs, List<Opener> openers){
@@ -154,7 +154,7 @@ public final class LinuxAssociations{
     return Collections.unmodifiableList(res);
   }
   private static boolean writableForCreation(Path dir){
-    return Stream.iterate(dir, Objects::nonNull, Path::getParent).filter(Fs::exists).findFirst().filter(Fs::isWritable).isPresent();
+    return Stream.iterate(dir, Objects::nonNull, Path::getParent).filter(Files::exists).findFirst().filter(Files::isWritable).isPresent();
   }
   private static Map<Path,byte[]> wanted(String identity, Path command, List<Icon> extensions, List<WindowIcon> windows, Path programPng, List<Glob> globs){
     var res= new LinkedHashMap<Path,byte[]>();
@@ -185,19 +185,19 @@ public final class LinuxAssociations{
   private static boolean alreadyMatches(List<String> existing, String identity, Map<Path,byte[]> wanted){
     var exactlyWanted= existing.stream().allMatch(identity::equals) && Set.copyOf(owned(identity::equals)).equals(wanted.keySet());
     if (!exactlyWanted){ return false; }
-    return wanted.entrySet().stream().allMatch(e -> Arrays.equals(Fs.of(() -> Fs.readAllBytes(e.getKey())), e.getValue()));
+    return wanted.entrySet().stream().allMatch(e -> Arrays.equals(Fs.of(() -> Files.readAllBytes(e.getKey())), e.getValue()));
   }
   private static void rebuild(List<Path> gone, Function<String,RuntimeException> halfDone){
     mimeDirs().stream().filter(d -> d.equals(home("mime")) || gone.stream().anyMatch(f -> f.getParent().equals(d.resolve("packages"))))
       .forEach(d -> run.accept(List.of("update-mime-database", d.toString()), halfDone));
-    Xdg.appDirs().stream().filter(Fs::isDirectory).filter(Fs::isWritable)
+    Xdg.appDirs().stream().filter(Files::isDirectory).filter(Files::isWritable)
       .forEach(d -> run.accept(List.of("update-desktop-database", d.toString()), halfDone));
   }
   private static Path home(String folder){ return Xdg.dataHome().resolve(folder); }
   private static Path iconDir(String kind){ return home("icons/hicolor/"+iconSide+"x"+iconSide).resolve(kind); }
   public static String typeOf(String ext){ return "application/x-fearless"+(ext.equals(".fearless") ? "" : "-"+ext.substring(1)); }
   private static byte[] desktopPng(Path png){
-    return Ico.png(Ico.scaled(Objects.requireNonNull(Fs.of(() -> ImageIO.read(new ByteArrayInputStream(Fs.readAllBytes(png))))), iconSide));
+    return Ico.png(Ico.scaled(Objects.requireNonNull(Fs.of(() -> ImageIO.read(png.toFile()))), iconSide));
   }
   private static byte[] utf8(String text){ return text.getBytes(StandardCharsets.UTF_8); }
   public static String hash(byte[] bytes){
@@ -246,12 +246,12 @@ public final class LinuxAssociations{
   private static List<Path> mimeDirs(){ return Push.of(Xdg.dataHome(), Xdg.dataDirs()).stream().map(d -> d.resolve("mime")).toList(); }
   private static Stream<String> split(String types){ return Stream.of(types.split(";")).map(String::strip).filter(s -> !s.isEmpty()); }
   private static List<Path> listed(Path dir, String suffix){
-    if (!Fs.isDirectory(dir)){ return List.of(); }
-    return Fs.of(() -> { try (var s= Fs.list(dir)){ return s.filter(p -> p.getFileName().toString().endsWith(suffix) && Fs.isRegularFile(p)).sorted().toList(); } });
+    if (!Files.isDirectory(dir)){ return List.of(); }
+    return Fs.of(() -> { try (var s= Files.list(dir)){ return s.filter(p -> p.getFileName().toString().endsWith(suffix) && Files.isRegularFile(p)).sorted().toList(); } });
   }
   private static List<String> lines(Path file){
-    if (!Fs.isRegularFile(file)){ return List.of(); }
-    return Fs.of(() -> Fs.readAllLines(file));
+    if (!Files.isRegularFile(file)){ return List.of(); }
+    return Fs.of(() -> Files.readAllLines(file));
   }
   private static String identityOf(Path file){ return baseName(file).replaceFirst("-[0-9a-f]+$", ""); }
   private static String baseName(Path file){
