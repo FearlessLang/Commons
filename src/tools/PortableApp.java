@@ -1,7 +1,6 @@
 package tools;
 
 import java.lang.module.ModuleFinder;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -31,7 +30,7 @@ public record PortableApp(
     var currentTag= (Fs.isWindows() ? "windows" : Fs.isMac() ? "macos" : "linux")
       +"-"+(System.getProperty("os.arch").contains("aarch64") ? "arm64" : "x64");
     Fs.walk(modsDir, s -> s
-      .filter(Files::isRegularFile)
+      .filter(Fs::isRegularFile)
       .filter(p -> {
         var name= p.getFileName().toString();
         return name.startsWith("skija-") && !name.startsWith("skija-shared-") && !name.startsWith("skija-"+currentTag+"-");

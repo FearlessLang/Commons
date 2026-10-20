@@ -2,7 +2,6 @@ package tools;
 
 import java.lang.module.ModuleDescriptor.Requires;
 import java.lang.module.ModuleFinder;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -34,7 +33,7 @@ public final class JavacTool{
 
   public static String compileTree(Path srcRoot, Path classesDir, Runnable postProcess, Path jarPath, List<Path> extraClasspathDirs){
     var srcs= javaSourcesUnder(srcRoot);
-    Fs.ofV(() -> Files.deleteIfExists(jarPath));
+    Fs.ofV(() -> Fs.deleteIfExists(jarPath));
     Require.check(!srcs.isEmpty(), "Expected .java files under "+srcRoot);
     var args= new ArrayList<String>(10+srcs.size());
     args.add("-encoding"); args.add("UTF-8");
@@ -125,7 +124,7 @@ public final class JavacTool{
   }
   private static void reqDeployedMods(Path dest){
     var found= Fs.walk(dest, s -> s
-      .filter(Files::isDirectory)
+      .filter(Fs::isDirectory)
       .filter(p -> p.getFileName().toString().equals(deployedModsDirName))
       .toList());
     Require.check(found.size() == 1, "Expected exactly one '"+deployedModsDirName+"' dir under "+dest+" after jpackage, found: "+found);
@@ -156,7 +155,7 @@ public final class JavacTool{
 
   private static Path iconFile(Path packaging, String osDir, String file){
     var p= packaging.resolve(osDir).resolve(file);
-    Require.check(Files.isRegularFile(p), "Expected an icon file: "+p);
+    Require.check(Fs.isRegularFile(p), "Expected an icon file: "+p);
     return p.toAbsolutePath().normalize();
   }
 
@@ -184,7 +183,7 @@ public final class JavacTool{
     Fs.cleanDir(classesDir);
     var mi= srcs.stream()
       .map(src -> src.resolve("module-info.java"))
-      .filter(Files::exists)
+      .filter(Fs::exists)
       .toList();
     Require.check(mi.size() == 1, "Expected exactly one module-info.java in the source roots "+srcs+", found: "+mi);
     var args= new ArrayList<>(javacArgs);
