@@ -14,7 +14,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
   public static final String lifelineKey= "fearless.parentLifeline";
   public static final String lifelineValue= "stdin";
   public static ChildJvm start(List<String> args, Consumer<String> out){
-    var cmd= Push.of(List.<String>of(javaExe().toString(), "-ea", "-D"+lifelineKey+"="+lifelineValue), args);
+    var cmd= Push.of(List.<String>of(javaExe().toString(), "-ea", "-Xss16m", "-D"+lifelineKey+"="+lifelineValue), args);
     var pb= Fs.processBuilder(cmd);
     Process p= Fs.of(() -> pb.redirectErrorStream(true).start());
     var pumpErr= new IOException[1];
