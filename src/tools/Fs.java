@@ -43,6 +43,11 @@ public final class Fs{
     if (Files.isSymbolicLink(p)){ throw onSymbolicLink.apply(p); }
     return p;
   }
+  public static Path realPath(Path p){
+    try{ return noLink(p).toRealPath(); }
+    catch (NoSuchFileException _){ return p; }
+    catch (IOException e){ throw new UncheckedIOException(e); }
+  }
   public static void ensureDir(Path p){ ofV(() -> Files.createDirectories(noLink(p))); }
   public static void cleanDirContents(Path p){
     reqDir(p, "cleaning");
