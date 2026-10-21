@@ -124,7 +124,6 @@ public final class WindowsAssociations{
       }
     });
     if (regValues(listKey).isEmpty()){ Shell.exec(List.of("reg", "delete", listKey, "/f")); }
-
     var progIdsKey= hkcu(fileExts)+ext+"\\OpenWithProgids";
     regValues(progIdsKey).keySet().forEach(progId -> {
       if (belongsToFamily.test(owner(progId, ext))){ Shell.exec(List.of("reg", "delete", progIdsKey, "/v", progId, "/f")); }

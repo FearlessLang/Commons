@@ -53,11 +53,11 @@ public final class Message{
     var startLine= Math.min(a.startLine(), b.startLine());
     var endLine= Math.max(a.endLine(), b.endLine());
     var startCol= (a.startLine()==startLine && b.startLine()==startLine)
-        ? Math.min(a.startCol(), b.startCol())
-        : (a.startLine()==startLine ? a.startCol() : b.startCol());
+      ? Math.min(a.startCol(), b.startCol())
+      : (a.startLine()==startLine ? a.startCol() : b.startCol());
     var endCol= (a.endLine()==endLine && b.endLine()==endLine)
-        ? Math.max(a.endCol(), b.endCol())
-        : (a.endLine()==endLine ? a.endCol() : b.endCol());
+      ? Math.max(a.endCol(), b.endCol())
+      : (a.endLine()==endLine ? a.endCol() : b.endCol());
     return new Span(a.fileName(), startLine, startCol, endLine, endCol);
   }
   private static List<Frame> trimInvisible(Function<URI,String> loader, List<Frame> fs){
@@ -105,16 +105,12 @@ public final class Message{
     var file= spans.getLast().fileName();
     var leadingSingles= spans.stream().takeWhile(Span::isSingleLine).toList();
     var targetLine= leadingSingles.isEmpty() ? 0 : leadingSingles.getLast().startLine();
-
     // At most 3 distinct singles, all on the line of the last leading single, sorted outer..inner.
     var chosenSingles= leadingSingles.stream().filter(s -> s.startLine() == targetLine).distinct().limit(3).toList().reversed();
-
     // First multiline after singles (if any)
     var firstMulti= spans.stream().filter(s -> !s.isSingleLine()).findFirst().orElse(null);
-
     var caretLine= !chosenSingles.isEmpty() ? chosenSingles.getLast().startLine()
-                   : (firstMulti!=null ? firstMulti.startLine() : spans.getLast().startLine());
-
+      : (firstMulti!=null ? firstMulti.startLine() : spans.getLast().startLine());
     return new Grouping(file, chosenSingles, firstMulti, caretLine);
   }
   // ===== small helpers (split, lines, visual columns, padding) ==================
