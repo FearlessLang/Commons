@@ -29,6 +29,7 @@ import javax.imageio.ImageIO;
 import tools.Fs;
 import utils.Join;
 import utils.Push;
+import utils.Streams;
 
 public final class LinuxAssociations{
   public static Function<String,String> env= System::getenv;
@@ -112,7 +113,7 @@ public final class LinuxAssociations{
       .filter(f -> baseName(f).matches(".+-[0-9a-f]+") && owner.test(baseName(f).replaceFirst("-[0-9a-f]+$", "")));
     var named= listed(iconDir("apps"), ".png").stream().filter(f -> owner.test(baseName(f)));
     var registered= registrations().stream().filter(f -> owner.test(identityOf(f)));
-    return Stream.of(icons, named, registered).flatMap(s -> s).toList();
+    return Streams.of(icons, named, registered).toList();
   }
   private static List<Glob> globs(Predicate<String> belongsToFamily){
     var res= new ArrayList<Glob>();
@@ -154,7 +155,7 @@ public final class LinuxAssociations{
       var at= section;
       split(line.substring(eq + 1)).forEach(n -> res.add(new Opener(n.replaceFirst("\\.desktop$", ""), line.substring(0, eq).strip(), at)));
     }
-    return Collections.unmodifiableList(res);
+    return List.copyOf(res);
   }
   private static boolean writableForCreation(Path dir){
     return Stream.iterate(dir, Objects::nonNull, Path::getParent).filter(Files::exists).findFirst().filter(Files::isWritable).isPresent();
