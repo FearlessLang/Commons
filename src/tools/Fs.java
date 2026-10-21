@@ -174,11 +174,11 @@ public final class Fs{
   }
   static void checkTool(String tool, int rc, List<String> args, String out){
     Require.check(rc == 0,
-      "Tool error: "+tool+
-      "\nExit code: "+rc+
-      "\nArgs:\n"+Join.of(args, "", "\n", "", "")+
-      "\nOutput length: "+out.length()+
-      "\nOutput:\n<<<\n"+out+"\n>>>");
+      "Tool error: "+tool
+      +"\nExit code: "+rc
+      +"\nArgs:\n"+Join.of(args, "", "\n", "", "")
+      +"\nOutput length: "+out.length()
+      +"\nOutput:\n<<<\n"+out+"\n>>>");
   }
   public static ProcessBuilder processBuilder(List<String> cmd){
     var pb= new ProcessBuilder(cmd);
@@ -187,7 +187,7 @@ public final class Fs{
   }
   ///Returns the filename with extension (the substring after the last '/').
   public static String fileNameWithExtension(String s){
-    var res= s.substring(lastSlashIndex(s)+1);
+    var res= s.substring(lastSlashIndex(s) + 1);
     assert !res.isEmpty();
     return res;
   }
@@ -202,7 +202,7 @@ public final class Fs{
     var i= s.lastIndexOf('/');
     if (i == -1){ return ""; }
     var j= s.indexOf(":/");
-    return i==j+1 ? s.substring(0, i+1) : s.substring(0, i);
+    return i==j+1 ? s.substring(0, i + 1) : s.substring(0, i);
   }
   private static int lastSlashIndex(String s){
     var i= s.lastIndexOf('/');

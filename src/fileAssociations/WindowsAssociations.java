@@ -76,7 +76,7 @@ public final class WindowsAssociations{
   }
   private static String owner(String progId, String ext){
     var suffix= "."+ext.substring(1);
-    return progId.endsWith(suffix) ? progId.substring(0, progId.length()-suffix.length()) : progId;
+    return progId.endsWith(suffix) ? progId.substring(0, progId.length() - suffix.length()) : progId;
   }
   private static boolean alreadyMatches(List<String> existing, String identity, Path command, List<Icon> extensions, Path programIco){
     if (extensions.isEmpty()){ return existing.isEmpty(); }
@@ -182,7 +182,7 @@ public final class WindowsAssociations{
     return Shell.exec(List.of("reg", "query", key)).filter(ran -> ran.code() == 0)
       .map(ran -> ran.out().lines().map(String::strip)
         .filter(l -> l.startsWith(key+"\\"))
-        .map(l -> l.substring(key.length()+1))
+        .map(l -> l.substring(key.length() + 1))
         .toList())
       .orElse(List.of());
   }

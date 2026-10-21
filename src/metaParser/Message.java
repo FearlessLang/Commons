@@ -44,8 +44,8 @@ public final class Message{
     var out= new ArrayList<>(fs);
     for (int i : Range.of(0, out.size() - 1)){
       var inner= out.get(i).s();
-      var outer= out.get(i+1).s();
-      out.set(i+1, new Frame(out.get(i+1).name(), union(inner, outer)));
+      var outer= out.get(i + 1).s();
+      out.set(i + 1, new Frame(out.get(i + 1).name(), union(inner, outer)));
     }
     return List.copyOf(out);
   }
@@ -122,7 +122,7 @@ public final class Message{
   private static String[] splitLines(String s){ return MetaTokenizer.normalizeSource(s).split("\n", -1); }
   private static String get(String[] lines, int oneBased){
     if (oneBased<1 || oneBased>lines.length){ return ""; }
-    return lines[oneBased-1];
+    return lines[oneBased - 1];
   }
 
   private static String padLineNum(int n, int w){
@@ -336,7 +336,7 @@ public final class Message{
       var aVis= visualCol(raw, s.startCol());
       var len= visualDelta(raw, s.startCol(), s.endCol());
       var b= Math.max(aVis, Math.min(aVis + Math.max(1, len) - 1, rightMost));
-      for (int c : Range.of(aVis, b+1)){
+      for (int c : Range.of(aVis, b + 1)){
         var idx= c - 1;
         if (idx < carr.length){ carr[idx] = marks.charAt(i); }
       }
@@ -363,10 +363,10 @@ public final class Message{
         continue;
       }
       // Unicode spaces (a small explicit set) and zero-widths
-      if (cp==0x00A0 /* NBSP */ ||
-          cp==0x1680 || (cp>=0x2000 && cp<=0x200A) ||
-          cp==0x202F || cp==0x205F || cp==0x3000 ||
-          cp==0x200B /* ZWSP */ || cp==0x200C /* ZWNJ */ || cp==0x200D /* ZWJ */){
+      if (cp==0x00A0 /* NBSP */
+        || cp==0x1680 || (cp>=0x2000 && cp<=0x200A)
+        || cp==0x202F || cp==0x205F || cp==0x3000
+        || cp==0x200B /* ZWSP */ || cp==0x200C /* ZWNJ */ || cp==0x200D /* ZWJ */){
         out.append('_');
       }
       else{

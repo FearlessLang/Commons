@@ -77,7 +77,7 @@ public final class NameSuggester{
   }
 
   private static double score(String tScore, String cScore){
-    var score= 0.55 * componentScore(splitCamel(tScore), splitCamel(cScore)) + 0.45 * wholeScore(tScore, cScore);
+    var score= 0.55*componentScore(splitCamel(tScore), splitCamel(cScore)) + 0.45*wholeScore(tScore, cScore);
     if (kindsCompatible(tScore, cScore)){ score += 0.03; }
     else{ score -= 0.10; }
     return Math.clamp(score, 0, 1);
@@ -109,7 +109,7 @@ public final class NameSuggester{
       var sum= 0.0;
       for (int i : Range.of(small)){ sum += tokenScore(small.get(i), big.get(start + i)); }
       var avg= sum / small.size();
-      var penalty= front * start + back * (big.size() - (start + small.size())) + extra * (big.size() - small.size());
+      var penalty= front*start + back*(big.size() - (start + small.size())) + extra*(big.size() - small.size());
       best = Math.max(best, avg - penalty);
     }
     return Math.clamp(best, 0, 1);

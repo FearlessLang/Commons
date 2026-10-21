@@ -152,7 +152,7 @@ public final class LinuxAssociations{
       var eq= line.indexOf('=');
       if (eq<0 || !List.of(defaults, added).contains(section)){ continue; }
       var at= section;
-      split(line.substring(eq+1)).forEach(n -> res.add(new Opener(n.replaceFirst("\\.desktop$", ""), line.substring(0, eq).strip(), at)));
+      split(line.substring(eq + 1)).forEach(n -> res.add(new Opener(n.replaceFirst("\\.desktop$", ""), line.substring(0, eq).strip(), at)));
     }
     return Collections.unmodifiableList(res);
   }
@@ -205,7 +205,7 @@ public final class LinuxAssociations{
   private static byte[] utf8(String text){ return text.getBytes(StandardCharsets.UTF_8); }
   public static String hash(byte[] bytes){
     var h= 0xcbf29ce484222325L;
-    for (var b : bytes){ h = (h ^ (b & 0xff))*0x100000001b3L; }
+    for (var b : bytes){ h = (h ^ (b & 0xff)) * 0x100000001b3L; }
     return Long.toHexString(h);
   }
   private static String mimeType(String identity, String ext, String icon, List<String> supertypes){
@@ -243,7 +243,7 @@ public final class LinuxAssociations{
   }
   public static String windowClass(String javaCommand){
     var main= javaCommand.split(" ")[0];
-    return main.substring(main.indexOf('/')+1).replace('.', '-');
+    return main.substring(main.indexOf('/') + 1).replace('.', '-');
   }
   private static String windowClass(){ return windowClass(System.getProperty("sun.java.command")); }
   private static List<Path> mimeDirs(){ return Push.of(Xdg.dataHome(), Xdg.dataDirs()).stream().map(d -> d.resolve("mime")).toList(); }

@@ -35,7 +35,7 @@ public final class JavacTool{
     var srcs= javaSourcesUnder(srcRoot);
     Fs.ofV(() -> Fs.deleteIfExists(jarPath));
     Require.check(!srcs.isEmpty(), "Expected .java files under "+srcRoot);
-    var args= new ArrayList<String>(10+srcs.size());
+    var args= new ArrayList<String>(10 + srcs.size());
     args.add("-encoding"); args.add("UTF-8");
     args.add("-d"); args.add(abs(classesDir));
     var cp= JavaTool.jarsCp(Push.of(jarPath.getParent(), extraClasspathDirs));
