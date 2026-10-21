@@ -22,7 +22,7 @@ public final class Err{
     Err.assertEquals = assertEquals;
     Err.assertTrue = assertTrue;
   }
-  public static final String hole= "[###]";//not contains \.[]{}()<>*+-=!?^$|
+  public static final String hole= "[###]";
   public static boolean strCmp(String expected, String actual){
     actual = actual.trim();
     expected = expected.trim();
@@ -62,7 +62,7 @@ public final class Err{
       cmp1 = cmp1.substring(startCmp2.length());
       split.remove(0);
     }
-    //If we didn't start with a hole, compare everything up to the hole
+    //If we didn't end with a hole, compare everything after the hole
     if (!endswith){
       String endCmp2= split.get(split.size() - 1);
       //The thing after the hole is bigger than the entire (remaining) string!

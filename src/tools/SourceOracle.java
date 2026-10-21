@@ -65,9 +65,9 @@ public interface SourceOracle{
       @Override public long lastModified(){ return System.currentTimeMillis(); }
       @Override public String toString(){ return fearPath; }
     }
-    private record Debug(List<Ref> allFiles) implements SourceOracle{//should be private inside builder?
+    private record Debug(List<Ref> allFiles) implements SourceOracle{
       Debug{
-        assert Require.unmodifiable(allFiles, "Debug.fileList");//still should be guaranteed by builder?
+        assert Require.unmodifiable(allFiles, "Debug.fileList");
         assert allFiles.stream().map(Ref::fearPath).distinct().count() == allFiles.size();
       }
     }

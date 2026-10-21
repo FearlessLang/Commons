@@ -231,7 +231,7 @@ public abstract class MetaParser<
   }
   ///Suitable to divide two non empty lists of tokens, especially if
   ///the division can not be easily located by looking at a few tokens backwards.
-  ///Parses a (non empty) list of tokens from the start of this parser.
+  ///Parses a (non empty) list of tokens from the end of this parser.
   ///(set parameter emptyAllowed=true to allow a non progressing probe)
   ///Must be a proper division, that is, if the probe eats all the tokens we get an Optional.empty() result.
   ///The probe accepting all the token signals no prefix.
