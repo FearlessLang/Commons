@@ -341,7 +341,7 @@ public final class Message{
         if (idx < carr.length){ carr[idx] = marks.charAt(i); }
       }
     }
-    return " ".repeat(width)+'|'+' '+new String(carr);
+    return " ".repeat(width)+"| "+new String(carr);
   }
   //Numbered line used specifically for the caret-bearing line:
   //identical to numbered(), except we sanitize the display to be monospace-safe.

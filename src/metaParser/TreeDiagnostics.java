@@ -36,7 +36,7 @@ record TreeDiagnostics<
   private E error(T open, T stop, LikelyCause l){
     return tz.errFactory().groupHalt(open, stop, closersForOpener(open.kind()), l, tz.self());
   }
-  private List<TK> openerForCloser(TK closer){
+  private List<TK> openersForCloser(TK closer){
     return spec.openClose.entrySet().stream()
       .filter(e -> e.getValue().containsKey(closer))
       .map(Map.Entry::getKey).toList();
@@ -45,7 +45,7 @@ record TreeDiagnostics<
     return spec.openClose.get(opener).keySet().stream().sorted(Comparator.comparing(TK::priority)).toList();
   }
   private Optional<E> tryEatenBetween(T open, T stop, boolean onOpen){
-    var expect= !onOpen ? closersForOpener(open.kind()) : openerForCloser(stop.kind());
+    var expect= onOpen ? openersForCloser(stop.kind()) : closersForOpener(open.kind());
     for (var e : expect){
       var eater= (onOpen ? spec.openerEaters : spec.closerEaters).get(e);
       if (eater == null){ continue; }

@@ -18,9 +18,7 @@ public final class NameSuggester{
   private static final double strongSimilarity= 0.68;
   private static final double margin= 0.08;
 
-  public interface Renderer<R>{
-    R render(String target, List<String> candidates, Optional<String> best);
-  }
+  public interface Renderer<R>{ R render(String target, List<String> candidates, Optional<String> best); }
 
   public static Optional<String> bestName(String name, List<String> candidates){
     if (candidates.contains(name)){ return Optional.of(name); }
@@ -156,11 +154,11 @@ public final class NameSuggester{
     int n= a.length(), m= b.length();
     var prev= new int[m + 1];
     var curr= new int[m + 1];
-    for (int j= 0; j <= m; j += 1){ prev[j] = j; }
-    for (int i= 1; i <= n; i += 1){
+    for (int j : Range.of(0, m + 1)){ prev[j] = j; }
+    for (int i : Range.of(1, n + 1)){
       curr[0] = i;
       var ca= a.charAt(i - 1);
-      for (int j= 1; j <= m; j += 1){
+      for (int j : Range.of(1, m + 1)){
         var cb= b.charAt(j - 1);
         var cost= ca==cb ? 0 : 1;
         curr[j] = Math.min(Math.min(curr[j - 1] + 1, prev[j] + 1), prev[j - 1] + cost);
