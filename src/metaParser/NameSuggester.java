@@ -71,7 +71,7 @@ public final class NameSuggester{
     var topScore= top.score;
     var runnerUp= scored.size()>1 ? scored.get(1).score : -1;
     var strongEnough= topScore >= strongSimilarity;
-    var clearMargin= (runnerUp < 0) || (topScore-runnerUp >= margin);
+    var clearMargin= runnerUp<0 || topScore-runnerUp>=margin;
     if (!strongEnough || !clearMargin){ return Optional.empty(); }
     return Optional.of(top.value);
   }
@@ -132,7 +132,7 @@ public final class NameSuggester{
 
   private static String simpleName(String s){
     var i= s.lastIndexOf('.');
-    return (i < 0) ? s : s.substring(i + 1);
+    return i<0 ? s : s.substring(i + 1);
   }
 
   /** ASCII CamelCase split with acronym-run handling:
@@ -162,7 +162,7 @@ public final class NameSuggester{
       var ca= a.charAt(i - 1);
       for (int j= 1; j <= m; j += 1){
         var cb= b.charAt(j - 1);
-        var cost= (ca == cb) ? 0 : 1;
+        var cost= ca==cb ? 0 : 1;
         curr[j] = Math.min(Math.min(curr[j - 1] + 1, prev[j] + 1), prev[j - 1] + cost);
       }
       var tmp= prev;

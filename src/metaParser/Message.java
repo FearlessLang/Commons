@@ -31,7 +31,7 @@ public final class Message{
     var lines= splitLines(Objects.requireNonNull(loader.apply(g.file())));
     var width= Math.max(minLineWidth, String.valueOf(lines.length).length());
     Optional<String> caretLine= g.singles().isEmpty() ? Optional.empty() : Optional.of(makeCaretLine(lines, g, width));
-    var body= (g.multiLine() != null)
+    var body= g.multiLine()!=null
       ? renderMulti(lines, g, width, caretLine)
       : numberedCaret(lines, g.caretLine(), width)+"\n"+caretLine.orElse("");
     var framesLine= Join.of(frames.stream().map(Frame::name).filter(n -> !n.isBlank()), "While inspecting ", " > ", "", "While inspecting the file");

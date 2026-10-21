@@ -152,7 +152,7 @@ public abstract class MetaTokenizer<
     int prevLine= -1, prevCol= -1;
     for (var tok : toks){
       int l= tok.line(), c= tok.column();
-      assert (l > prevLine) || (l==prevLine && c>=prevCol)
+      assert l>prevLine || (l==prevLine && c>=prevCol)
         : "tokens out of order at "+l+":"+c;
       prevLine = l; prevCol = c;
     }
