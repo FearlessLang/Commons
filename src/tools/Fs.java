@@ -94,7 +94,7 @@ public final class Fs{
   public static FileStore getFileStore(Path p) throws IOException{ return Files.getFileStore(noLink(p)); }
   public static FileChannel openChannel(Path p, OpenOption... os) throws IOException{ return FileChannel.open(noLink(p), os); }
   public static WatchKey watch(Path dir, WatchService w, WatchEvent.Kind<?>... kinds) throws IOException{ return noLink(dir).register(w, kinds); }
-  public static void ensureDir(Path p){ ofV(() -> Files.createDirectories(noLink(p))); }
+  public static void ensureDir(Path p){ ofV(() -> createDirectories(p)); }
   public static void cleanDirContents(Path p){
     reqDir(p, "cleaning");
     var xs= walk(p, s -> s
@@ -121,7 +121,7 @@ public final class Fs{
   }
   public static void writeUtf8(Path file, String content){
     ensureDir(file.toAbsolutePath().getParent());
-    ofV(() -> Files.writeString(noLink(file), content));
+    ofV(() -> writeString(file, content));
   }
   public static String readUtf8(Path file){ return of(() -> Files.readString(noLink(file))); }
   public static void copyTree(Path from, Path to){
@@ -136,7 +136,7 @@ public final class Fs{
     Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
   }
   public static long lastModified(Path file){
-    try{ return Files.getLastModifiedTime(noLink(file)).toMillis(); }
+    try{ return getLastModifiedTime(file).toMillis(); }
     catch (NoSuchFileException _){ return -1; }
     catch (IOException e){ throw new UncheckedIOException(e); }
   }
@@ -150,13 +150,13 @@ public final class Fs{
       catch (InterruptedException e){ Thread.currentThread().interrupt(); throw Bug.of(e); }
     }
   }
-  public static void reqDir(Path p, String what){ Require.check(Files.isDirectory(noLink(p)), "Expected a directory for "+what+": "+p); }
+  public static void reqDir(Path p, String what){ Require.check(isDirectory(p), "Expected a directory for "+what+": "+p); }
   public static void cleanDir(Path p){
-    if (!Files.exists(noLink(p))){ ensureDir(p); return; }
+    if (!exists(p)){ ensureDir(p); return; }
     cleanDirContents(p);
   }
   public static void rmTree(Path p){
-    if (Files.isDirectory(noLink(p))){ cleanDirContents(p); }
+    if (isDirectory(p)){ cleanDirContents(p); }
     ofV(() -> Files.deleteIfExists(p));
   }
   public static void copyFresh(Path from, Path to){
