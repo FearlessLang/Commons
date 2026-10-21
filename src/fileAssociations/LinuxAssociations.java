@@ -1,5 +1,8 @@
 package fileAssociations;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -68,7 +71,7 @@ public final class LinuxAssociations{
     extensions.stream().map(Icon::extension).filter(e -> !Icon.system(e)).forEach(e -> foreign.put(e, held(e, globs, openers)));
     foreign.values().removeIf(List::isEmpty);
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
-    var unwritable= registrations().stream().filter(f -> existing.contains(baseName(f)))
+    var unwritable= registrations().stream().filter(f -> existing.contains(identityOf(f)))
       .flatMap(f -> Stream.of(f, f.getParent())).distinct().filter(f -> !Files.isWritable(f));
     var targets= (extensions.isEmpty() && existing.isEmpty()) ? Stream.<Path>of()
       : Stream.of(home("applications"), home("mime/packages"), iconDir("mimetypes"), iconDir("apps")).filter(d -> !writableForCreation(d));
@@ -249,9 +252,12 @@ public final class LinuxAssociations{
     if (!Files.isDirectory(dir)){ return List.of(); }
     return Fs.of(() -> { try (var s= Files.list(dir)){ return s.filter(p -> p.getFileName().toString().endsWith(suffix) && Files.isRegularFile(p)).sorted().toList(); } });
   }
+  // The desktop tools refuse a file that is not UTF-8 as a whole, so such a file declares nothing
   private static List<String> lines(Path file){
     if (!Files.isRegularFile(file)){ return List.of(); }
-    return Fs.of(() -> Files.readAllLines(file));
+    try{ return Files.readAllLines(file); }
+    catch (MalformedInputException _){ return List.of(); }
+    catch (IOException e){ throw new UncheckedIOException(e); }
   }
   private static String identityOf(Path file){ return baseName(file).replaceFirst("-[0-9a-f]+$", ""); }
   private static String baseName(Path file){
