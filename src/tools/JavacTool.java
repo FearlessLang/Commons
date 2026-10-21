@@ -88,7 +88,7 @@ public final class JavacTool{
     var tmp= dest.resolve("_tmp_jpackage");
     Fs.cleanDir(tmp);
     var runtimeImage= jlinkRuntimeImage(modsDir, tmp);
-    try{ jpBody(dest, appName, versionId, moduleMain, modsDir, appContent, runtimeImage, tmp, packaging); }
+    try{ _jpackage(dest, packaging, appName, versionId, moduleMain, appContent, modsDir, runtimeImage, tmp); }
     finally{ Fs.rmTree(tmp); }
     reqDeployedMods(dest);
   }
@@ -123,8 +123,8 @@ public final class JavacTool{
     var jars= Fs.walk(found.getFirst(), s -> s.filter(p -> p.toString().endsWith(".jar")).toList());
     Require.check(!jars.isEmpty(), "Expected jars in the '"+deployedModsDirName+"' dir made by jpackage: "+found.getFirst());
   }
-  private static void jpBody(Path dest, String name, String versionId, String moduleMain, Path modsDir, Path appContent, Path runtimeImage, Path tmp, Path packaging){
-    var wName= name+"w";
+  private static void _jpackage(Path dest, Path packaging, String appName, String versionId, String moduleMain, Path appContent, Path modsDir, Path runtimeImage, Path tmp){
+    var wName= appName+"w";
     var icon= iconForCurrentOs(packaging);
     var wProps= tmp.resolve(wName+".properties");
     var winConsole= Fs.isWindows() ? "win-console=false\n" : "";
@@ -132,7 +132,7 @@ public final class JavacTool{
     var args= new ArrayList<String>(96);
     args.add("--type"); args.add("app-image");
     args.add("--dest"); args.add(dest.toString());
-    args.add("--name"); args.add(name);
+    args.add("--name"); args.add(appName);
     args.add("--icon"); args.add(icon.toString());
     args.add("--module-path"); args.add(modsDir.toString());
     args.add("--module"); args.add(moduleMain);
