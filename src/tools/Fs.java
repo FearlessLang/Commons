@@ -50,8 +50,13 @@ public final class Fs{
   public static Function<Path,RuntimeException> onSymbolicLink= p -> new IllegalArgumentException(
     "\""+p+"\" is a symbolic link; Fs does not read, write, copy or delete through symbolic links: replace it with the file or folder it points to.");
   private static Path noLink(Path p){
-    if (Files.isSymbolicLink(p)){ throw onSymbolicLink.apply(p); }
+    if (Files.isSymbolicLink(p) && !isJlinkLegalNotice(p)){ throw onSymbolicLink.apply(p); }
     return p;
+  }
+  // Whitelisted link: on Linux and macOS jlink writes the legal notices of every module but java.base
+  // as links legal/<module>/<name> -> ../java.base/<name>, so runtime images and app images hold them.
+  private static boolean isJlinkLegalNotice(Path p){
+    return of(() -> Files.readSymbolicLink(p)).equals(Path.of("..", "java.base", p.getFileName().toString()));
   }
   public static boolean exists(Path p){ return Files.exists(noLink(p)); }
   public static boolean notExists(Path p){ return Files.notExists(noLink(p)); }
@@ -204,7 +209,7 @@ public final class Fs{
     catch (IOException e){ throw new UncheckedIOException(e); }
   }
   private static boolean noLink(Path p, BasicFileAttributes a){
-    if (a.isSymbolicLink()){ throw onSymbolicLink.apply(p); }
+    if (a.isSymbolicLink() && !isJlinkLegalNotice(p)){ throw onSymbolicLink.apply(p); }
     return true;
   }
   public static void walkV(Path p, WalkVoid f){
