@@ -14,10 +14,8 @@ import utils.Join;
 import utils.Range;
 
 public final class Message{
-
   private static final int tabWidth= 4;
   private static final int minLineWidth= 3;
-
   public static String of(Function<URI,String> loader, List<Frame> frames, String msg){
     try{ return _of(loader, frames, msg); }
     catch (Throwable e){
@@ -97,9 +95,7 @@ public final class Message{
     return start;
   }
   private static boolean isVisible(char c){ return c!=' ' && c!='\t' && c!='\n' && c!='\r'; }
-
   private record Grouping(URI file, List<Span> singles, Span multiLine, int caretLine){}
-
   private static Grouping group(List<Frame> fs){
     var spans= fs.stream().map(Frame::s).toList();
     var file= spans.getLast().fileName();
@@ -114,17 +110,14 @@ public final class Message{
     return new Grouping(file, chosenSingles, firstMulti, caretLine);
   }
   // ===== small helpers (split, lines, visual columns, padding) ==================
-
   private static String[] splitLines(String s){ return MetaTokenizer.normalizeSource(s).split("\n", -1); }
   private static String get(String[] lines, int oneBased){
     if (oneBased<1 || oneBased>lines.length){ return ""; }
     return lines[oneBased - 1];
   }
-
   private static String padLineNum(int n, int w){
     return String.format(Locale.ROOT, "%0"+w+"d", Math.max(0, n));
   }
-
   /** Expand tabs into spaces (tab stops every tabWidth columns). */
   private static String expandTabs(String s){
     if (s.indexOf('\t') < 0){ return s; }
@@ -144,19 +137,16 @@ public final class Message{
     }
     return out.toString();
   }
-
   private static int tabAwareWidth(String rawLine, int fromIdxIncl, int toIdxExcl, int baseVis){
     var vis= baseVis;
     for (int i : Range.of(fromIdxIncl, toIdxExcl)){ vis += rawLine.charAt(i)=='\t' ? tabWidth-(vis % tabWidth) : 1; }
     return vis;
   }
-
   /** Visual column (1-based) at a logical column (expands tabs). */
   private static int visualCol(String rawLine, int logicalCol){
     var limit= Math.min(logicalCol - 1, rawLine.length());
     return tabAwareWidth(rawLine, 0, limit, 1);
   }
-
   private static int visualDelta(String rawLine, int startCol, int endCol){
     var aIdx= Math.max(0, startCol - 1);
     // Clamped independent of aIdx: a span starting past the line end must reach the guard below.
@@ -164,7 +154,6 @@ public final class Message{
     if (aIdx > bIdxInclusive){ return 0; }
     return tabAwareWidth(rawLine, aIdx, bIdxInclusive + 1, 0);
   }
-
   private static boolean beforeOrEqual(int l, int c, Pos limit){
     return l<limit.line() || (l==limit.line() && c<=limit.col());
   }
@@ -201,23 +190,19 @@ public final class Message{
     flushLiteral(out, lit);
     return Join.of(out, "", " ", "");
   }
-
   static boolean literalChar(int cp){
     return cp>=0x20 && cp<=0x7E;
   }
-
   private static void flushLiteral(ArrayList<String> out, StringBuilder lit){
     if (lit.isEmpty()){ return; }
     out.add(quoteLiteral(lit.toString()));
     lit.setLength(0);
   }
-
   private static String quoteLiteral(String s){
     if (s.indexOf('"') < 0){ return "\""+s+"\""; }
     if (s.indexOf('`') < 0){ return "`"+s+"`"; }
     throw Bug.of("Unsplit literal containing both delimiters: "+s);
   }
-
   private static final HashMap<Integer,String> named= new HashMap<>();
   static{
     // C0 controls
@@ -306,7 +291,6 @@ public final class Message{
     named.put(0x2069, "Pop Directional Isolate 0x2069");
     named.put(0xFEFF, "Byte Order Mark 0xFEFF");
   }
-
   private static String makeCaretLine(String[] lines, Grouping g, int width){
     var raw= get(lines, g.caretLine());
     // Only the caret-bearing line is sanitized for display;

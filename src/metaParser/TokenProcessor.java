@@ -37,7 +37,6 @@ public interface TokenProcessor<
         throw f.apply(head+"\n"+str).addFrame(frame, t.span(tz.fileName()));
       });
     }
-
     public Stream<T> process(int i, T t, Tokenizer tk){
       return Objects.requireNonNull(map.getOrDefault(t.kind(), identity).process(i, t, tk));
     }

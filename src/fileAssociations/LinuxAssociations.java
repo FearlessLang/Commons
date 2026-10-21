@@ -100,7 +100,6 @@ public final class LinuxAssociations{
     if (ext.equals(".fearless")){ return List.of(); }
     return globs.stream().filter(g -> g.is(ext)).map(Glob::type).distinct().toList();
   }
-
   private static Stream<Path> desktops(){ return Xdg.appDirs().stream().flatMap(d -> listed(d, ".desktop").stream()); }
   private static List<Path> registrations(){
     return Stream.concat(desktops(), mimeDirs().stream().flatMap(d -> listed(d.resolve("packages"), ".xml").stream())).toList();

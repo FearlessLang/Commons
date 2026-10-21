@@ -31,10 +31,8 @@ public abstract class MetaTokenizer<
   private Span base;
   private Err errFactory;
   private boolean frozen= false;
-
   public abstract Tokenizer self();
   public abstract T make(TK kind, String text, int line, int col, List<T> tokens);
-
   private <R> R withFrozen(Supplier<R> body){
     var prev= frozen;
     frozen = true;

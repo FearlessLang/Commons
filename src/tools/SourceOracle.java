@@ -20,7 +20,6 @@ import utils.Push;
 
 public interface SourceOracle{
   static String root= "fear:/";
-
   interface Ref extends RefParent{
     byte[] loadBytes();
     long lastModified();

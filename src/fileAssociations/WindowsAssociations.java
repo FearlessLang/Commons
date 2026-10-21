@@ -30,7 +30,6 @@ public final class WindowsAssociations{
   private static final String fileExts= "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\";
   private static final String valueNotSet= "(value not set)";
   private static final int assocChanged= 0x08000000;
-
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programIco,
       Function<String,RuntimeException> ambiguous,
@@ -60,7 +59,6 @@ public final class WindowsAssociations{
     existing.forEach(name -> eradicate(name, belongsToFamily));
     notifyShellOfChange();
   }
-
   static List<String> existingIdentities(Predicate<String> belongsToFamily){
     var res= new LinkedHashSet<String>();
     res.addAll(regValues(hkcu(registeredApplications)).keySet());

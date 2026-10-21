@@ -15,7 +15,6 @@ record TreeDiagnostics<
     Parser extends MetaParser<T,TK,E,Tokenizer,Parser,Err>,
     Err extends ErrFactory<T,TK,E,Tokenizer,Parser,Err>
   >(TokenTreeSpec<T,TK> spec, Tokenizer tz){
-
   E onBadCloser(T open, T badCloser){
     return tryEatenBetween(open, badCloser, false)
       .or(() -> tryEatenBetween(open, badCloser, true))

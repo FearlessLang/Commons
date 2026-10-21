@@ -40,7 +40,6 @@ public abstract class MetaParser<
   public boolean end(){ return limit == index; }
   public int index(){ return index; }
   public int limit(){ return limit; }
-
   public Optional<T> peek(){ return peek(0); }
   public Optional<T> peekAbs(int index){
     if (index<0 || index>=limit){ return Optional.empty(); }
@@ -48,7 +47,6 @@ public abstract class MetaParser<
   }
   public Optional<T> peek(int la){ return peekAbs(index + la); }
   public Optional<T> peekLast(){ return peekAbs(limit - 1); }
-
   @SafeVarargs @SuppressWarnings("varargs")
   public final boolean peek(TK... kinds){
     assert kinds.length > 0;
@@ -113,7 +111,6 @@ public abstract class MetaParser<
     return v;
   }
   public boolean fwdIf(boolean v){ return v && fwd(true); }
-
   //ParseSplitters
   public <R> R parseGroup(String frameName, Rule<Parser,R> r){
     var tsIn= ts.get(index).tokens();
@@ -163,12 +160,10 @@ public abstract class MetaParser<
     index = limit;
     return res;
   }
-
   ///Must advance p.index() by >= 1; will be called until p.end() holds
   ///Returns the amount of last consumed token to drop as separators
   public interface NextCut<Parser>{ int cutAt(Parser p); }
   public interface Rule<Parser,R>{ R parse(Parser p); }
-  
   public <R> List<R> splitBy(String frameName, NextCut<Parser> probe, Rule<Parser,R> elem){
     var slice= ts.subList(index, limit);
     var s= spanAround(index, Math.max(index, limit - 1));
@@ -195,7 +190,6 @@ public abstract class MetaParser<
       return p.splitBy(frameNameIn, probe, r);
     });
   }
-
   ///Suitable to divide two non empty lists of tokens, especially if
   ///the division can not be easily located by looking at a few tokens forward.
   ///Parses a (possibly empty) list of tokens from the start of this parser.
@@ -287,7 +281,6 @@ public abstract class MetaParser<
     // [limit..ts.size())
       +range(limit, ts.size());
   }
-
   private String range(int from, int to){
     return Join.of(ts.subList(from, to).stream().map(this::show), "[", ", ", "]", "[]");
   }

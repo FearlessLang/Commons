@@ -17,7 +17,6 @@ public final class TokenTreeSpec<
   final LinkedHashMap<TK,LinkedHashSet<TK>> barriers= new LinkedHashMap<>();
   final LinkedHashMap<TK,Function<T,Optional<T>>> closerEaters= new LinkedHashMap<>();
   final LinkedHashMap<TK,Function<T,Optional<T>>> openerEaters= new LinkedHashMap<>();
-
   public TokenTreeSpec<T,TK> addOpenClose(TK opener, TK closer, TK groupKind){
     assert Require.nonNull(opener, closer, groupKind);
     openClose.computeIfAbsent(opener, _ -> new LinkedHashMap<>()).put(closer, groupKind);
