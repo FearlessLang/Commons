@@ -14,7 +14,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
   public static final String lifelineKey= "fearless.parentLifeline";
   public static final String lifelineValue= "stdin";
   public static ChildJvm start(List<String> args, Consumer<String> out){
-    var cmd= Push.of(List.<String>of(javaExe().toString(), "-ea", "-Xss16m", "-D"+lifelineKey+"="+lifelineValue), args);
+    var cmd= Push.of(List.<String>of(Path.of(System.getProperty("java.home"), "bin", Fs.isWindows() ? "java.exe" : "java").toString(), "-ea", "-Xss16m", "-D"+lifelineKey+"="+lifelineValue), args);
     var pb= Fs.processBuilder(cmd);
     Process p= Fs.of(() -> pb.redirectErrorStream(true).start());
     var pumpErr= new IOException[1];
@@ -88,5 +88,4 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
     catch (IOException _){}
     Runtime.getRuntime().halt(121);
   }
-  static Path javaExe(){ return Path.of(System.getProperty("java.home"), "bin", Fs.isWindows() ? "java.exe" : "java"); }
 }
