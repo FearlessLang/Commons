@@ -132,10 +132,10 @@ public abstract class MetaParser<
     assert high>=0 && high<ts.size();
     var here= span(ts.get(low), ts.get(high));
     if (here.isPresent()){ return here.get(); }
-    int startLine= span.startLine();
-    int startCol= span.startCol();
-    int endLine= span.endLine();
-    int endCol= span.endCol();
+    var startLine= span.startLine();
+    var startCol= span.startCol();
+    var endLine= span.endLine();
+    var endCol= span.endCol();
     for (int i= low; i >= 0; i -= 1){//starts with low in case high was the failure point
       var s= span(ts.get(i));
       if (s.isPresent()){
@@ -172,12 +172,12 @@ public abstract class MetaParser<
   public <R> List<R> splitBy(String frameName, NextCut<Parser> probe, Rule<Parser,R> elem){
     var slice= ts.subList(index, limit);
     var s= spanAround(index, Math.max(index, limit-1));
-    Parser splitterParser= make(s, slice);
+    var splitterParser= make(s, slice);
     var parts= new ArrayList<Parser>();
     while (!splitterParser.end()){
-      int start= splitterParser.index();
-      int drop= probe.cutAt(splitterParser);
-      int end= splitterParser.index();
+      var start= splitterParser.index();
+      var drop= probe.cutAt(splitterParser);
+      var end= splitterParser.index();
       ((MetaParser<T,TK,E,Tokenizer,Parser,Err>)splitterParser).checkProbeErrorFront(false, start, end, drop, frameName);
       var tsi= List.copyOf(slice.subList(start, end-drop));
       var si= splitterParser.spanAround(start, Math.max(0, (end-1)-drop));
@@ -188,7 +188,7 @@ public abstract class MetaParser<
     return res;
   }
   public <R> List<R> parseGroupSep(String frameNameOut, String frameNameIn, Rule<Parser,R> r, TK open, TK close, NextCut<Parser> probe){
-    String label= frameNameOut.isEmpty() ? frameNameIn : frameNameOut;
+    var label= frameNameOut.isEmpty() ? frameNameIn : frameNameOut;
     return parseGroup(frameNameOut, p -> {
       p.expect(label, open);
       p.expectLast(label, close);
@@ -217,14 +217,14 @@ public abstract class MetaParser<
   public <R> Optional<R> parseFront(String frameName, boolean emptyAllowed, NextCut<Parser> probe, Rule<Parser,R> first){
     var slice= ts.subList(index, limit);
     var s= spanAround(index, limit-1);
-    Parser splitterParser= make(s, slice);
-    int start= splitterParser.index();
-    int drop= probe.cutAt(splitterParser);
-    int end= splitterParser.index();
+    var splitterParser= make(s, slice);
+    var start= splitterParser.index();
+    var drop= probe.cutAt(splitterParser);
+    var end= splitterParser.index();
     ((MetaParser<T,TK,E,Tokenizer,Parser,Err>)splitterParser).checkProbeErrorFront(emptyAllowed, start, end, drop, frameName);
     if (splitterParser.end()){ return Optional.empty(); }//split not found
     var firstS= splitterParser.spanAround(0, (end-1)-drop);
-    Parser firstParser= make(firstS, List.copyOf(slice.subList(0, end-drop)));
+    var firstParser= make(firstS, List.copyOf(slice.subList(0, end-drop)));
     var res= firstParser.parseAll(frameName, first);
     index += end;//mark the tokens as eaten
     return Optional.of(res);
@@ -239,15 +239,15 @@ public abstract class MetaParser<
   public <R> Optional<R> parseBack(String frameName, boolean emptyAllowed, NextCut<Parser> probe, Rule<Parser,R> first){
     var slice= ts.subList(index, limit);
     var s= spanAround(index, limit-1);
-    Parser splitterParser= make(s, slice);
-    int start= splitterParser.limit();
-    int drop= probe.cutAt(splitterParser);
-    int end= splitterParser.limit();
+    var splitterParser= make(s, slice);
+    var start= splitterParser.limit();
+    var drop= probe.cutAt(splitterParser);
+    var end= splitterParser.limit();
     ((MetaParser<T,TK,E,Tokenizer,Parser,Err>)splitterParser).checkProbeErrorFront(emptyAllowed, end, start, drop, frameName);
     //TODO: test if the errors make sense by just swapping start/end    
     if (splitterParser.end()){ return Optional.empty(); }//split not found
     var lastS= splitterParser.spanAround(end + drop, start - 1);
-    Parser firstParser= make(lastS, List.copyOf(slice.subList(end + drop, start)));
+    var firstParser= make(lastS, List.copyOf(slice.subList(end + drop, start)));
     var res= firstParser.parseAll(frameName, first);
     limit = index + end;//mark the tokens as eaten
     return Optional.of(res);

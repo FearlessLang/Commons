@@ -25,10 +25,10 @@ record TreeDiagnostics<
     return tryEatenBetween(open, barrier, false).orElseGet(() -> onStray(open, barrier));
   }
   private E onStray(T open, T stop){
-    int res= ofRecovery(tz.tokensForTree());
-    int closer= ofRemoval(stop);
-    int opener= ofRemoval(open);
-    int best= Math.max(closer, opener);
+    var res= ofRecovery(tz.tokensForTree());
+    var closer= ofRemoval(stop);
+    var opener= ofRemoval(open);
+    var best= Math.max(closer, opener);
     var progress= best>=res+5 || best>=tz.tokensForTree().size()-2;
     if (!progress){ return error(open, stop, LikelyCause.Unknown); }
     return error(open, stop, opener>closer ? LikelyCause.StrayOpener : LikelyCause.StrayCloser);
@@ -51,7 +51,7 @@ record TreeDiagnostics<
       if (eater == null){ continue; }
       var ts= betweenExclusive(open, stop, tz.allTokens());
       for (var tok : onOpen ? ts.reversed() : ts){
-        Optional<T> frag= eater.apply(tok);
+        var frag= eater.apply(tok);
         if (frag.isPresent()){ return Optional.of(onOpen
           ? tz.errFactory().eatenOpenerBetween(open, stop, expect, frag.get(), tok, tz.self())
           : tz.errFactory().eatenCloserBetween(open, stop, expect, frag.get(), tok, tz.self()));
@@ -77,8 +77,8 @@ record TreeDiagnostics<
     return li.nextIndex();
   }
   private List<T> betweenExclusive(T a, T b, List<T> tokens){
-    int start= tokens.indexOf(a);
-    int end= tokens.indexOf(b);
+    var start= tokens.indexOf(a);
+    var end= tokens.indexOf(b);
     assert start < end;
     return tokens.subList(start + 1, end);
   }

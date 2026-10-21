@@ -16,7 +16,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
   public static ChildJvm start(List<String> args, Consumer<String> out){
     var cmd= Push.of(List.<String>of(Path.of(System.getProperty("java.home"), "bin", Fs.isWindows() ? "java.exe" : "java").toString(), "-ea", "-Xss16m", "-D"+lifelineKey+"="+lifelineValue), args);
     var pb= Fs.processBuilder(cmd);
-    Process p= Fs.of(() -> pb.redirectErrorStream(true).start());
+    var p= Fs.of(() -> pb.redirectErrorStream(true).start());
     var pumpErr= new IOException[1];
     var pump= new Thread(() -> pumpOutput(p, out, pumpErr), "FearlessJvmOut");
     pump.setDaemon(true);
@@ -54,8 +54,8 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
     catch (IOException e){ if (p.isAlive()){ pumpErr[0] = e; } }
   }
   private static void waitForUninterruptibly(Process p, long millis){
-    boolean interrupted= false;
-    long end= System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(millis);
+    var interrupted= false;
+    var end= System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(millis);
     while (p.isAlive() && (millis==0 || end-System.nanoTime()>0)){
       try{
         if (millis == 0){ p.waitFor(); }
@@ -66,7 +66,7 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
     if (interrupted){ Thread.currentThread().interrupt(); }
   }
   private static void joinUninterruptibly(Thread t){
-    boolean interrupted= false;
+    var interrupted= false;
     while (t.isAlive()){
       try{ t.join(); }
       catch (InterruptedException _){ interrupted = true; }

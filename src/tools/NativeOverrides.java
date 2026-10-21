@@ -22,7 +22,7 @@ public record NativeOverrides(Set<String> pairs, Set<String> fileNames){
     var compiler= ToolProvider.getSystemJavaCompiler();
     var pairs= new HashSet<String>();
     Fs.ofV(() -> {
-      try (StandardJavaFileManager fm= compiler.getStandardFileManager(null, null, null)){
+      try (var fm= compiler.getStandardFileManager(null, null, null)){
         var units= fm.getJavaFileObjectsFromPaths(files);
         var task= (JavacTask)compiler.getTask(null, fm, null, null, null, units);
         for (var cu : task.parse()){ scanUnit(cu, pairs); }

@@ -133,7 +133,7 @@ public final class JavacTool{
   }
 
   private static void jpBody(Path dest, String name, String versionId, String moduleMain, Path modsDir, Path appContent, Path runtimeImage, Path tmp, Path packaging){
-    String wName= name+"w";
+    var wName= name+"w";
     var icon= iconForCurrentOs(packaging);
     var wProps= tmp.resolve(wName+".properties");
     var winConsole= Fs.isWindows() ? "win-console=false\n" : "";

@@ -31,7 +31,7 @@ public interface TokenProcessor<
     }
     public Map<T,TK,E,Tokenizer,Parser,Err> putStr(TK kind, Function<String,E> f, String str, String frame){
       return put(kind, (_,t,tz) -> {
-        String head= t.content().isBlank()
+        var head= t.content().isBlank()
           ? "Unrecognized text."
           : "Unrecognized text "+Message.displayString(t.content())+".";
         throw f.apply(head+"\n"+str).addFrame(frame, t.span(tz.fileName()));

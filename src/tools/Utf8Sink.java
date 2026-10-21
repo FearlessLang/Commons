@@ -49,8 +49,8 @@ public final class Utf8Sink extends OutputStream{
     if (outBuf.hasRemaining()){ out.accept(outBuf.toString()); }
   }
   private void expandBuffer(int neededSize){
-    int newCap= Math.max(inBuf.capacity() * 2, neededSize);
-    ByteBuffer newBuf= ByteBuffer.allocate(newCap);
+    var newCap= Math.max(inBuf.capacity() * 2, neededSize);
+    var newBuf= ByteBuffer.allocate(newCap);
     inBuf.flip();
     newBuf.put(inBuf);
     inBuf = newBuf;

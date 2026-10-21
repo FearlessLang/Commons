@@ -46,7 +46,7 @@ public final class Streams{
       return new ListZipper2<>(asi, bsi);
     }
     @Override public <R> R fold(Acc2<R,A,B> folder, R initial){
-      Box<R> acc= new Box<>(initial);
+      var acc= new Box<>(initial);
       IntStream.range(0, as.size()).forEach(i -> acc.set(folder.apply(acc.get(), as.get(i), bs.get(i))));
       return acc.get();
     }
@@ -101,7 +101,7 @@ public final class Streams{
       return new ListZipper3<>(asi, bsi, csi);
     }
     @Override public <R> R fold(Acc3<R,A,B,C> folder, R initial){
-      Box<R> acc= new Box<>(initial);
+      var acc= new Box<>(initial);
       IntStream.range(0, as.size()).forEach(i -> acc.set(folder.apply(acc.get(), as.get(i), bs.get(i), cs.get(i))));
       return acc.get();
     }

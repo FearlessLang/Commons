@@ -31,7 +31,7 @@ public final class NameSuggester{
 
   public static String suggest(String name, List<String> candidates){
     return suggest(name, candidates, (_,cs,best) -> {
-      StringBuilder out= new StringBuilder();
+      var out= new StringBuilder();
       best.ifPresent(b -> out
         .append("Did you mean ")
         .append(Message.displayString(b))
@@ -58,7 +58,7 @@ public final class NameSuggester{
   private static Optional<String> pickBest(String t, List<String> candidates){
     var tScore= simpleName(stripQuotes(t));
     var scored= new ArrayList<Suggestion>(candidates.size());
-    for (String c : candidates){
+    for (var c : candidates){
       var cScore= simpleName(stripQuotes(c));
       scored.add(new Suggestion(c, cScore, score(tScore, cScore)));
     }
@@ -68,16 +68,16 @@ public final class NameSuggester{
       .thenComparingInt(s -> s.value.length())
       .thenComparing(s -> s.value));
     var top= scored.getFirst();
-    double topScore= top.score;
-    double runnerUp= scored.size()>1 ? scored.get(1).score : -1;
-    boolean strongEnough= topScore >= strongSimilarity;
-    boolean clearMargin= (runnerUp < 0) || (topScore-runnerUp >= margin);
+    var topScore= top.score;
+    var runnerUp= scored.size()>1 ? scored.get(1).score : -1;
+    var strongEnough= topScore >= strongSimilarity;
+    var clearMargin= (runnerUp < 0) || (topScore-runnerUp >= margin);
     if (!strongEnough || !clearMargin){ return Optional.empty(); }
     return Optional.of(top.value);
   }
 
   private static double score(String tScore, String cScore){
-    double score= 0.55 * componentScore(splitCamel(tScore), splitCamel(cScore)) + 0.45 * wholeScore(tScore, cScore);
+    var score= 0.55 * componentScore(splitCamel(tScore), splitCamel(cScore)) + 0.45 * wholeScore(tScore, cScore);
     if (kindsCompatible(tScore, cScore)){ score += 0.03; }
     else{ score -= 0.10; }
     return Math.clamp(score, 0, 1);
@@ -90,8 +90,8 @@ public final class NameSuggester{
 
   private static double wholeScore(String a, String b){
     if (a.equals(b)){ return 1.0; }
-    String al= a.toLowerCase(Locale.ROOT);
-    String bl= b.toLowerCase(Locale.ROOT);
+    var al= a.toLowerCase(Locale.ROOT);
+    var bl= b.toLowerCase(Locale.ROOT);
     if (al.equals(bl)){ return 0.92; }
     return normalizedLevenshtein(al, bl);
   }
@@ -104,12 +104,12 @@ public final class NameSuggester{
   }
 
   private static double window(List<String> small, List<String> big, double front, double back, double extra){
-    double best= 0.0;
+    var best= 0.0;
     for (int start : Range.of(0, big.size() - small.size() + 1)){
-      double sum= 0.0;
+      var sum= 0.0;
       for (int i : Range.of(small)){ sum += tokenScore(small.get(i), big.get(start + i)); }
-      double avg= sum / small.size();
-      double penalty= front * start + back * (big.size() - (start + small.size())) + extra * (big.size() - small.size());
+      var avg= sum / small.size();
+      var penalty= front * start + back * (big.size() - (start + small.size())) + extra * (big.size() - small.size());
       best = Math.max(best, avg - penalty);
     }
     return Math.clamp(best, 0, 1);
@@ -131,7 +131,7 @@ public final class NameSuggester{
   }
 
   private static String simpleName(String s){
-    int i= s.lastIndexOf('.');
+    var i= s.lastIndexOf('.');
     return (i < 0) ? s : s.substring(i + 1);
   }
 
@@ -147,25 +147,25 @@ public final class NameSuggester{
   }
 
   private static double normalizedLevenshtein(String a, String b){
-    int max= Math.max(a.length(), b.length());
-    int d= levenshtein(a, b);
+    var max= Math.max(a.length(), b.length());
+    var d= levenshtein(a, b);
     return 1.0 - (d / (double)max);
   }
 
   private static int levenshtein(String a, String b){
     int n= a.length(), m= b.length();
-    int[] prev= new int[m + 1];
-    int[] curr= new int[m + 1];
+    var prev= new int[m + 1];
+    var curr= new int[m + 1];
     for (int j= 0; j <= m; j += 1){ prev[j] = j; }
     for (int i= 1; i <= n; i += 1){
       curr[0] = i;
-      char ca= a.charAt(i - 1);
+      var ca= a.charAt(i - 1);
       for (int j= 1; j <= m; j += 1){
-        char cb= b.charAt(j - 1);
-        int cost= (ca == cb) ? 0 : 1;
+        var cb= b.charAt(j - 1);
+        var cost= (ca == cb) ? 0 : 1;
         curr[j] = Math.min(Math.min(curr[j - 1] + 1, prev[j] + 1), prev[j - 1] + cost);
       }
-      int[] tmp= prev;
+      var tmp= prev;
       prev = curr;
       curr = tmp;
     }

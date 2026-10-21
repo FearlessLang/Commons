@@ -167,7 +167,7 @@ public final class Fs{
     var tp= ToolProvider.findFirst(tool).orElseThrow();
     var baos= new ByteArrayOutputStream();
     var ps= new PrintStream(baos, true, StandardCharsets.UTF_8);
-    int rc= tp.run(ps, ps, args.toArray(String[]::new));
+    var rc= tp.run(ps, ps, args.toArray(String[]::new));
     var out= baos.toString(StandardCharsets.UTF_8);
     checkTool(tool, rc, args, out);
     return out;
@@ -193,19 +193,19 @@ public final class Fs{
   }
   /// Returns the filename without the extension. Example: "fear:/a/b/c.tar.gz" -> "c"
   public static String fileNameWithoutExtension(String s){
-    int slash= lastSlashIndex(s);
-    int dot= s.indexOf('.', slash + 1); // first dot after last slash
+    var slash= lastSlashIndex(s);
+    var dot= s.indexOf('.', slash + 1); // first dot after last slash
     assert dot>slash+1 && dot+1<s.length();
     return s.substring(slash + 1, dot);
   }
   public static String removeFileNameAllowTop(String s){
-    int i= s.lastIndexOf('/');
+    var i= s.lastIndexOf('/');
     if (i == -1){ return ""; }
-    int j= s.indexOf(":/");
+    var j= s.indexOf(":/");
     return i==j+1 ? s.substring(0, i+1) : s.substring(0, i);
   }
   private static int lastSlashIndex(String s){
-    int i= s.lastIndexOf('/');
+    var i= s.lastIndexOf('/');
     assert i>=0 && i+1<s.length();
     return i;
   }
@@ -230,11 +230,11 @@ public final class Fs{
     return true;
   }
   public static void walkV(Path p, WalkVoid f){
-    try (Stream<Path> s= Files.find(p, Integer.MAX_VALUE, Fs::noLink)){ f.walk(s); }
+    try (var s= Files.find(p, Integer.MAX_VALUE, Fs::noLink)){ f.walk(s); }
     catch (IOException e){ throw new UncheckedIOException(e); }
   }
   public static <T> T walk(Path p, Walk<T> f){
-    try (Stream<Path> s= Files.find(p, Integer.MAX_VALUE, Fs::noLink)){ return f.walk(s); }
+    try (var s= Files.find(p, Integer.MAX_VALUE, Fs::noLink)){ return f.walk(s); }
     catch (IOException e){ throw new UncheckedIOException(e); }
   }
   public static void copyTreeFlat(Path from, Path to){

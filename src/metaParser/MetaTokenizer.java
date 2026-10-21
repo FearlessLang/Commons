@@ -36,7 +36,7 @@ public abstract class MetaTokenizer<
   public abstract T make(TK kind, String text, int line, int col, List<T> tokens);
 
   private <R> R withFrozen(Supplier<R> body){
-    boolean prev= frozen;
+    var prev= frozen;
     frozen = true;
     try{ return body.get(); }
     finally{ frozen = prev; }
