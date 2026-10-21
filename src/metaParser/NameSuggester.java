@@ -63,17 +63,17 @@ public final class NameSuggester{
       scored.add(new Suggestion(c, cScore, score(tScore, cScore)));
     }
     scored.sort(Comparator
-      .<Suggestion>comparingDouble(s -> -s.score)
-      .thenComparingInt(s -> Math.abs(s.scoreName.length() - tScore.length()))
-      .thenComparingInt(s -> s.value.length())
-      .thenComparing(s -> s.value));
+      .<Suggestion>comparingDouble(s -> -s.score())
+      .thenComparingInt(s -> Math.abs(s.scoreName().length() - tScore.length()))
+      .thenComparingInt(s -> s.value().length())
+      .thenComparing(s -> s.value()));
     var top= scored.getFirst();
-    var topScore= top.score;
-    var runnerUp= scored.size()>1 ? scored.get(1).score : -1;
+    var topScore= top.score();
+    var runnerUp= scored.size()>1 ? scored.get(1).score() : -1;
     var strongEnough= topScore >= strongSimilarity;
     var clearMargin= runnerUp<0 || topScore-runnerUp>=margin;
     if (!strongEnough || !clearMargin){ return Optional.empty(); }
-    return Optional.of(top.value);
+    return Optional.of(top.value());
   }
 
   private static double score(String tScore, String cScore){

@@ -68,10 +68,10 @@ public final class Message{
     var lines= splitLines(src);
     var a= nextVisible(lines, new Pos(s.startLine(), s.startCol()), new Pos(s.endLine(), s.endCol()));
     var b= prevVisible(lines, a, new Pos(s.endLine(), s.endCol()));
-    return new Span(s.fileName(), a.line, a.col, b.line, b.col);
+    return new Span(s.fileName(), a.line(), a.col(), b.line(), b.col());
   }
   private static Pos nextVisible(String[] lines, Pos p, Pos limit){
-    int line= Math.clamp(p.line, 1, lines.length), col= Math.max(1, p.col);
+    int line= Math.clamp(p.line(), 1, lines.length), col= Math.max(1, p.col());
     while (beforeOrEqual(line, col, limit)){
       var ln= get(lines, line);
       if (col > ln.length()){ line += 1; col = 1; continue; }
@@ -82,8 +82,8 @@ public final class Message{
     return limit;
   }
   private static Pos prevVisible(String[] lines, Pos start, Pos p){
-    var line= Math.clamp(p.line, 1, lines.length);
-    var col= Math.max(1, p.col);
+    var line= Math.clamp(p.line(), 1, lines.length);
+    var col= Math.max(1, p.col());
     while (afterOrEqual(line, col, start)){
       var ln= get(lines, line);
       var visible= col<=ln.length() && isVisible(ln.charAt(col - 1));
@@ -91,10 +91,10 @@ public final class Message{
       col -= 1;
       if (col >= 1){ continue; }
       line -= 1;
-      if (line < start.line){ return new Pos(start.line, start.col); }
+      if (line < start.line()){ return start; }
       col = Math.max(1, get(lines, line).length());
     }
-    return new Pos(start.line, start.col);
+    return start;
   }
   private static boolean isVisible(char c){ return c!=' ' && c!='\t' && c!='\n' && c!='\r'; }
 
@@ -170,10 +170,10 @@ public final class Message{
   }
 
   private static boolean beforeOrEqual(int l, int c, Pos limit){
-    return l<limit.line || (l==limit.line && c<=limit.col);
+    return l<limit.line() || (l==limit.line() && c<=limit.col());
   }
   private static boolean afterOrEqual(int l, int c, Pos start){
-    return l>start.line || (l==start.line && c>=start.col);
+    return l>start.line() || (l==start.line() && c>=start.col());
   }
   private record Pos(int line, int col){}
   static String uPlus(int cp){
