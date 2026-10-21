@@ -138,7 +138,7 @@ public abstract class MetaTokenizer<
     var tmp= tokensForTree();
     assert tmp.getFirst().kind() == sof : "first token must be SOF";
     assert tmp.getLast().kind() == eof : "last token must be EOF";
-    tree = withFrozen(() -> new TokenTrees<T,TK,E,Tokenizer,Parser,Err>(spec, self()).of(tmp.listIterator()).tokens());
+    tree = withFrozen(() -> new TokenTrees<>(spec, self()).of(tmp.listIterator()).tokens());
     return self();
   }
   public URI fileName(){ return Objects.requireNonNull(fileName); }

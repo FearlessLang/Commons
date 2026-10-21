@@ -68,7 +68,7 @@ record TreeDiagnostics<
   private int ofRecovery(List<T> tokens){
     var li= tokens.listIterator();
     try{
-      new TokenTrees<T,TK,E,Tokenizer,Parser,Err>(spec, tz){
+      new TokenTrees<>(spec, tz){
         @Override E diagOnBadCloser(T open, T stop){ throw new Out(); }
         @Override E diagOnBadBarrier(T open, T stop){ throw new Out(); }
       }.of(li);

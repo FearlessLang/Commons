@@ -16,7 +16,7 @@ public interface Token<T extends Token<T,TK>,TK extends TokenKind>{
     return Stream.of(kinds).anyMatch(this::is);
   }
   default boolean is(TK k){ return kind().equals(k); }
-  default Span span(URI fileName){ return Token.makeSpan(fileName, this, this); }
+  default Span span(URI fileName){ return makeSpan(fileName, this, this); }
   static Span makeSpan(URI fileName, Token<?,?> first, Token<?,?> last){
     var l= last.line();
     var c= last.column();

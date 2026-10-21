@@ -26,7 +26,7 @@ public final class Err{
   public static boolean strCmp(String expected, String actual){
     actual = actual.trim();
     expected = expected.trim();
-    try{ assertTrue.accept(strCmpAux(expected, actual, Err.hole)); }
+    try{ assertTrue.accept(strCmpAux(expected, actual, hole)); }
     catch (AssertionError e){
       if (!err.isInstance(e)){ throw e; }
       assertEquals.accept(expected, actual);
