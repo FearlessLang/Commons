@@ -34,6 +34,7 @@ public final class Utf8Sink extends OutputStream{
       if (r.isUnderflow()){ break; }
     }
     inBuf.clear();
+    decoder.reset();
   }
   private void decodeLoop(boolean end){
     while (true){
