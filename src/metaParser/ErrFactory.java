@@ -23,9 +23,9 @@ public interface ErrFactory<
   /// - a barrier token
   /// - _EOF
   E groupHalt(
-    T open, T stop, Collection<TK> expectedClosers,
-    LikelyCause likely,
-    Tokenizer tokenizer);
+      T open, T stop, Collection<TK> expectedClosers,
+      LikelyCause likely,
+      Tokenizer tokenizer);
   enum LikelyCause{
     Unknown,
     StrayOpener,   //Dropping the opener ('open') makes parsing advance significantly.
@@ -36,17 +36,17 @@ public interface ErrFactory<
   ///hiddenContainer is the whole hidden token; hiddenFragment pinpoints the slice
   ///that contains the closer.
   E eatenCloserBetween(
-    T open, T stop, Collection<TK> expectedClosers,
-    T hiddenFragment, T hiddenContainer,
-    Tokenizer tokenizer);
+      T open, T stop, Collection<TK> expectedClosers,
+      T hiddenFragment, T hiddenContainer,
+      Tokenizer tokenizer);
   ///The expected opener for 'stop' appears hidden inside another token 
   ///(example: string or comment) between 'open' and 'stop'.
   ///hiddenContainer is the whole hidden token; hiddenFragment pinpoints the slice
   ///that contains the opener.
   E eatenOpenerBetween(
-    T open, T stop, Collection<TK> expectedClosers,
-    T hiddenFragment, T hiddenContainer,
-    Tokenizer tokenizer);
+      T open, T stop, Collection<TK> expectedClosers,
+      T hiddenFragment, T hiddenContainer,
+      Tokenizer tokenizer);
   // == Parser-time diagnostics ================================================
   ///Required element missing at span; expected tokens listed.
   E missing(Span at, String what, List<TK> expectedTokens, Parser parser);

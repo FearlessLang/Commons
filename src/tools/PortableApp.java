@@ -7,9 +7,8 @@ import java.util.List;
 import utils.OneOr;
 
 public record PortableApp(
-  Path packaging, Path out, List<List<Path>> modules, Path base, Path rt,
-  Path depJar, String appName, String versionId, String moduleMain
-){
+    Path packaging, Path out, List<List<Path>> modules, Path base, Path rt,
+    Path depJar, String appName, String versionId, String moduleMain){
   public void build(){
     reqInputs();
     Fs.cleanDir(out);

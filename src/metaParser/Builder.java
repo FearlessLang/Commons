@@ -16,10 +16,9 @@ record Builder<
     Parser extends MetaParser<T,TK,E,Tokenizer,Parser,Err>,
     Err extends ErrFactory<T,TK,E,Tokenizer,Parser,Err>
   >(
-  TokenTrees<T,TK,E,Tokenizer,Parser,Err> ctx,
-  ArrayList<T> output,
-  ListIterator<T> i
-  ){
+    TokenTrees<T,TK,E,Tokenizer,Parser,Err> ctx,
+    ArrayList<T> output,
+    ListIterator<T> i){
   T build(T open){
     while (i.hasNext()){
       var current= i.next();

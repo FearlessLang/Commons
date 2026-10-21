@@ -15,9 +15,9 @@ public final class Err{
   private static BiConsumer<String,String> assertEquals;
   private static Consumer<Boolean> assertTrue;
   public static void setUp(
-    Class<? extends AssertionError> err,
-    BiConsumer<String,String> assertEquals,
-    Consumer<Boolean> assertTrue){
+      Class<? extends AssertionError> err,
+      BiConsumer<String,String> assertEquals,
+      Consumer<Boolean> assertTrue){
     Err.err = err;
     Err.assertEquals = assertEquals;
     Err.assertTrue = assertTrue;
