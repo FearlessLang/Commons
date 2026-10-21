@@ -1,6 +1,6 @@
 package offensiveUtils;
 
-/** Never as Map/Set key (nondiscriminating equals/hashCode). Build-time checker rejects it. */
+/** Never as Map/Set key (nondiscriminating equals/hashCode). */
 @NeverAsKey
 public class EqTransparent<T>{
   public T inner;

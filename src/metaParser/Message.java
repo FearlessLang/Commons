@@ -106,7 +106,7 @@ public final class Message{
     List<Span> leadingSingles= spans.stream().takeWhile(Span::isSingleLine).toList();
     int targetLine= leadingSingles.isEmpty() ? 0 : leadingSingles.getLast().startLine();
 
-    // If <=3, keep all; else keep first, a middle near avg size, and last  -  sort outer..inner by length.
+    // At most 3 distinct singles, all on the line of the last leading single, sorted outer..inner.
     List<Span> chosenSingles= leadingSingles.stream().filter(s -> s.startLine() == targetLine).distinct().limit(3).toList().reversed();
 
     // First multiline after singles (if any)
@@ -117,12 +117,6 @@ public final class Message{
 
     return new Grouping(file, chosenSingles, firstMulti, caretLine);
   }
-  // ===== Phase 4: caret line construction =======================================
-
-  // ===== Phase 5: final rendering ===============================================
-
-  // ----- numbered code line helpers ---------------------------------------------
-
   // ===== small helpers (split, lines, visual columns, padding) ==================
 
   private static String[] splitLines(String s){ return MetaTokenizer.normalizeSource(s).split("\n", -1); }
@@ -135,7 +129,7 @@ public final class Message{
     return String.format(Locale.ROOT, "%0"+w+"d", Math.max(0, n));
   }
 
-  /** Expand tabs into spaces (tab stops every TAB_WIDTH columns). */
+  /** Expand tabs into spaces (tab stops every tabWidth columns). */
   private static String expandTabs(String s){
     if (s.indexOf('\t') < 0){ return s; }
     StringBuilder out= new StringBuilder(s.length() + 8);
@@ -169,7 +163,7 @@ public final class Message{
 
   private static int visualDelta(String rawLine, int startCol, int endCol){
     int aIdx= Math.max(0, startCol - 1);
-    // Clamped independent of aIdx -- the old Math.max(aIdx,...) form let this track aIdx past line end, defeating the guard below.
+    // Clamped independent of aIdx: a span starting past the line end must reach the guard below.
     int bIdxInclusive= Math.min(endCol - 1, rawLine.length() - 1);
     if (aIdx > bIdxInclusive){ return 0; }
     return tabAwareWidth(rawLine, aIdx, bIdxInclusive + 1, 0);
