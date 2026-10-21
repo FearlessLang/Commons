@@ -180,7 +180,7 @@ public abstract class MetaParser<
       int end= splitterParser.index();
       ((MetaParser<T,TK,E,Tokenizer,Parser,Err>)splitterParser).checkProbeErrorFront(false, start, end, drop, frameName);
       var tsi= List.copyOf(slice.subList(start, end-drop));
-      var si= splitterParser.spanAround(start, (end-1)-drop);
+      var si= splitterParser.spanAround(start, Math.max(0, (end-1)-drop));
       parts.add(make(si, tsi));
     }
     var res= parts.stream().map(p -> p.parseAll(frameName, elem)).toList();
