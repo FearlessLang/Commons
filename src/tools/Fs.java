@@ -103,7 +103,7 @@ public final class Fs{
     catch (InterruptedException _){ Thread.currentThread().interrupt(); }
   }
   public static void writeUtf8(Path file, String content){
-    ensureDir(file.getParent());
+    ensureDir(file.toAbsolutePath().getParent());
     ofV(() -> Files.writeString(noLink(file), content));
   }
   public static String readUtf8(Path file){ return of(() -> Files.readString(noLink(file))); }
