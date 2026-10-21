@@ -46,7 +46,7 @@ public final class Err{
   private static boolean strCmpAuxLegacy(String cmp2, String cmp1, String stringHole){
     if (cmp2.isEmpty()){ return cmp1.isEmpty(); }
     var split= new ArrayList<String>(List.of(cmp2.split(Pattern.quote(stringHole))));
-    for (int i= 0; i < split.size(); i += 1){ if (split.get(i).length() == 0){ split.remove(i--); } }
+    split.removeIf(String::isEmpty);
     boolean beginswith= cmp2.startsWith(stringHole);
     boolean endswith= cmp2.endsWith(stringHole);
     int holes= (beginswith ? 1 : 0) + (endswith ? 1 : 0) + split.size() - 1;
@@ -78,23 +78,16 @@ public final class Err{
     //We have a string in between two holes, and all text outside the holes has been removed from both cmp1 and cmp2
     //Check that the middle text exists within cmp1. If it does, all outer text can be considered part of the holes and we have a match
     if (holes == 2){ return cmp1.contains(split.get(0)); }
-    if (holes > 2){
-      //Guess how much space the first hole takes up by iteratively searching for the middle text
-      int index= 0;
-      while ((index = cmp1.indexOf(split.get(0))) > -1){
-        cmp1 = cmp1.substring(index);
-        if (strCmpAuxLegacy(reconstituteRight(split, stringHole), cmp1, stringHole)){ return true; }
-        cmp1 = cmp1.substring(split.get(0).length());
-      }
+    //Guess how much space the first hole takes up by iteratively searching for the middle text
+    int index= 0;
+    while ((index = cmp1.indexOf(split.get(0))) > -1){
+      cmp1 = cmp1.substring(index);
+      if (strCmpAuxLegacy(reconstituteRight(split, stringHole), cmp1, stringHole)){ return true; }
+      cmp1 = cmp1.substring(split.get(0).length());
     }
     return false;
   }
   private static String reconstituteRight(List<String> list, String stringHole){
-    StringBuilder builder= new StringBuilder();
-    for (int i= 0; i < list.size(); i += 1){
-      builder.append(list.get(i));
-      builder.append(stringHole);
-    }
-    return builder.toString();
+    return Join.of(list.stream().map(s -> s+stringHole), "", "", "", "");
   }
 }

@@ -314,8 +314,7 @@ public abstract class MetaParser<
   public Optional<Span> span(T low, T high){//not equal to span(List.of(low,high))
     return leaf(low, true)
       .flatMap(first -> leaf(high, false)
-        .map(last -> makeSpan(first, last)));
+        .map(last -> Token.makeSpan(span.fileName(), first, last)));
   }
   public Optional<Span> span(T t){ return span(t, t); }
-  private Span makeSpan(T first, T last){ return Token.makeSpan(span.fileName(), first, last); }
 }
