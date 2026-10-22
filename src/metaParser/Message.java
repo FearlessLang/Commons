@@ -125,15 +125,10 @@ public final class Message{
     var col= 1; // 1-based
     for (int i : Range.of(0, s.length())){
       var ch= s.charAt(i);
-      if (ch == '\t'){
-        var spaces= tabWidth - ((col - 1) % tabWidth);
-        out.append(" ".repeat(spaces));
-        col += spaces;
-      }
-      else{
-        out.append(ch);
-        col += 1;
-      }
+      if (ch != '\t'){ out.append(ch); col += 1; continue; }
+      var spaces= tabWidth - ((col - 1) % tabWidth);
+      out.append(" ".repeat(spaces));
+      col += spaces;
     }
     return out.toString();
   }
@@ -300,28 +295,17 @@ public final class Message{
     var sps= g.singles();
     var n= sps.size();
     var marks= n==1 ? "^" : n==2 ? "-^" : "-~^";
+    var carr= new StringBuilder();
+    for (int i : Range.of(0, n)){
+      var s= sps.get(i);
+      var aVis= visualCol(raw, s.startCol());
+      var bVis= aVis + Math.max(1, visualDelta(raw, s.startCol(), s.endCol())) - 1; // ensure at least 1 column
+      carr.append(" ".repeat(Math.max(0, bVis - carr.length())));
+      for (int c : Range.of(aVis, bVis + 1)){ carr.setCharAt(c - 1, marks.charAt(i)); }
+    }
     // find rightmost visual column we will draw (1-based), clamp to caret-line length
-    var rightMost= 0;
-    for (int i : Range.of(0, n)){
-      var s= sps.get(i);
-      var aVis= visualCol(raw, s.startCol());
-      var len= visualDelta(raw, s.startCol(), s.endCol());
-      var bVis= aVis + Math.max(1, len) - 1; // ensure at least 1 column
-      rightMost = Math.max(rightMost, bVis);
-    }
-    rightMost = Math.min(rightMost, safeDisplay.length()); // belt-and-braces
-    var carr= " ".repeat(rightMost).toCharArray();
-    for (int i : Range.of(0, n)){
-      var s= sps.get(i);
-      var aVis= visualCol(raw, s.startCol());
-      var len= visualDelta(raw, s.startCol(), s.endCol());
-      var b= Math.max(aVis, Math.min(aVis + Math.max(1, len) - 1, rightMost));
-      for (int c : Range.of(aVis, b + 1)){
-        var idx= c - 1;
-        if (idx < carr.length){ carr[idx] = marks.charAt(i); }
-      }
-    }
-    return " ".repeat(width)+"| "+new String(carr);
+    carr.setLength(Math.min(carr.length(), safeDisplay.length()));
+    return " ".repeat(width)+"| "+carr;
   }
   //Numbered line used specifically for the caret-bearing line:
   //identical to numbered(), except we sanitize the display to be monospace-safe.
@@ -338,20 +322,13 @@ public final class Message{
   private static String sanitizeForCaret(String s){
     var out= new StringBuilder(s.length());
     for (int cp : s.codePoints().toArray()){
-      if (literalChar(cp)){ // printable ASCII
-        out.append((char)cp);
-        continue;
-      }
+      if (literalChar(cp)){ out.append((char)cp); continue; } // printable ASCII
       // Unicode spaces (a small explicit set) and zero-widths
-      if (cp==0x00A0 /* NBSP */
+      var space= cp==0x00A0 /* NBSP */
         || cp==0x1680 || (cp>=0x2000 && cp<=0x200A)
         || cp==0x202F || cp==0x205F || cp==0x3000
-        || cp==0x200B /* ZWSP */ || cp==0x200C /* ZWNJ */ || cp==0x200D /* ZWJ */){
-        out.append('_');
-      }
-      else{
-        out.append('?');
-      }
+        || cp==0x200B /* ZWSP */ || cp==0x200C /* ZWNJ */ || cp==0x200D /* ZWJ */;
+      out.append(space ? '_' : '?');
     }
     return out.toString();
   }
