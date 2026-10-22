@@ -93,6 +93,9 @@ public final class JavacTool{
     reqDeployedMods(dest);
   }
   private static Path jlinkRuntimeImage(Path modsDir, Path tmp){
+    var javaHome= Path.of(System.getProperty("java.home"));
+    var jmods= javaHome.resolve("jmods");
+    Fs.reqDir(jmods, "the jmods of a full JDK (a JRE has none)");
     var appModules= ModuleFinder.of(modsDir).findAll();
     var appModuleNames= appModules.stream().map(m -> m.descriptor().name()).collect(Collectors.toUnmodifiableSet());
     var platformModules= Join.of(appModules.stream()
@@ -103,6 +106,7 @@ public final class JavacTool{
       .distinct().sorted(), "", ",", "");
     var runtimeImage= tmp.resolve("_runtime");
     Fs.runTool("jlink", List.of(
+      "--module-path", jmods.toString(),
       "--add-modules", platformModules,
       "--output", runtimeImage.toString(),
       "--no-header-files", "--no-man-pages", "--strip-debug",
