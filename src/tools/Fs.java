@@ -24,7 +24,10 @@ import java.nio.file.attribute.FileTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.spi.ToolProvider;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -46,6 +49,20 @@ public final class Fs{
   public static boolean isExtSegChar(char c){ return ('a'<=c && c<='z') || ('0'<=c && c<='9'); }
   public static boolean isExtSeg(String s){
     return !s.isEmpty() && s.length()<=maxExtSeg && s.chars().allMatch(c -> isExtSegChar((char)c));
+  }
+  public static final Set<String> winReserved= Set.of(
+    "con", "prn", "aux", "nul",
+    "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8", "com9",
+    "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9"
+  );
+  private static final Pattern capitals= Pattern.compile("^(_*[a-z])|_([a-z])");
+  public static String capFirst(String s){
+    return capitals.matcher(s).replaceAll(r -> (r.group(1)==null ? r.group(2) : r.group(1)).toUpperCase(Locale.ROOT));
+  }
+  private static final Pattern upper= Pattern.compile("[A-Z]");
+  public static Optional<String> fileNameOfType(String type){
+    var res= upper.matcher(type).replaceAll(r -> "_"+r.group().toLowerCase(Locale.ROOT)).substring(1);
+    return Optional.of(res).filter(r -> r.matches("[a-z_][a-z0-9_]*") && capFirst(r).equals(type));
   }
   public static Function<Path,RuntimeException> onSymbolicLink= p -> new IllegalArgumentException(
     "\""+p+"\" is a symbolic link; Fs does not read, write, copy or delete through symbolic links: replace it with the file or folder it points to.");
