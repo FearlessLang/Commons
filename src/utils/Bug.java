@@ -11,7 +11,6 @@ public final class Bug extends RuntimeException{
   public static Bug unreachable(){ return new Bug("Unreachable"); }
   public static Bug todo(){ return new Bug("Todo"); }
   public static Bug todo(String task){ return new Bug(task); }
-
   public static <T> T err(){ throw new Bug(); }
   public static <T> T err(String msg){ throw new Bug(msg); }
 }

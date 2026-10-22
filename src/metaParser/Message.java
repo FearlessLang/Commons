@@ -14,130 +14,119 @@ import utils.Join;
 import utils.Range;
 
 public final class Message{
-
   private static final int tabWidth= 4;
   private static final int minLineWidth= 3;
-
   public static String of(Function<URI,String> loader, List<Frame> frames, String msg){
     try{ return _of(loader, frames, msg); }
     catch (Throwable e){
-      String locs= Join.of(frames.stream().map(Frame::s), "", "\n", "");
+      var locs= Join.of(frames.stream().map(Frame::s), "", "\n", "");
       throw new Error("Exception while formatting the following error:\n"+locs+"\n"+msg, e);
     }
   }
   private static String _of(Function<URI,String> loader, List<Frame> frames, String msg){
     if (frames.isEmpty()){ return msg; }
-    Grouping g= group(trimInvisible(loader, ensureContainment(frames)));
-    String[] lines= splitLines(Objects.requireNonNull(loader.apply(g.file())));
-    int width= Math.max(minLineWidth, String.valueOf(lines.length).length());
+    var g= group(trimInvisible(loader, ensureContainment(frames)));
+    var lines= splitLines(Objects.requireNonNull(loader.apply(g.file())));
+    var width= Math.max(minLineWidth, String.valueOf(lines.length).length());
     Optional<String> caretLine= g.singles().isEmpty() ? Optional.empty() : Optional.of(makeCaretLine(lines, g, width));
-    String body= (g.multiLine() != null)
+    var body= g.multiLine()!=null
       ? renderMulti(lines, g, width, caretLine)
       : numberedCaret(lines, g.caretLine(), width)+"\n"+caretLine.orElse("");
-    String framesLine= Join.of(frames.stream().map(Frame::name).filter(n -> !n.isBlank()), "While inspecting ", " > ", "", "While inspecting the file");
+    var framesLine= Join.of(frames.stream().map(Frame::name).filter(n -> !n.isBlank()), "While inspecting ", " > ", "", "While inspecting the file");
     return "In file: "+PrettyFileName.displayFileName(g.file())+"\n\n"+body+"\n\n"+framesLine+"\n"+msg;
   }
   private static String numbered(String[] lines, int lineNum, int width){
     return padLineNum(lineNum, width)+"| "+expandTabs(get(lines, lineNum));
   }
   private static List<Frame> ensureContainment(List<Frame> fs){
-    ArrayList<Frame> out= new ArrayList<>(fs);
+    var out= new ArrayList<>(fs);
     for (int i : Range.of(0, out.size() - 1)){
-      Span inner= out.get(i).s();
-      Span outer= out.get(i+1).s();
-      out.set(i+1, new Frame(out.get(i+1).name(), union(inner, outer)));
+      var inner= out.get(i).s();
+      var outer= out.get(i + 1).s();
+      out.set(i + 1, new Frame(out.get(i + 1).name(), union(inner, outer)));
     }
     return List.copyOf(out);
   }
   private static Span union(Span a, Span b){
-    int startLine= Math.min(a.startLine(), b.startLine());
-    int endLine= Math.max(a.endLine(), b.endLine());
-    int startCol= (a.startLine()==startLine && b.startLine()==startLine)
-        ? Math.min(a.startCol(), b.startCol())
-        : (a.startLine()==startLine ? a.startCol() : b.startCol());
-    int endCol= (a.endLine()==endLine && b.endLine()==endLine)
-        ? Math.max(a.endCol(), b.endCol())
-        : (a.endLine()==endLine ? a.endCol() : b.endCol());
+    var startLine= Math.min(a.startLine(), b.startLine());
+    var endLine= Math.max(a.endLine(), b.endLine());
+    var startCol= (a.startLine()==startLine && b.startLine()==startLine)
+      ? Math.min(a.startCol(), b.startCol())
+      : (a.startLine()==startLine ? a.startCol() : b.startCol());
+    var endCol= (a.endLine()==endLine && b.endLine()==endLine)
+      ? Math.max(a.endCol(), b.endCol())
+      : (a.endLine()==endLine ? a.endCol() : b.endCol());
     return new Span(a.fileName(), startLine, startCol, endLine, endCol);
   }
   private static List<Frame> trimInvisible(Function<URI,String> loader, List<Frame> fs){
     return fs.stream().map(f -> new Frame(f.name(), shrinkToVisible(loader, f.s()))).toList();
   }
   private static Span shrinkToVisible(Function<URI,String> loader, Span s){
-    String src= Objects.requireNonNull(loader.apply(s.fileName()));
-    String[] lines= splitLines(src);
-    Pos a= nextVisible(lines, new Pos(s.startLine(), s.startCol()), new Pos(s.endLine(), s.endCol()));
-    Pos b= prevVisible(lines, a, new Pos(s.endLine(), s.endCol()));
-    return new Span(s.fileName(), a.line, a.col, b.line, b.col);
+    var src= Objects.requireNonNull(loader.apply(s.fileName()));
+    var lines= splitLines(src);
+    var a= nextVisible(lines, new Pos(s.startLine(), s.startCol()), new Pos(s.endLine(), s.endCol()));
+    var b= prevVisible(lines, a, new Pos(s.endLine(), s.endCol()));
+    return new Span(s.fileName(), a.line(), a.col(), b.line(), b.col());
   }
   private static Pos nextVisible(String[] lines, Pos p, Pos limit){
-    int line= Math.clamp(p.line, 1, lines.length), col= Math.max(1, p.col);
+    int line= Math.clamp(p.line(), 1, lines.length), col= Math.max(1, p.col());
     while (beforeOrEqual(line, col, limit)){
-      String ln= get(lines, line);
+      var ln= get(lines, line);
       if (col > ln.length()){ line += 1; col = 1; continue; }
-      char ch= ln.charAt(col - 1);
+      var ch= ln.charAt(col - 1);
       if (isVisible(ch)){ return new Pos(line, col); }
       col += 1;
     }
     return limit;
   }
   private static Pos prevVisible(String[] lines, Pos start, Pos p){
-    int line= Math.clamp(p.line, 1, lines.length);
-    int col= Math.max(1, p.col);
+    var line= Math.clamp(p.line(), 1, lines.length);
+    var col= Math.max(1, p.col());
     while (afterOrEqual(line, col, start)){
-      String ln= get(lines, line);
+      var ln= get(lines, line);
       var visible= col<=ln.length() && isVisible(ln.charAt(col - 1));
       if (visible){ return new Pos(line, col); }
       col -= 1;
       if (col >= 1){ continue; }
       line -= 1;
-      if (line < start.line){ return new Pos(start.line, start.col); }
+      if (line < start.line()){ return start; }
       col = Math.max(1, get(lines, line).length());
     }
-    return new Pos(start.line, start.col);
+    return start;
   }
   private static boolean isVisible(char c){ return c!=' ' && c!='\t' && c!='\n' && c!='\r'; }
-
   private record Grouping(URI file, List<Span> singles, Span multiLine, int caretLine){}
-
   private static Grouping group(List<Frame> fs){
-    List<Span> spans= fs.stream().map(Frame::s).toList();
-    URI file= spans.getLast().fileName();
-    List<Span> leadingSingles= spans.stream().takeWhile(Span::isSingleLine).toList();
-    int targetLine= leadingSingles.isEmpty() ? 0 : leadingSingles.getLast().startLine();
-
+    var spans= fs.stream().map(Frame::s).toList();
+    var file= spans.getLast().fileName();
+    var leadingSingles= spans.stream().takeWhile(Span::isSingleLine).toList();
+    var targetLine= leadingSingles.isEmpty() ? 0 : leadingSingles.getLast().startLine();
     // At most 3 distinct singles, all on the line of the last leading single, sorted outer..inner.
-    List<Span> chosenSingles= leadingSingles.stream().filter(s -> s.startLine() == targetLine).distinct().limit(3).toList().reversed();
-
+    var chosenSingles= leadingSingles.stream().filter(s -> s.startLine() == targetLine).distinct().limit(3).toList().reversed();
     // First multiline after singles (if any)
-    Span firstMulti= spans.stream().filter(s -> !s.isSingleLine()).findFirst().orElse(null);
-
-    int caretLine= !chosenSingles.isEmpty() ? chosenSingles.getLast().startLine()
-                   : (firstMulti!=null ? firstMulti.startLine() : spans.getLast().startLine());
-
+    var firstMulti= spans.stream().filter(s -> !s.isSingleLine()).findFirst().orElse(null);
+    var caretLine= !chosenSingles.isEmpty() ? chosenSingles.getLast().startLine()
+      : (firstMulti!=null ? firstMulti.startLine() : spans.getLast().startLine());
     return new Grouping(file, chosenSingles, firstMulti, caretLine);
   }
   // ===== small helpers (split, lines, visual columns, padding) ==================
-
   private static String[] splitLines(String s){ return MetaTokenizer.normalizeSource(s).split("\n", -1); }
   private static String get(String[] lines, int oneBased){
     if (oneBased<1 || oneBased>lines.length){ return ""; }
-    return lines[oneBased-1];
+    return lines[oneBased - 1];
   }
-
   private static String padLineNum(int n, int w){
     return String.format(Locale.ROOT, "%0"+w+"d", Math.max(0, n));
   }
-
   /** Expand tabs into spaces (tab stops every tabWidth columns). */
   private static String expandTabs(String s){
     if (s.indexOf('\t') < 0){ return s; }
-    StringBuilder out= new StringBuilder(s.length() + 8);
-    int col= 1; // 1-based
+    var out= new StringBuilder(s.length() + 8);
+    var col= 1; // 1-based
     for (int i : Range.of(0, s.length())){
-      char ch= s.charAt(i);
+      var ch= s.charAt(i);
       if (ch == '\t'){
-        int spaces= tabWidth - ((col - 1) % tabWidth);
+        var spaces= tabWidth - ((col - 1) % tabWidth);
         out.append(" ".repeat(spaces));
         col += spaces;
       }
@@ -148,32 +137,28 @@ public final class Message{
     }
     return out.toString();
   }
-
   private static int tabAwareWidth(String rawLine, int fromIdxIncl, int toIdxExcl, int baseVis){
-    int vis= baseVis;
+    var vis= baseVis;
     for (int i : Range.of(fromIdxIncl, toIdxExcl)){ vis += rawLine.charAt(i)=='\t' ? tabWidth-(vis % tabWidth) : 1; }
     return vis;
   }
-
   /** Visual column (1-based) at a logical column (expands tabs). */
   private static int visualCol(String rawLine, int logicalCol){
-    int limit= Math.min(logicalCol - 1, rawLine.length());
+    var limit= Math.min(logicalCol - 1, rawLine.length());
     return tabAwareWidth(rawLine, 0, limit, 1);
   }
-
   private static int visualDelta(String rawLine, int startCol, int endCol){
-    int aIdx= Math.max(0, startCol - 1);
+    var aIdx= Math.max(0, startCol - 1);
     // Clamped independent of aIdx: a span starting past the line end must reach the guard below.
-    int bIdxInclusive= Math.min(endCol - 1, rawLine.length() - 1);
+    var bIdxInclusive= Math.min(endCol - 1, rawLine.length() - 1);
     if (aIdx > bIdxInclusive){ return 0; }
     return tabAwareWidth(rawLine, aIdx, bIdxInclusive + 1, 0);
   }
-
   private static boolean beforeOrEqual(int l, int c, Pos limit){
-    return l<limit.line || (l==limit.line && c<=limit.col);
+    return l<limit.line() || (l==limit.line() && c<=limit.col());
   }
   private static boolean afterOrEqual(int l, int c, Pos start){
-    return l>start.line || (l==start.line && c>=start.col);
+    return l>start.line() || (l==start.line() && c>=start.col());
   }
   private record Pos(int line, int col){}
   static String uPlus(int cp){
@@ -186,7 +171,7 @@ public final class Message{
     if (cp>=0xD800 && cp<=0xDFFF){
       return "["+(cp<=0xDBFF ? "HIGH" : "LOW")+" SURROGATE "+uPlus(cp)+"]";
     }
-    String name= named.get(cp);
+    var name= named.get(cp);
     if (name != null){ return "["+name+"]"; }
     if (literalChar(cp)){ return quoteLiteral(Character.toString(cp)); }
     return "["+uPlus(cp)+"]";
@@ -194,10 +179,10 @@ public final class Message{
   public static String displayString(String s){
     if (s.isEmpty()){ return "\"\""; }
     if (s.codePointCount(0, s.length()) == 1){ return displayChar(s.codePointAt(0)); }
-    ArrayList<String> out= new ArrayList<>();
-    StringBuilder lit= new StringBuilder();
+    var out= new ArrayList<String>();
+    var lit= new StringBuilder();
     for (int cp : s.codePoints().toArray()){
-      boolean clash= (cp=='"' && lit.indexOf("`")>=0) || (cp=='`' && lit.indexOf("\"")>=0);
+      var clash= (cp=='"' && lit.indexOf("`")>=0) || (cp=='`' && lit.indexOf("\"")>=0);
       if (literalChar(cp) && !clash){ lit.append((char)cp); continue; }
       flushLiteral(out, lit);
       out.add(cp=='\n' ? "|" : displayChar(cp));
@@ -205,23 +190,19 @@ public final class Message{
     flushLiteral(out, lit);
     return Join.of(out, "", " ", "");
   }
-
   static boolean literalChar(int cp){
     return cp>=0x20 && cp<=0x7E;
   }
-
   private static void flushLiteral(ArrayList<String> out, StringBuilder lit){
     if (lit.isEmpty()){ return; }
     out.add(quoteLiteral(lit.toString()));
     lit.setLength(0);
   }
-
   private static String quoteLiteral(String s){
     if (s.indexOf('"') < 0){ return "\""+s+"\""; }
     if (s.indexOf('`') < 0){ return "`"+s+"`"; }
     throw Bug.of("Unsplit literal containing both delimiters: "+s);
   }
-
   private static final HashMap<Integer,String> named= new HashMap<>();
   static{
     // C0 controls
@@ -310,38 +291,37 @@ public final class Message{
     named.put(0x2069, "Pop Directional Isolate 0x2069");
     named.put(0xFEFF, "Byte Order Mark 0xFEFF");
   }
-
   private static String makeCaretLine(String[] lines, Grouping g, int width){
-    String raw= get(lines, g.caretLine());
+    var raw= get(lines, g.caretLine());
     // Only the caret-bearing line is sanitized for display;
     // geometry (columns/lengths) is computed from RAW with tab math.
-    String safeDisplay= sanitizeForCaret(expandTabs(raw));
+    var safeDisplay= sanitizeForCaret(expandTabs(raw));
     // decide marks so a single span uses '^'
-    List<Span> sps= g.singles();
-    int n= sps.size();
-    String marks= n==1 ? "^" : n==2 ? "-^" : "-~^";
+    var sps= g.singles();
+    var n= sps.size();
+    var marks= n==1 ? "^" : n==2 ? "-^" : "-~^";
     // find rightmost visual column we will draw (1-based), clamp to caret-line length
-    int rightMost= 0;
+    var rightMost= 0;
     for (int i : Range.of(0, n)){
-      Span s= sps.get(i);
-      int aVis= visualCol(raw, s.startCol());
-      int len= visualDelta(raw, s.startCol(), s.endCol());
-      int bVis= aVis + Math.max(1, len) - 1; // ensure at least 1 column
+      var s= sps.get(i);
+      var aVis= visualCol(raw, s.startCol());
+      var len= visualDelta(raw, s.startCol(), s.endCol());
+      var bVis= aVis + Math.max(1, len) - 1; // ensure at least 1 column
       rightMost = Math.max(rightMost, bVis);
     }
     rightMost = Math.min(rightMost, safeDisplay.length()); // belt-and-braces
-    char[] carr= " ".repeat(rightMost).toCharArray();
+    var carr= " ".repeat(rightMost).toCharArray();
     for (int i : Range.of(0, n)){
-      Span s= sps.get(i);
-      int aVis= visualCol(raw, s.startCol());
-      int len= visualDelta(raw, s.startCol(), s.endCol());
-      int b= Math.max(aVis, Math.min(aVis + Math.max(1, len) - 1, rightMost));
-      for (int c : Range.of(aVis, b+1)){
-        int idx= c - 1;
+      var s= sps.get(i);
+      var aVis= visualCol(raw, s.startCol());
+      var len= visualDelta(raw, s.startCol(), s.endCol());
+      var b= Math.max(aVis, Math.min(aVis + Math.max(1, len) - 1, rightMost));
+      for (int c : Range.of(aVis, b + 1)){
+        var idx= c - 1;
         if (idx < carr.length){ carr[idx] = marks.charAt(i); }
       }
     }
-    return " ".repeat(width)+'|'+' '+new String(carr);
+    return " ".repeat(width)+"| "+new String(carr);
   }
   //Numbered line used specifically for the caret-bearing line:
   //identical to numbered(), except we sanitize the display to be monospace-safe.
@@ -356,17 +336,17 @@ public final class Message{
    * All replacements are single-column in typical monospace fonts.
    */
   private static String sanitizeForCaret(String s){
-    StringBuilder out= new StringBuilder(s.length());
+    var out= new StringBuilder(s.length());
     for (int cp : s.codePoints().toArray()){
       if (literalChar(cp)){ // printable ASCII
         out.append((char)cp);
         continue;
       }
       // Unicode spaces (a small explicit set) and zero-widths
-      if (cp==0x00A0 /* NBSP */ ||
-          cp==0x1680 || (cp>=0x2000 && cp<=0x200A) ||
-          cp==0x202F || cp==0x205F || cp==0x3000 ||
-          cp==0x200B /* ZWSP */ || cp==0x200C /* ZWNJ */ || cp==0x200D /* ZWJ */){
+      if (cp==0x00A0 /* NBSP */
+        || cp==0x1680 || (cp>=0x2000 && cp<=0x200A)
+        || cp==0x202F || cp==0x205F || cp==0x3000
+        || cp==0x200B /* ZWSP */ || cp==0x200C /* ZWNJ */ || cp==0x200D /* ZWJ */){
         out.append('_');
       }
       else{
@@ -381,13 +361,13 @@ public final class Message{
     if (count > 1){ out.add(" ".repeat(width)+"| ... "+count+" lines ..."); }
   }
   private static String renderMulti(String[] lines, Grouping g, int width, Optional<String> caretLine){
-    Span group= g.multiLine();
-    int start= group.startLine();
-    int end= group.endLine();
-    int caret= g.caretLine();
-    int beforeCount= caret - start - 1;  // lines strictly between start..caret
-    int afterCount= end - caret - 1;  // lines strictly between caret..end
-    ArrayList<String> out= new ArrayList<>();
+    var group= g.multiLine();
+    var start= group.startLine();
+    var end= group.endLine();
+    var caret= g.caretLine();
+    var beforeCount= caret - start - 1;  // lines strictly between start..caret
+    var afterCount= end - caret - 1;  // lines strictly between caret..end
+    var out= new ArrayList<String>();
     if (caret != start){
       out.add(numbered(lines, start, width));
       addElision(out, lines, width, beforeCount, caret - 1);

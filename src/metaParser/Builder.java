@@ -16,15 +16,14 @@ record Builder<
     Parser extends MetaParser<T,TK,E,Tokenizer,Parser,Err>,
     Err extends ErrFactory<T,TK,E,Tokenizer,Parser,Err>
   >(
-  TokenTrees<T,TK,E,Tokenizer,Parser,Err> ctx,
-  ArrayList<T> output,
-  ListIterator<T> i
-  ){
+    TokenTrees<T,TK,E,Tokenizer,Parser,Err> ctx,
+    ArrayList<T> output,
+    ListIterator<T> i){
   T build(T open){
     while (i.hasNext()){
-      T current= i.next();
+      var current= i.next();
       if (ctx.spec.isBarrierFor(current, open)){ throw ctx.diagOnBadBarrier(open, current); }
-      TK groupKind= ctx.closesMe(open.kind(), current.kind());
+      var groupKind= ctx.closesMe(open.kind(), current.kind());
       if (groupKind != null){
         output.add(current);//the group must contain the opener and the closer
         //so we can have tokens like "{ a, b, c }" but also "(2,4]", where the open/close token are relevant

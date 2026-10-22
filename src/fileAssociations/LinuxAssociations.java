@@ -29,6 +29,7 @@ import javax.imageio.ImageIO;
 import tools.Fs;
 import utils.Join;
 import utils.Push;
+import utils.Streams;
 
 public final class LinuxAssociations{
   public static Function<String,String> env= System::getenv;
@@ -99,7 +100,6 @@ public final class LinuxAssociations{
     if (ext.equals(".fearless")){ return List.of(); }
     return globs.stream().filter(g -> g.is(ext)).map(Glob::type).distinct().toList();
   }
-
   private static Stream<Path> desktops(){ return Xdg.appDirs().stream().flatMap(d -> listed(d, ".desktop").stream()); }
   private static List<Path> registrations(){
     return Stream.concat(desktops(), mimeDirs().stream().flatMap(d -> listed(d.resolve("packages"), ".xml").stream())).toList();
@@ -112,7 +112,7 @@ public final class LinuxAssociations{
       .filter(f -> baseName(f).matches(".+-[0-9a-f]+") && owner.test(baseName(f).replaceFirst("-[0-9a-f]+$", "")));
     var named= listed(iconDir("apps"), ".png").stream().filter(f -> owner.test(baseName(f)));
     var registered= registrations().stream().filter(f -> owner.test(identityOf(f)));
-    return Stream.of(icons, named, registered).flatMap(s -> s).toList();
+    return Streams.of(icons, named, registered).toList();
   }
   private static List<Glob> globs(Predicate<String> belongsToFamily){
     var res= new ArrayList<Glob>();
@@ -152,9 +152,9 @@ public final class LinuxAssociations{
       var eq= line.indexOf('=');
       if (eq<0 || !List.of(defaults, added).contains(section)){ continue; }
       var at= section;
-      split(line.substring(eq+1)).forEach(n -> res.add(new Opener(n.replaceFirst("\\.desktop$", ""), line.substring(0, eq).strip(), at)));
+      split(line.substring(eq + 1)).forEach(n -> res.add(new Opener(n.replaceFirst("\\.desktop$", ""), line.substring(0, eq).strip(), at)));
     }
-    return Collections.unmodifiableList(res);
+    return List.copyOf(res);
   }
   private static boolean writableForCreation(Path dir){
     return Stream.iterate(dir, Objects::nonNull, Path::getParent).filter(Files::exists).findFirst().filter(Files::isWritable).isPresent();
@@ -205,7 +205,7 @@ public final class LinuxAssociations{
   private static byte[] utf8(String text){ return text.getBytes(StandardCharsets.UTF_8); }
   public static String hash(byte[] bytes){
     var h= 0xcbf29ce484222325L;
-    for (var b : bytes){ h = (h ^ (b & 0xff))*0x100000001b3L; }
+    for (var b : bytes){ h = (h ^ (b & 0xff)) * 0x100000001b3L; }
     return Long.toHexString(h);
   }
   private static String mimeType(String identity, String ext, String icon, List<String> supertypes){
@@ -243,7 +243,7 @@ public final class LinuxAssociations{
   }
   public static String windowClass(String javaCommand){
     var main= javaCommand.split(" ")[0];
-    return main.substring(main.indexOf('/')+1).replace('.', '-');
+    return main.substring(main.indexOf('/') + 1).replace('.', '-');
   }
   private static String windowClass(){ return windowClass(System.getProperty("sun.java.command")); }
   private static List<Path> mimeDirs(){ return Push.of(Xdg.dataHome(), Xdg.dataDirs()).stream().map(d -> d.resolve("mime")).toList(); }

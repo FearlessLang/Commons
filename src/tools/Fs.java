@@ -46,7 +46,7 @@ public final class Fs{
     "`'\"!?@#$%^&_|~\\" +
     " \n";
   public static final int maxExtSeg= 16;
-  public static boolean isExtSegChar(char c){ return ('a'<=c && c<='z') || ('0'<=c && c<='9'); }
+  public static boolean isExtSegChar(char c){ return (c>='a' && c<='z') || (c>='0' && c<='9'); }
   public static boolean isExtSeg(String s){
     return !s.isEmpty() && s.length()<=maxExtSeg && s.chars().allMatch(c -> isExtSegChar((char)c));
   }
@@ -94,7 +94,7 @@ public final class Fs{
   public static FileStore getFileStore(Path p) throws IOException{ return Files.getFileStore(noLink(p)); }
   public static FileChannel openChannel(Path p, OpenOption... os) throws IOException{ return FileChannel.open(noLink(p), os); }
   public static WatchKey watch(Path dir, WatchService w, WatchEvent.Kind<?>... kinds) throws IOException{ return noLink(dir).register(w, kinds); }
-  public static void ensureDir(Path p){ ofV(() -> Files.createDirectories(noLink(p))); }
+  public static void ensureDir(Path p){ ofV(() -> createDirectories(p)); }
   public static void cleanDirContents(Path p){
     reqDir(p, "cleaning");
     var xs= walk(p, s -> s
@@ -121,7 +121,7 @@ public final class Fs{
   }
   public static void writeUtf8(Path file, String content){
     ensureDir(file.toAbsolutePath().getParent());
-    ofV(() -> Files.writeString(noLink(file), content));
+    ofV(() -> writeString(file, content));
   }
   public static String readUtf8(Path file){ return of(() -> Files.readString(noLink(file))); }
   public static void copyTree(Path from, Path to){
@@ -136,7 +136,7 @@ public final class Fs{
     Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
   }
   public static long lastModified(Path file){
-    try{ return Files.getLastModifiedTime(noLink(file)).toMillis(); }
+    try{ return getLastModifiedTime(file).toMillis(); }
     catch (NoSuchFileException _){ return -1; }
     catch (IOException e){ throw new UncheckedIOException(e); }
   }
@@ -150,13 +150,13 @@ public final class Fs{
       catch (InterruptedException e){ Thread.currentThread().interrupt(); throw Bug.of(e); }
     }
   }
-  public static void reqDir(Path p, String what){ Require.check(Files.isDirectory(noLink(p)), "Expected a directory for "+what+": "+p); }
+  public static void reqDir(Path p, String what){ Require.check(isDirectory(p), "Expected a directory for "+what+": "+p); }
   public static void cleanDir(Path p){
-    if (!Files.exists(noLink(p))){ ensureDir(p); return; }
+    if (!exists(p)){ ensureDir(p); return; }
     cleanDirContents(p);
   }
   public static void rmTree(Path p){
-    if (Files.isDirectory(noLink(p))){ cleanDirContents(p); }
+    if (isDirectory(p)){ cleanDirContents(p); }
     ofV(() -> Files.deleteIfExists(p));
   }
   public static void copyFresh(Path from, Path to){
@@ -167,18 +167,18 @@ public final class Fs{
     var tp= ToolProvider.findFirst(tool).orElseThrow();
     var baos= new ByteArrayOutputStream();
     var ps= new PrintStream(baos, true, StandardCharsets.UTF_8);
-    int rc= tp.run(ps, ps, args.toArray(String[]::new));
+    var rc= tp.run(ps, ps, args.toArray(String[]::new));
     var out= baos.toString(StandardCharsets.UTF_8);
     checkTool(tool, rc, args, out);
     return out;
   }
   static void checkTool(String tool, int rc, List<String> args, String out){
     Require.check(rc == 0,
-      "Tool error: "+tool+
-      "\nExit code: "+rc+
-      "\nArgs:\n"+Join.of(args, "", "\n", "", "")+
-      "\nOutput length: "+out.length()+
-      "\nOutput:\n<<<\n"+out+"\n>>>");
+      "Tool error: "+tool
+      +"\nExit code: "+rc
+      +"\nArgs:\n"+Join.of(args, "", "\n", "", "")
+      +"\nOutput length: "+out.length()
+      +"\nOutput:\n<<<\n"+out+"\n>>>");
   }
   public static ProcessBuilder processBuilder(List<String> cmd){
     var pb= new ProcessBuilder(cmd);
@@ -187,25 +187,25 @@ public final class Fs{
   }
   ///Returns the filename with extension (the substring after the last '/').
   public static String fileNameWithExtension(String s){
-    var res= s.substring(lastSlashIndex(s)+1);
+    var res= s.substring(lastSlashIndex(s) + 1);
     assert !res.isEmpty();
     return res;
   }
   /// Returns the filename without the extension. Example: "fear:/a/b/c.tar.gz" -> "c"
   public static String fileNameWithoutExtension(String s){
-    int slash= lastSlashIndex(s);
-    int dot= s.indexOf('.', slash + 1); // first dot after last slash
+    var slash= lastSlashIndex(s);
+    var dot= s.indexOf('.', slash + 1); // first dot after last slash
     assert dot>slash+1 && dot+1<s.length();
     return s.substring(slash + 1, dot);
   }
   public static String removeFileNameAllowTop(String s){
-    int i= s.lastIndexOf('/');
+    var i= s.lastIndexOf('/');
     if (i == -1){ return ""; }
-    int j= s.indexOf(":/");
-    return i==j+1 ? s.substring(0, i+1) : s.substring(0, i);
+    var j= s.indexOf(":/");
+    return i==j+1 ? s.substring(0, i + 1) : s.substring(0, i);
   }
   private static int lastSlashIndex(String s){
-    int i= s.lastIndexOf('/');
+    var i= s.lastIndexOf('/');
     assert i>=0 && i+1<s.length();
     return i;
   }
@@ -230,11 +230,11 @@ public final class Fs{
     return true;
   }
   public static void walkV(Path p, WalkVoid f){
-    try (Stream<Path> s= Files.find(p, Integer.MAX_VALUE, Fs::noLink)){ f.walk(s); }
+    try (var s= Files.find(p, Integer.MAX_VALUE, Fs::noLink)){ f.walk(s); }
     catch (IOException e){ throw new UncheckedIOException(e); }
   }
   public static <T> T walk(Path p, Walk<T> f){
-    try (Stream<Path> s= Files.find(p, Integer.MAX_VALUE, Fs::noLink)){ return f.walk(s); }
+    try (var s= Files.find(p, Integer.MAX_VALUE, Fs::noLink)){ return f.walk(s); }
     catch (IOException e){ throw new UncheckedIOException(e); }
   }
   public static void copyTreeFlat(Path from, Path to){

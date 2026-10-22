@@ -16,13 +16,11 @@ public final class Streams{
   public static <T> Stream<T> of(Stream<T>... ss){ return Stream.of(ss).flatMap(s -> s); }
   @SafeVarargs @SuppressWarnings("varargs")
   public static <T> Stream<T> ofWC(Stream<T>... ss){ return of(ss); }
-
   public static <A,B> Zipper2<A,B> zip(List<A> as, List<B> bs){
     assert as.size() == bs.size();
     return new ListZipper2<>(as, bs);
   }
   public static <A,B> Zipper2<A,B> zip(A[] as, B[] bs){ return zip(Arrays.asList(as), Arrays.asList(bs)); }
-
   private record ListZipper2<A,B>(List<A> as, List<B> bs) implements Zipper2<A,B>{
     @Override public void forEach(BiConsumer<A,B> f){
       IntStream.range(0, as.size()).forEach(i -> f.accept(as.get(i), bs.get(i)));
@@ -46,7 +44,7 @@ public final class Streams{
       return new ListZipper2<>(asi, bsi);
     }
     @Override public <R> R fold(Acc2<R,A,B> folder, R initial){
-      Box<R> acc= new Box<>(initial);
+      var acc= new Box<>(initial);
       IntStream.range(0, as.size()).forEach(i -> acc.set(folder.apply(acc.get(), as.get(i), bs.get(i))));
       return acc.get();
     }
@@ -71,7 +69,6 @@ public final class Streams{
   }
   public interface Acc2<R,A,B>{ R apply(R acc, A a, B b); }
   public interface Acc3<R,A,B,C>{ R apply(R acc, A a, B b, C c); }
-
   public static <A,B> Zipper3<Integer,A,B> zipI(List<A> as, List<B> bs){
     assert as.size() == bs.size();
     return new ListZipper3<>(IntStream.range(0, as.size()).boxed().toList(), as, bs);
@@ -101,7 +98,7 @@ public final class Streams{
       return new ListZipper3<>(asi, bsi, csi);
     }
     @Override public <R> R fold(Acc3<R,A,B,C> folder, R initial){
-      Box<R> acc= new Box<>(initial);
+      var acc= new Box<>(initial);
       IntStream.range(0, as.size()).forEach(i -> acc.set(folder.apply(acc.get(), as.get(i), bs.get(i), cs.get(i))));
       return acc.get();
     }

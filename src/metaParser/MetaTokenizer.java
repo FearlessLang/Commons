@@ -31,12 +31,10 @@ public abstract class MetaTokenizer<
   private Span base;
   private Err errFactory;
   private boolean frozen= false;
-
   public abstract Tokenizer self();
   public abstract T make(TK kind, String text, int line, int col, List<T> tokens);
-
   private <R> R withFrozen(Supplier<R> body){
-    boolean prev= frozen;
+    var prev= frozen;
     frozen = true;
     try{ return body.get(); }
     finally{ frozen = prev; }
@@ -138,7 +136,7 @@ public abstract class MetaTokenizer<
     var tmp= tokensForTree();
     assert tmp.getFirst().kind() == sof : "first token must be SOF";
     assert tmp.getLast().kind() == eof : "last token must be EOF";
-    tree = withFrozen(() -> new TokenTrees<T,TK,E,Tokenizer,Parser,Err>(spec, self()).of(tmp.listIterator()).tokens());
+    tree = withFrozen(() -> new TokenTrees<>(spec, self()).of(tmp.listIterator()).tokens());
     return self();
   }
   public URI fileName(){ return Objects.requireNonNull(fileName); }
@@ -152,7 +150,7 @@ public abstract class MetaTokenizer<
     int prevLine= -1, prevCol= -1;
     for (var tok : toks){
       int l= tok.line(), c= tok.column();
-      assert (l > prevLine) || (l==prevLine && c>=prevCol)
+      assert l>prevLine || (l==prevLine && c>=prevCol)
         : "tokens out of order at "+l+":"+c;
       prevLine = l; prevCol = c;
     }

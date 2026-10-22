@@ -30,7 +30,6 @@ public final class WindowsAssociations{
   private static final String fileExts= "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\";
   private static final String valueNotSet= "(value not set)";
   private static final int assocChanged= 0x08000000;
-
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programIco,
       Function<String,RuntimeException> ambiguous,
@@ -60,7 +59,6 @@ public final class WindowsAssociations{
     existing.forEach(name -> eradicate(name, belongsToFamily));
     notifyShellOfChange();
   }
-
   static List<String> existingIdentities(Predicate<String> belongsToFamily){
     var res= new LinkedHashSet<String>();
     res.addAll(regValues(hkcu(registeredApplications)).keySet());
@@ -76,7 +74,7 @@ public final class WindowsAssociations{
   }
   private static String owner(String progId, String ext){
     var suffix= "."+ext.substring(1);
-    return progId.endsWith(suffix) ? progId.substring(0, progId.length()-suffix.length()) : progId;
+    return progId.endsWith(suffix) ? progId.substring(0, progId.length() - suffix.length()) : progId;
   }
   private static boolean alreadyMatches(List<String> existing, String identity, Path command, List<Icon> extensions, Path programIco){
     if (extensions.isEmpty()){ return existing.isEmpty(); }
@@ -124,7 +122,6 @@ public final class WindowsAssociations{
       }
     });
     if (regValues(listKey).isEmpty()){ Shell.exec(List.of("reg", "delete", listKey, "/f")); }
-
     var progIdsKey= hkcu(fileExts)+ext+"\\OpenWithProgids";
     regValues(progIdsKey).keySet().forEach(progId -> {
       if (belongsToFamily.test(owner(progId, ext))){ Shell.exec(List.of("reg", "delete", progIdsKey, "/v", progId, "/f")); }
@@ -182,7 +179,7 @@ public final class WindowsAssociations{
     return Shell.exec(List.of("reg", "query", key)).filter(ran -> ran.code() == 0)
       .map(ran -> ran.out().lines().map(String::strip)
         .filter(l -> l.startsWith(key+"\\"))
-        .map(l -> l.substring(key.length()+1))
+        .map(l -> l.substring(key.length() + 1))
         .toList())
       .orElse(List.of());
   }

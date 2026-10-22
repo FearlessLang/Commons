@@ -7,6 +7,6 @@ public final class Pop{
     return ts.subList(1, ts.size());
   }
   public static <T> List<T> right(List<T> ts){
-    return ts.subList(0, ts.size()-1);
+    return ts.subList(0, ts.size() - 1);
   }
 }

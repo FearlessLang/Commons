@@ -22,13 +22,13 @@ public record NativeOverrides(Set<String> pairs, Set<String> fileNames){
     var compiler= ToolProvider.getSystemJavaCompiler();
     var pairs= new HashSet<String>();
     Fs.ofV(() -> {
-      try (StandardJavaFileManager fm= compiler.getStandardFileManager(null, null, null)){
+      try (var fm= compiler.getStandardFileManager(null, null, null)){
         var units= fm.getJavaFileObjectsFromPaths(files);
         var task= (JavacTask)compiler.getTask(null, fm, null, null, null, units);
         for (var cu : task.parse()){ scanUnit(cu, pairs); }
       }
     });
-    var fileNames= files.stream().map(p -> p.getFileName().toString()).map(n -> n.substring(0, n.length()-".java".length())).collect(Collectors.toUnmodifiableSet());
+    var fileNames= files.stream().map(p -> p.getFileName().toString()).map(n -> n.substring(0, n.length() - ".java".length())).collect(Collectors.toUnmodifiableSet());
     return new NativeOverrides(Set.copyOf(pairs), fileNames);
   }
   private static void scanUnit(CompilationUnitTree cu, HashSet<String> pairs){

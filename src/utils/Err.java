@@ -15,9 +15,9 @@ public final class Err{
   private static BiConsumer<String,String> assertEquals;
   private static Consumer<Boolean> assertTrue;
   public static void setUp(
-    Class<? extends AssertionError> err,
-    BiConsumer<String,String> assertEquals,
-    Consumer<Boolean> assertTrue){
+      Class<? extends AssertionError> err,
+      BiConsumer<String,String> assertEquals,
+      Consumer<Boolean> assertTrue){
     Err.err = err;
     Err.assertEquals = assertEquals;
     Err.assertTrue = assertTrue;
@@ -26,7 +26,7 @@ public final class Err{
   public static boolean strCmp(String expected, String actual){
     actual = actual.trim();
     expected = expected.trim();
-    try{ assertTrue.accept(strCmpAux(expected, actual, Err.hole)); }
+    try{ assertTrue.accept(strCmpAux(expected, actual, hole)); }
     catch (AssertionError e){
       if (!err.isInstance(e)){ throw e; }
       assertEquals.accept(expected, actual);

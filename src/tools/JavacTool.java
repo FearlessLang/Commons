@@ -30,12 +30,11 @@ public final class JavacTool{
   // <dest>/<name>/lib/app/mods). We don't choose this name, jpackage does
   public static final String deployedModsDirName= "mods";
   public static final List<String> javacArgs= List.of("-encoding", "UTF-8", "-Xlint:all,-auxiliaryclass,-missing-explicit-ctor", "-Werror");
-
   public static String compileTree(Path srcRoot, Path classesDir, Runnable postProcess, Path jarPath, List<Path> extraClasspathDirs){
     var srcs= javaSourcesUnder(srcRoot);
     Fs.ofV(() -> Fs.deleteIfExists(jarPath));
     Require.check(!srcs.isEmpty(), "Expected .java files under "+srcRoot);
-    var args= new ArrayList<String>(10+srcs.size());
+    var args= new ArrayList<String>(10 + srcs.size());
     args.add("-encoding"); args.add("UTF-8");
     args.add("-d"); args.add(abs(classesDir));
     var cp= JavaTool.jarsCp(Push.of(jarPath.getParent(), extraClasspathDirs));
@@ -46,31 +45,25 @@ public final class JavacTool{
     jar(classesDir, jarPath);
     return javacOut;
   }
-
   static List<Path> javaSourcesUnder(Path root){
     return Fs.walk(root, s -> s
       .filter(p -> p.toString().endsWith(".java"))
       .sorted(Comparator.comparing(p -> root.relativize(p).toString()))
       .toList());
   }
-
   public static void jar(Path classesDir, Path jarFile){
     Fs.ensureDir(jarFile.getParent());
     Fs.runTool("jar", List.of(
       "--create", "--file", jarFile.toString(),
       "-C", classesDir.toString(), "."));
   }
-
   private static String runJavacArgFile(Path dir, List<String> args){
     var file= dir.resolve(javacArgFile);
     Fs.writeUtf8(file, Join.of(args.stream().map(JavacTool::argToken), "", "\n", "\n"));
     return Fs.runTool("javac", List.of("@"+abs(file)));
   }
-
   private static String abs(Path p){ return p.toAbsolutePath().normalize().toString(); }
-
   private static String argToken(String s){ return "\""+s.replace("\\", "\\\\").replace("\"", "\\\"")+"\""; }
-
   public static Path reqAppDir(Supplier<RuntimeException> onMissing){
     var launcher= System.getProperty(launcherKey);
     var appDir= System.getProperty(appDirKey);
@@ -85,7 +78,6 @@ public final class JavacTool{
     return versionId;
   }
   public static String dataDirNameFor(String versionId){ return "fearless"+versionId; }
-
   public static void jpackage(Path dest, Path packaging, String appName, String versionId, String moduleMain, Path appContent){
     var slash= moduleMain.indexOf('/');
     Require.check(slash > 0, "Expected moduleMain of the form Module/pkg.Main: "+moduleMain);
@@ -96,7 +88,7 @@ public final class JavacTool{
     var tmp= dest.resolve("_tmp_jpackage");
     Fs.cleanDir(tmp);
     var runtimeImage= jlinkRuntimeImage(modsDir, tmp);
-    try{ jpBody(dest, appName, versionId, moduleMain, modsDir, appContent, runtimeImage, tmp, packaging); }
+    try{ _jpackage(dest, packaging, appName, versionId, moduleMain, appContent, modsDir, runtimeImage, tmp); }
     finally{ Fs.rmTree(tmp); }
     reqDeployedMods(dest);
   }
@@ -131,9 +123,8 @@ public final class JavacTool{
     var jars= Fs.walk(found.getFirst(), s -> s.filter(p -> p.toString().endsWith(".jar")).toList());
     Require.check(!jars.isEmpty(), "Expected jars in the '"+deployedModsDirName+"' dir made by jpackage: "+found.getFirst());
   }
-
-  private static void jpBody(Path dest, String name, String versionId, String moduleMain, Path modsDir, Path appContent, Path runtimeImage, Path tmp, Path packaging){
-    String wName= name+"w";
+  private static void _jpackage(Path dest, Path packaging, String appName, String versionId, String moduleMain, Path appContent, Path modsDir, Path runtimeImage, Path tmp){
+    var wName= appName+"w";
     var icon= iconForCurrentOs(packaging);
     var wProps= tmp.resolve(wName+".properties");
     var winConsole= Fs.isWindows() ? "win-console=false\n" : "";
@@ -141,7 +132,7 @@ public final class JavacTool{
     var args= new ArrayList<String>(96);
     args.add("--type"); args.add("app-image");
     args.add("--dest"); args.add(dest.toString());
-    args.add("--name"); args.add(name);
+    args.add("--name"); args.add(appName);
     args.add("--icon"); args.add(icon.toString());
     args.add("--module-path"); args.add(modsDir.toString());
     args.add("--module"); args.add(moduleMain);
@@ -152,13 +143,11 @@ public final class JavacTool{
     args.add("--app-content"); args.add(appContent.toString());
     Fs.runTool("jpackage", args);
   }
-
   private static Path iconFile(Path packaging, String osDir, String file){
     var p= packaging.resolve(osDir).resolve(file);
     Require.check(Fs.isRegularFile(p), "Expected an icon file: "+p);
     return p.toAbsolutePath().normalize();
   }
-
   private static Path iconForCurrentOs(Path packaging){
     var windows= iconFile(packaging, "windows", "icon.ico");
     var mac= iconFile(packaging, "macos", "icon.icns");
@@ -167,11 +156,9 @@ public final class JavacTool{
     if (Fs.isMac()){ return mac; }
     return linux;
   }
-
   private static List<String> jvmOpts(String launcherValue, String versionId){
     return Push.<String>of(javaOptions, List.of("-D"+launcherKey+"="+launcherValue, "-D"+versionIdKey+"="+versionId));
   }
-
   public static void javac(List<Path> srcs, Path classesDir, Path modsDir){
     javac(srcs, classesDir, modsDir, List.of());
   }

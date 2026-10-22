@@ -16,15 +16,15 @@ public interface Token<T extends Token<T,TK>,TK extends TokenKind>{
     return Stream.of(kinds).anyMatch(this::is);
   }
   default boolean is(TK k){ return kind().equals(k); }
-  default Span span(URI fileName){ return Token.makeSpan(fileName, this, this); }
+  default Span span(URI fileName){ return makeSpan(fileName, this, this); }
   static Span makeSpan(URI fileName, Token<?,?> first, Token<?,?> last){
-    int l= last.line();
-    int c= last.column();
+    var l= last.line();
+    var c= last.column();
     for (int cp : last.content().codePoints().toArray()){
       if (cp == '\n'){ l += 1; c = 1; }
       else{ c += 1; }
     }
-    int minCol= first.line()==l ? first.column() : 1;
+    var minCol= first.line()==l ? first.column() : 1;
     return new Span(fileName, first.line(), first.column(), l, Math.max(minCol, c - 1));
   }
 }
