@@ -30,12 +30,13 @@ public interface TokenProcessor<
       return this;
     }
     public Map<T,TK,E,Tokenizer,Parser,Err> putStr(TK kind, Function<String,E> f, String str, String frame){
-      return put(kind, (_,t,tz) -> {
-        var head= t.content().isBlank()
-          ? "Unrecognized text."
-          : "Unrecognized text "+Message.displayString(t.content())+".";
-        throw f.apply(head+"\n"+str).addFrame(frame, t.span(tz.fileName()));
-      });
+      return put(kind, (_,t,tz) -> { throw unrecognized(f, str, frame, t, tz); });
+    }
+    private E unrecognized(Function<String,E> f, String str, String frame, T t, Tokenizer tz){
+      var head= t.content().isBlank()
+        ? "Unrecognized text."
+        : "Unrecognized text "+Message.displayString(t.content())+".";
+      return f.apply(head+"\n"+str).addFrame(frame, t.span(tz.fileName()));
     }
     public Stream<T> process(int i, T t, Tokenizer tk){
       return Objects.requireNonNull(map.getOrDefault(t.kind(), identity).process(i, t, tk));

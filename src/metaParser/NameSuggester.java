@@ -25,19 +25,20 @@ public final class NameSuggester{
     return suggest(name, candidates, (_,_,best) -> best);
   }
   public static String suggest(String name, List<String> candidates){
-    return suggest(name, candidates, (_,cs,best) -> {
-      var out= new StringBuilder();
-      best.ifPresent(b -> out
-        .append("Did you mean ")
-        .append(Message.displayString(b))
-        .append(" ?\n"));
-      if (cs.size() <= maxScopeToList){
-        out.append("In scope: ")
-          .append(Join.of(cs.stream().map(Message::displayString), "", ", ", ""))
-          .append(".\n");
-      }
-      return out.toString();
-    });
+    return suggest(name, candidates, (_,cs,best) -> render(cs, best));
+  }
+  private static String render(List<String> candidates, Optional<String> best){
+    var out= new StringBuilder();
+    best.ifPresent(b -> out
+      .append("Did you mean ")
+      .append(Message.displayString(b))
+      .append(" ?\n"));
+    if (candidates.size() <= maxScopeToList){
+      out.append("In scope: ")
+        .append(Join.of(candidates.stream().map(Message::displayString), "", ", ", ""))
+        .append(".\n");
+    }
+    return out.toString();
   }
   public static <R> R suggest(String name, List<String> candidates, Renderer<R> renderer){
     assert !name.isEmpty();

@@ -1,10 +1,13 @@
 package tools;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.tools.JavaCompiler;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
@@ -21,15 +24,13 @@ public record NativeOverrides(Set<String> pairs, Set<String> fileNames){
     var files= JavacTool.javaSourcesUnder(rtPath);
     var compiler= ToolProvider.getSystemJavaCompiler();
     var pairs= new HashSet<String>();
-    Fs.ofV(() -> {
-      try (var fm= compiler.getStandardFileManager(null, null, null)){
-        var units= fm.getJavaFileObjectsFromPaths(files);
-        var task= (JavacTask)compiler.getTask(null, fm, null, null, null, units);
-        for (var cu : task.parse()){ scanUnit(cu, pairs); }
-      }
-    });
+    Fs.ofV(() -> { try (var fm= compiler.getStandardFileManager(null, null, null)){ scanUnits(compiler, fm, files, pairs); } });
     var fileNames= files.stream().map(p -> p.getFileName().toString()).map(n -> n.substring(0, n.length() - ".java".length())).collect(Collectors.toUnmodifiableSet());
     return new NativeOverrides(Set.copyOf(pairs), fileNames);
+  }
+  private static void scanUnits(JavaCompiler compiler, StandardJavaFileManager fm, List<Path> files, HashSet<String> pairs) throws IOException{
+    var task= (JavacTask)compiler.getTask(null, fm, null, null, null, fm.getJavaFileObjectsFromPaths(files));
+    for (var cu : task.parse()){ scanUnit(cu, pairs); }
   }
   private static void scanUnit(CompilationUnitTree cu, HashSet<String> pairs){
     new TreeScanner<Void,Void>(){

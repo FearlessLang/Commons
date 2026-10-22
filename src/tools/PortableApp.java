@@ -30,12 +30,12 @@ public record PortableApp(
       +"-"+(System.getProperty("os.arch").contains("aarch64") ? "arm64" : "x64");
     Fs.walk(modsDir, s -> s
       .filter(Fs::isRegularFile)
-      .filter(p -> {
-        var name= p.getFileName().toString();
-        return name.startsWith("skija-") && !name.startsWith("skija-shared-") && !name.startsWith("skija-"+currentTag+"-");
-      })
+      .filter(p -> otherPlatformSkija(p.getFileName().toString(), currentTag))
       .toList()
     ).forEach(Fs::rmTree);
+  }
+  private static boolean otherPlatformSkija(String name, String currentTag){
+    return name.startsWith("skija-") && !name.startsWith("skija-shared-") && !name.startsWith("skija-"+currentTag+"-");
   }
   private void reqInputs(){
     Fs.reqDir(base, "base"); Fs.reqDir(rt, "rt");

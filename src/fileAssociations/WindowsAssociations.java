@@ -92,16 +92,12 @@ public final class WindowsAssociations{
     return regValue(hkcu(capabilities(identity)), "ApplicationIcon").equals(Optional.of(programIco+",0"));
   }
   private static void eradicate(String identity, Predicate<String> belongsToFamily){
-    var declared= regValues(hkcu(fileAssociations(identity)));
-    declared.forEach((ext,progId) -> {
-      Shell.exec(List.of("reg", "delete", hkcu(classes)+progId, "/f"));
-      dropClaim(ext, progId);
-      forgetOpenWithHistory(ext, belongsToFamily);
-    });
+    regValues(hkcu(fileAssociations(identity))).forEach((ext,progId) -> dropClaim(ext, progId, belongsToFamily));
     Shell.exec(List.of("reg", "delete", hkcu(softwareRoot)+"\\"+identity, "/f"));
     Shell.exec(List.of("reg", "delete", hkcu(registeredApplications), "/v", identity, "/f"));
   }
-  private static void dropClaim(String ext, String progId){
+  private static void dropClaim(String ext, String progId, Predicate<String> belongsToFamily){
+    Shell.exec(List.of("reg", "delete", hkcu(classes)+progId, "/f"));
     var extKey= hkcu(classes)+ext;
     Shell.exec(List.of("reg", "delete", extKey+"\\OpenWithProgids", "/v", progId, "/f"));
     if (regValues(extKey+"\\OpenWithProgids").isEmpty()){
@@ -113,6 +109,7 @@ public final class WindowsAssociations{
     if (listSubkeys(extKey).isEmpty() && regValues(extKey).isEmpty()){
       Shell.exec(List.of("reg", "delete", extKey, "/f"));
     }
+    forgetOpenWithHistory(ext, belongsToFamily);
   }
   private static void forgetOpenWithHistory(String ext, Predicate<String> belongsToFamily){
     var listKey= hkcu(fileExts)+ext+"\\OpenWithList";

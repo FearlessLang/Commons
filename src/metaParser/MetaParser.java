@@ -181,11 +181,12 @@ public abstract class MetaParser<
   }
   public <R> List<R> parseGroupSep(String frameNameOut, String frameNameIn, Rule<Parser,R> r, TK open, TK close, NextCut<Parser> probe){
     var label= frameNameOut.isEmpty() ? frameNameIn : frameNameOut;
-    return parseGroup(frameNameOut, p -> {
-      p.expect(label, open);
-      p.expectLast(label, close);
-      return p.splitBy(frameNameIn, probe, r);
-    });
+    return parseGroup(frameNameOut, p -> splitInside(p, label, open, close, frameNameIn, probe, r));
+  }
+  private <R> List<R> splitInside(Parser p, String label, TK open, TK close, String frameNameIn, NextCut<Parser> probe, Rule<Parser,R> r){
+    p.expect(label, open);
+    p.expectLast(label, close);
+    return p.splitBy(frameNameIn, probe, r);
   }
   ///Suitable to divide two non empty lists of tokens, especially if
   ///the division can not be easily located by looking at a few tokens forward.

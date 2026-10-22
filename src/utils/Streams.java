@@ -1,6 +1,5 @@
 package utils;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -36,12 +35,8 @@ public final class Streams{
     }
     @Override public <R> Stream<R> filterMap(BiFunction<A,B,Optional<R>> f){ return map(f).flatMap(Optional::stream); }
     @Override public Zipper2<A,B> filter(BiPredicate<A,B> f){
-      var asi= new ArrayList<A>();
-      var bsi= new ArrayList<B>();
-      IntStream.range(0, as.size())
-        .filter(i -> f.test(as.get(i), bs.get(i)))
-        .forEachOrdered(i -> { asi.add(as.get(i)); bsi.add(bs.get(i)); });
-      return new ListZipper2<>(asi, bsi);
+      var is= IntStream.range(0, as.size()).filter(i -> f.test(as.get(i), bs.get(i))).boxed().toList();
+      return new ListZipper2<>(is.stream().map(as::get).toList(), is.stream().map(bs::get).toList());
     }
     @Override public <R> R fold(Acc2<R,A,B> folder, R initial){
       var acc= new Box<>(initial);
@@ -89,13 +84,8 @@ public final class Streams{
     }
     @Override public <R> Stream<R> filterMap(TriFunction<A,B,C,Optional<R>> f){ return map(f).flatMap(Optional::stream); }
     @Override public Zipper3<A,B,C> filter(TriPredicate<A,B,C> f){
-      var asi= new ArrayList<A>();
-      var bsi= new ArrayList<B>();
-      var csi= new ArrayList<C>();
-      IntStream.range(0, as.size())
-        .filter(i -> f.test(as.get(i), bs.get(i), cs.get(i)))
-        .forEachOrdered(i -> { asi.add(as.get(i)); bsi.add(bs.get(i)); csi.add(cs.get(i)); });
-      return new ListZipper3<>(asi, bsi, csi);
+      var is= IntStream.range(0, as.size()).filter(i -> f.test(as.get(i), bs.get(i), cs.get(i))).boxed().toList();
+      return new ListZipper3<>(is.stream().map(as::get).toList(), is.stream().map(bs::get).toList(), is.stream().map(cs::get).toList());
     }
     @Override public <R> R fold(Acc3<R,A,B,C> folder, R initial){
       var acc= new Box<>(initial);

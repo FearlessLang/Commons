@@ -106,20 +106,22 @@ public abstract class MetaTokenizer<
     assert kinds != null : "call method .tokenKinds before .tokenize";
     assert errFactory != null : "call method .setErrFactory before .tokenize";
     tmp.add(make(sof, "", line, col, List.of()));
-    withFrozen(() -> {
-      while (pos < input.length()){
-        var best= findNext().orElseThrow(this::error);
-        assert !best.content().isEmpty() : "lexer produced a zero-length token for "+best.kind();
-        tmp.add(best);
-        advance(best.content());
-      }
-      return null;
-    });
+    tmp.addAll(withFrozen(this::scan));
     tmp.add(make(eof, "", line, col, List.of()));
     allTokens = List.copyOf(tmp);
     base = new Span(fileName, 1, 1, line, col);
     assertMonotonic(allTokens);
     return self();
+  }
+  private List<T> scan(){
+    var res= new ArrayList<T>();
+    while (pos < input.length()){
+      var best= findNext().orElseThrow(this::error);
+      assert !best.content().isEmpty() : "lexer produced a zero-length token for "+best.kind();
+      res.add(best);
+      advance(best.content());
+    }
+    return List.copyOf(res);
   }
   public Tokenizer postTokenize(TokenProcessor.Map<T,TK,E,Tokenizer,Parser,Err> map){
     assert !frozen : "cannot call .postTokenize during .tokenize, .postTokenize, .buildTokenTree";
