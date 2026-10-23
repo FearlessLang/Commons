@@ -62,7 +62,7 @@ public final class WindowsAssociations{
   static List<String> existingIdentities(Predicate<String> belongsToFamily){
     var res= new LinkedHashSet<String>();
     res.addAll(regValues(hkcu(registeredApplications)).keySet());
-    for (var name : listSubkeys(hkcu(softwareRoot))){
+    for (var name : listSubkeys(softwareRoot)){
       if (keyExists(hkcu(capabilities(name)))){ res.add(name); }
     }
     return res.stream().filter(belongsToFamily).sorted().toList();
@@ -106,7 +106,7 @@ public final class WindowsAssociations{
     if (regValue(extKey, "").equals(Optional.of(progId))){
       Shell.exec(List.of("reg", "delete", extKey, "/ve", "/f"));
     }
-    if (listSubkeys(extKey).isEmpty() && regValues(extKey).isEmpty()){
+    if (listSubkeys(classes+ext).isEmpty() && regValues(extKey).isEmpty()){
       Shell.exec(List.of("reg", "delete", extKey, "/f"));
     }
     forgetOpenWithHistory(ext, belongsToFamily);
