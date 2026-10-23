@@ -35,7 +35,7 @@ public final class Err{
     return true;
   }
   private static boolean strCmpAux(String expected, String actual, String hole){
-    boolean regexResult= strCmpAuxRegex(expected, actual, hole);
+    var regexResult= strCmpAuxRegex(expected, actual, hole);
     assert regexResult == strCmpAuxLegacy(expected, actual, hole);
     return regexResult;
   }
@@ -47,43 +47,43 @@ public final class Err{
     if (cmp2.isEmpty()){ return cmp1.isEmpty(); }
     var split= new ArrayList<String>(List.of(cmp2.split(Pattern.quote(stringHole))));
     split.removeIf(String::isEmpty);
-    boolean beginswith= cmp2.startsWith(stringHole);
-    boolean endswith= cmp2.endsWith(stringHole);
-    int holes= (beginswith ? 1 : 0) + (endswith ? 1 : 0) + split.size() - 1;
+    var beginswith= cmp2.startsWith(stringHole);
+    var endswith= cmp2.endsWith(stringHole);
+    var holes= (beginswith ? 1 : 0) + (endswith ? 1 : 0) + split.size() - 1;
     //Trivial
     if (holes == 0){ return cmp1.equals(cmp2); }
     //If we didn't start with a hole, compare everything up to the hole
     if (!beginswith){
-      String startCmp2= split.get(0);
+      var startCmp2= split.getFirst();
       //The thing before the hole is bigger than the entire string!
       if (startCmp2.length() > cmp1.length()){ return false; }
-      String startCmp1= cmp1.substring(0, startCmp2.length());
+      var startCmp1= cmp1.substring(0, startCmp2.length());
       if (!startCmp1.equals(startCmp2)){ return false; }
       cmp1 = cmp1.substring(startCmp2.length());
-      split.remove(0);
+      split.removeFirst();
     }
     //If we didn't end with a hole, compare everything after the hole
     if (!endswith){
-      String endCmp2= split.get(split.size() - 1);
+      var endCmp2= split.getLast();
       //The thing after the hole is bigger than the entire (remaining) string!
       if (endCmp2.length() > cmp1.length()){ return false; }
-      String endCmp1= cmp1.substring(cmp1.length() - endCmp2.length(), cmp1.length());
+      var endCmp1= cmp1.substring(cmp1.length() - endCmp2.length(), cmp1.length());
       if (!endCmp1.equals(endCmp2)){ return false; }
       cmp1 = cmp1.substring(0, cmp1.length() - endCmp2.length());
-      split.remove(split.size() - 1);
+      split.removeLast();
     }
     //Everything on both sides of the hole matches, therefore the hole matches everything in the center
     //Or, alternatively, the single hole was at the end, and therefore everything but the whole matched the beginning or the end of cmp1
     if (holes == 1){ return true; }
     //We have a string in between two holes, and all text outside the holes has been removed from both cmp1 and cmp2
     //Check that the middle text exists within cmp1. If it does, all outer text can be considered part of the holes and we have a match
-    if (holes == 2){ return cmp1.contains(split.get(0)); }
+    if (holes == 2){ return cmp1.contains(split.getFirst()); }
     //Guess how much space the first hole takes up by iteratively searching for the middle text
-    int index= 0;
-    while ((index = cmp1.indexOf(split.get(0))) > -1){
+    var index= 0;
+    while ((index = cmp1.indexOf(split.getFirst())) > -1){
       cmp1 = cmp1.substring(index);
       if (strCmpAuxLegacy(reconstituteRight(split, stringHole), cmp1, stringHole)){ return true; }
-      cmp1 = cmp1.substring(split.get(0).length());
+      cmp1 = cmp1.substring(split.getFirst().length());
     }
     return false;
   }
