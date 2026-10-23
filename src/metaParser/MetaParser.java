@@ -151,12 +151,10 @@ public abstract class MetaParser<
     }
     return new Span(span.fileName(), startLine, startCol, endLine, endCol);
   }
+  private Parser rest(){ return make(spanAround(index, limit - 1), ts.subList(index, limit)); }
   public <R> R parseRemaining(String frameName, Rule<Parser,R> r){
-    var tsIn= ts.subList(index, limit);
-    var s= spanAround(index, limit - 1);
-    if (tsIn.isEmpty()){ throw Bug.of("Expected at least one remaining token."); }
-    var nested= make(s, tsIn);
-    var res= nested.parseAll(frameName, r);
+    if (end()){ throw Bug.of("Expected at least one remaining token."); }
+    var res= rest().parseAll(frameName, r);
     index = limit;
     return res;
   }
@@ -166,8 +164,7 @@ public abstract class MetaParser<
   public interface Rule<Parser,R>{ R parse(Parser p); }
   public <R> List<R> splitBy(String frameName, NextCut<Parser> probe, Rule<Parser,R> elem){
     var slice= ts.subList(index, limit);
-    var s= spanAround(index, Math.max(index, limit - 1));
-    var splitterParser= make(s, slice);
+    var splitterParser= rest();
     var parts= new ArrayList<Parser>();
     while (!splitterParser.end()){
       var start= splitterParser.index();
@@ -210,8 +207,7 @@ public abstract class MetaParser<
   ///The probe returns the number of tokens to drop. This number must be between 0 and the number of consumed tokens.  
   public <R> Optional<R> parseFront(String frameName, boolean emptyAllowed, NextCut<Parser> probe, Rule<Parser,R> first){
     var slice= ts.subList(index, limit);
-    var s= spanAround(index, limit - 1);
-    var splitterParser= make(s, slice);
+    var splitterParser= rest();
     var start= splitterParser.index();
     var drop= probe.cutAt(splitterParser);
     var end= splitterParser.index();
@@ -232,8 +228,7 @@ public abstract class MetaParser<
   ///The probe returns the number of tokens to drop. This number must be between 0 and the number of consumed tokens.  
   public <R> Optional<R> parseBack(String frameName, boolean emptyAllowed, NextCut<Parser> probe, Rule<Parser,R> first){
     var slice= ts.subList(index, limit);
-    var s= spanAround(index, limit - 1);
-    var splitterParser= make(s, slice);
+    var splitterParser= rest();
     var start= splitterParser.limit();
     var drop= probe.cutAt(splitterParser);
     var end= splitterParser.limit();
@@ -252,7 +247,7 @@ public abstract class MetaParser<
    *  - Represent a failed check by throwing E
    */
   public void guard(Consumer<Parser> check){
-    check.accept(make(spanAround(index, limit - 1), ts.subList(index, limit)));
+    check.accept(rest());
   }
   private void checkProbeErrorFront(boolean emptyAllowed, int start, int end, int drop, String frameName){
     if (drop<0 || start>end-drop){ throw errFactory().badProbeDropIn(frameName, spanAround(start, start), start, end, drop, self()); }

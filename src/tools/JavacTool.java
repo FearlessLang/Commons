@@ -34,9 +34,7 @@ public final class JavacTool{
     var srcs= javaSourcesUnder(srcRoot);
     Fs.ofV(() -> Fs.deleteIfExists(jarPath));
     Require.check(!srcs.isEmpty(), "Expected .java files under "+srcRoot);
-    var args= new ArrayList<String>(10 + srcs.size());
-    args.add("-encoding"); args.add("UTF-8");
-    args.add("-d"); args.add(abs(classesDir));
+    var args= new ArrayList<String>(List.of("-encoding", "UTF-8", "-d", abs(classesDir)));
     var cp= JavaTool.jarsCp(Push.of(jarPath.getParent(), extraClasspathDirs));
     if (!cp.isEmpty()){ args.add("-cp"); args.add(cp); }
     srcs.forEach(p -> args.add(abs(p)));
@@ -129,18 +127,11 @@ public final class JavacTool{
     var wProps= tmp.resolve(wName+".properties");
     var winConsole= Fs.isWindows() ? "win-console=false\n" : "";
     Fs.writeUtf8(wProps, "module="+moduleMain+"\njava-options="+Join.of(jvmOpts(winKey, versionId), "", " ", "")+"\n"+winConsole+"icon="+icon.toString().replace("\\", "\\\\")+"\n");
-    var args= new ArrayList<String>(96);
-    args.add("--type"); args.add("app-image");
-    args.add("--dest"); args.add(dest.toString());
-    args.add("--name"); args.add(appName);
-    args.add("--icon"); args.add(icon.toString());
-    args.add("--module-path"); args.add(modsDir.toString());
-    args.add("--module"); args.add(moduleMain);
-    args.add("--runtime-image"); args.add(runtimeImage.toString());
-    args.add("--java-options"); args.add(Join.of(jvmOpts(consoleKey, versionId), "", " ", ""));
+    var args= new ArrayList<String>(List.of("--type", "app-image", "--dest", dest.toString(), "--name", appName,
+      "--icon", icon.toString(), "--module-path", modsDir.toString(), "--module", moduleMain,
+      "--runtime-image", runtimeImage.toString(), "--java-options", Join.of(jvmOpts(consoleKey, versionId), "", " ", "")));
     if (Fs.isWindows()){ args.add("--win-console"); }
-    args.add("--add-launcher"); args.add(wName+"="+wProps);
-    args.add("--app-content"); args.add(appContent.toString());
+    args.addAll(List.of("--add-launcher", wName+"="+wProps, "--app-content", appContent.toString()));
     Fs.runTool("jpackage", args);
   }
   private static Path iconFile(Path packaging, String osDir, String file){
@@ -175,8 +166,7 @@ public final class JavacTool{
     Require.check(mi.size() == 1, "Expected exactly one module-info.java in the source roots "+srcs+", found: "+mi);
     var args= new ArrayList<>(javacArgs);
     extraLintDisables.forEach(l -> args.add("-Xlint:"+l));
-    args.add("-d"); args.add(abs(classesDir));
-    args.add("--module-path"); args.add(abs(modsDir));
+    args.addAll(List.of("-d", abs(classesDir), "--module-path", abs(modsDir)));
     srcs.forEach(src -> javaSourcesUnder(src).forEach(p -> args.add(abs(p))));
     runJavacArgFile(classesDir.getParent(), args);
   }
