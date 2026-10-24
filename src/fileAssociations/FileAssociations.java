@@ -3,6 +3,7 @@ package fileAssociations;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -20,6 +21,8 @@ import utils.Bug;
  * - windows: a list of (window class, name, target, icon) entries. May be empty.
  * [Linux only] Windows ignores it.
  * - programIco, programPng: one icon, independent of extensions.
+ * - replaced: applied in step 6 to the command of every identity found in step 1 whose
+ * command is not command, before that identity is deleted.
  * - ambiguous, userLocked, notOurs, notWritable, halfDone: one function per kind of
  * failure, each turning what was found into the exception reconcile throws.
  *
@@ -98,7 +101,8 @@ import utils.Bug;
  * every extension, the same windows, and that no icon file of identity is left beyond
  * those of extensions and windows.
  *
- * 6. Otherwise, every identity found in step 1 is deleted in full - every registry key
+ * 6. Otherwise, replaced is applied to the command of every identity found in step 1
+ * whose command is not command, then every identity found in step 1 is deleted in full - every registry key
  * or file it created, for every extension it declared, including extensions absent
  * from the current extensions list. [Windows only] For each such extension, a
  * now-empty OpenWithProgids key, and a now-empty Classes\(extension) key left with no
@@ -154,19 +158,19 @@ import utils.Bug;
  */
 public interface FileAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
-      List<Icon> extensions, List<WindowIcon> windows, Path programIco, Path programPng,
+      List<Icon> extensions, List<WindowIcon> windows, Path programIco, Path programPng, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
       Function<List<String>,RuntimeException> userLocked,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
     if (Fs.isWindows()){
-      WindowsAssociations.reconcile(identity, belongsToFamily, command, extensions, programIco,
+      WindowsAssociations.reconcile(identity, belongsToFamily, command, extensions, programIco, replaced,
         ambiguous, userLocked, notOurs, halfDone);
       return;
     }
     if (Fs.isLinux()){
-      LinuxAssociations.reconcile(identity, belongsToFamily, command, extensions, windows, programPng,
+      LinuxAssociations.reconcile(identity, belongsToFamily, command, extensions, windows, programPng, replaced,
         ambiguous, userLocked, notOurs, notWritable, halfDone);
       return;
     }
