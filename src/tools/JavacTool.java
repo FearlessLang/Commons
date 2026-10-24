@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -76,6 +77,14 @@ public final class JavacTool{
     return versionId;
   }
   public static String dataDirNameFor(String versionId){ return "fearless"+versionId; }
+  public static final String managedName= "fearlessManaged";
+  public static Optional<Path> managerFolderOf(Path launcher){
+    for (var dir= launcher.getParent(); dir != null && dir.getFileName() != null; dir = dir.getParent()){
+      var name= dir.getFileName().toString();
+      if (name.startsWith(managedName)){ return Optional.of(dir.resolveSibling(dataDirNameFor(name.substring(managedName.length())))); }
+    }
+    return Optional.empty();
+  }
   public static void jpackage(Path dest, Path packaging, String appName, String versionId, String moduleMain, Path appContent){
     var slash= moduleMain.indexOf('/');
     Require.check(slash > 0, "Expected moduleMain of the form Module/pkg.Main: "+moduleMain);

@@ -15,6 +15,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -31,7 +32,7 @@ public final class WindowsAssociations{
   private static final String valueNotSet= "(value not set)";
   private static final int assocChanged= 0x08000000;
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
-      List<Icon> extensions, Path programIco,
+      List<Icon> extensions, Path programIco, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
       Function<List<String>,RuntimeException> userLocked,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
@@ -46,6 +47,7 @@ public final class WindowsAssociations{
     foreign.values().removeIf(List::isEmpty);
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
     if (alreadyMatches(existing, identity, command, extensions, programIco)){ return; }
+    existing.forEach(s -> commandOf(s).filter(c -> !c.equals(command)).ifPresent(replaced));
     existing.forEach(s -> eradicate(s, belongsToFamily));
     if (!extensions.isEmpty()){
       extensions.forEach(icon -> forgetOpenWithHistory(icon.extension(), belongsToFamily));
@@ -90,6 +92,11 @@ public final class WindowsAssociations{
       if (!sameCommand){ return false; }
     }
     return regValue(hkcu(capabilities(identity)), "ApplicationIcon").equals(Optional.of(programIco+",0"));
+  }
+  private static Optional<Path> commandOf(String identity){
+    return regValues(hkcu(fileAssociations(identity))).values().stream().findFirst()
+      .flatMap(progId -> regValue(hkcu(classes)+progId+"\\shell\\open\\command", ""))
+      .map(c -> Path.of(c.substring(1, c.indexOf('"', 1))));
   }
   private static void eradicate(String identity, Predicate<String> belongsToFamily){
     regValues(hkcu(fileAssociations(identity))).forEach((ext,progId) -> dropClaim(ext, progId, belongsToFamily));

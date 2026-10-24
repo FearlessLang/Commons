@@ -22,6 +22,8 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
@@ -55,7 +57,7 @@ public final class LinuxAssociations{
   }
   record Opener(String program, String type, String section){}
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
-      List<Icon> extensions, List<WindowIcon> windows, Path programPng,
+      List<Icon> extensions, List<WindowIcon> windows, Path programPng, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
       Function<List<String>,RuntimeException> userLocked,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
@@ -80,6 +82,7 @@ public final class LinuxAssociations{
     if (!refused.isEmpty()){ throw notWritable.apply(Join.of(refused, "", "\n", "")); }
     var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, command, extensions, windows, programPng, globs);
     if (alreadyMatches(existing, identity, wanted)){ return; }
+    existing.forEach(s -> commandOf(s).filter(c -> !c.equals(command)).ifPresent(replaced));
     var gone= owned(Push.of(existing, identity)::contains);
     gone.forEach(f -> Fs.ofV(() -> Files.delete(f)));
     wanted.keySet().forEach(f -> Fs.ensureDir(f.getParent()));
@@ -101,6 +104,12 @@ public final class LinuxAssociations{
     return globs.stream().filter(g -> g.is(ext)).map(Glob::type).distinct().toList();
   }
   private static Stream<Path> desktops(){ return Xdg.appDirs().stream().flatMap(d -> listed(d, ".desktop").stream()); }
+  private static Optional<Path> commandOf(String identity){
+    return desktops().filter(f -> baseName(f).equals(identity)).findFirst()
+      .flatMap(f -> lines(f).stream().filter(l -> l.startsWith("Exec=")).findFirst())
+      .map(l -> l.substring("Exec=".length(), l.lastIndexOf(" %f")).replace("\\\\", "\\").replace("%%", "%"))
+      .map(s -> Path.of(s.substring(1, s.length()-1).replaceAll("\\\\(.)", "$1")));
+  }
   private static List<Path> registrations(){
     return Stream.concat(desktops(), mimeDirs().stream().flatMap(d -> listed(d.resolve("packages"), ".xml").stream())).toList();
   }
