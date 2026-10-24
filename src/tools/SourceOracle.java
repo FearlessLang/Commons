@@ -2,13 +2,15 @@ package tools;
 
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.nio.charset.CodingErrorAction;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import offensiveUtils.Require;
+import utils.Bug;
 import utils.OneOr;
 import utils.Push;
 
@@ -24,12 +26,12 @@ public interface SourceOracle{
     byte[] loadBytes();
     long lastModified();
     default String loadString(){
-      return Fs.of(() -> StandardCharsets.UTF_8.newDecoder()
-        .onMalformedInput(CodingErrorAction.REPORT)
-        .onUnmappableCharacter(CodingErrorAction.REPORT)
-        .decode(ByteBuffer.wrap(loadBytes()))
-        .toString());
+      var bytes= loadBytes();
+      var input= ByteBuffer.wrap(bytes);
+      try{ return StandardCharsets.UTF_8.newDecoder().decode(input).toString(); }
+      catch (CharacterCodingException e){ throw notUtf8(1+IntStream.range(0, input.position()).filter(i -> bytes[i]=='\n').count(), input.position()); }
     }
+    default RuntimeException notUtf8(long line, int offset){ return Bug.of(fearPath()+" is not UTF-8 text: line "+line+", byte offset "+offset); }
     //NOTE: we also need to manually override toString=fearPath in all the implementations
   }
   interface RefParent{
