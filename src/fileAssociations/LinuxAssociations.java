@@ -181,10 +181,10 @@ public final class LinuxAssociations{
     var types= extensions.stream().map(i -> typeOf(i.extension())).toList();
     res.put(home("applications").resolve(identity+".desktop"), utf8(desktopEntry(identity, command.toString(), windowClass(), types)));
     res.put(home("mime/packages").resolve(identity+".xml"), utf8("""
-      <?xml version="1.0" encoding="UTF-8"?>
-      <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
-      %s</mime-info>
-      """.formatted(body)));
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+%s</mime-info>
+""".formatted(body)));
     res.put(iconDir("apps").resolve(identity+".png"), desktopPng(programPng));
     return Collections.unmodifiableMap(res);
   }
@@ -225,27 +225,27 @@ public final class LinuxAssociations{
   }
   public static String desktopEntry(String identity, String command, String windowClass, List<String> types){
     return """
-      [Desktop Entry]
-      Type=Application
-      Name=%s
-      Exec=%s %%f
-      Icon=%s
-      StartupWMClass=%s
-      Terminal=false
-      MimeType=%s;
-      """.formatted(identity, execArg(command), identity, windowClass, Join.of(types, "", ";", ""));
+[Desktop Entry]
+Type=Application
+Name=%s
+Exec=%s %%f
+Icon=%s
+StartupWMClass=%s
+Terminal=false
+MimeType=%s;
+""".formatted(identity, execArg(command), identity, windowClass, Join.of(types, "", ";", ""));
   }
   private static String windowEntry(String icon, String command, WindowIcon w){
     return """
-      [Desktop Entry]
-      Type=Application
-      Name=%s
-      Exec=%s %s
-      Icon=%s
-      StartupWMClass=%s
-      NoDisplay=true
-      Terminal=false
-      """.formatted(w.name(), execArg(command), execArg(w.target().toString()), icon, w.windowClass());
+[Desktop Entry]
+Type=Application
+Name=%s
+Exec=%s %s
+Icon=%s
+StartupWMClass=%s
+NoDisplay=true
+Terminal=false
+""".formatted(w.name(), execArg(command), execArg(w.target().toString()), icon, w.windowClass());
   }
   private static String execArg(String s){
     return ("\""+s.replaceAll("[\"`$\\\\]", "\\\\$0")+"\"").replace("%", "%%").replace("\\", "\\\\");
