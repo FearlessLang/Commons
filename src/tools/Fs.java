@@ -35,6 +35,7 @@ import java.util.stream.Stream;
 import offensiveUtils.Require;
 import utils.Bug;
 import utils.Join;
+import utils.Push;
 
 public final class Fs{
   // ASCII whitelist
@@ -180,8 +181,10 @@ public final class Fs{
       +"\nOutput length: "+out.length()
       +"\nOutput:\n<<<\n"+out+"\n>>>");
   }
+  //Platform primitives do what their specification says: /run/systemd/system exists exactly when systemd is the init, and then the user session has a systemd user manager.
+  private static final List<String> ownScope= isLinux() && Files.isDirectory(Path.of("/run/systemd/system")) ? List.of("systemd-run", "--user", "--scope", "--quiet", "--collect", "--") : List.of();
   public static ProcessBuilder processBuilder(List<String> cmd){
-    var pb= new ProcessBuilder(cmd);
+    var pb= new ProcessBuilder(Push.of(ownScope, cmd));
     pb.environment().remove("_JPACKAGE_LAUNCHER");
     return pb;
   }
