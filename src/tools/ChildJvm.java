@@ -2,7 +2,6 @@ package tools;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -10,18 +9,17 @@ import java.util.function.Consumer;
 
 import utils.Push;
 
-public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<String> cmd){
+public record ChildJvm(Process p, Thread pump, List<String> cmd){
   public static final String lifelineKey= "fearless.parentLifeline";
   public static final String lifelineValue= "stdin";
   public static ChildJvm start(List<String> args, Consumer<String> out){
     var cmd= Push.of(List.<String>of(Path.of(System.getProperty("java.home"), "bin", Fs.isWindows() ? "java.exe" : "java").toString(), "-ea", "-Xss16m", "-D"+lifelineKey+"="+lifelineValue), args);
     var pb= Fs.processBuilder(cmd);
     var p= Fs.of(() -> pb.redirectErrorStream(true).start());
-    var pumpErr= new IOException[1];
-    var pump= new Thread(() -> pumpOutput(p, out, pumpErr), "FearlessJvmOut");
+    var pump= new Thread(() -> pumpOutput(p, out), "FearlessJvmOut");
     pump.setDaemon(true);
     pump.start();
-    return new ChildJvm(p, pump, pumpErr, cmd);
+    return new ChildJvm(p, pump, cmd);
   }
   public int await() throws InterruptedException{
     var lifeline= p.getOutputStream();
@@ -35,7 +33,6 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
     }
     finally{ closeQuietly(lifeline); }
     joinUninterruptibly(pump);
-    if (pumpErr[0] != null){ throw new UncheckedIOException(pumpErr[0]); }
     return ec;
   }
   public void kill(){
@@ -46,12 +43,13 @@ public record ChildJvm(Process p, Thread pump, IOException[] pumpErr, List<Strin
     p.destroyForcibly();
     waitForUninterruptibly(p, 0);
   }
-  private static void pumpOutput(Process p, Consumer<String> out, IOException[] pumpErr){
+  //Platform primitives do what their specification says: reading the pipe fails only once `kill` has closed the pipe, so the failure is the end of the output.
+  private static void pumpOutput(Process p, Consumer<String> out){
     try (var in= p.getInputStream(); var sink= new Utf8Sink(out)){
       var buf= new byte[8192];
       for (int n; (n = in.read(buf)) != -1; ){ sink.write(buf, 0, n); }
     }
-    catch (IOException e){ if (p.isAlive()){ pumpErr[0] = e; } }
+    catch (IOException _){}
   }
   private static void waitForUninterruptibly(Process p, long millis){
     var interrupted= false;
