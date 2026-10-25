@@ -101,12 +101,12 @@ public abstract class MetaParser<
       .allMatch(Optional::isPresent);
   }
   public <R> R back(R v){
-    if (index == 0){ throw Bug.of("Can not go back since already at start"); }
+    if (index == 0){ throw Bug.of("Cannot go back since already at start"); }
     index -= 1;
     return v;
   }
   public <R> R fwd(R v){
-    if (index == limit){ throw Bug.of("Can not go fwd since already at end"); }
+    if (index == limit){ throw Bug.of("Cannot go fwd since already at end"); }
     index += 1;
     return v;
   }
