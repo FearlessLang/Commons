@@ -170,79 +170,79 @@ public final class NameSuggester{
   }
   // Put this at the very end so it is easy to tweak.
   private static final String aliasGroups= """
-    # One group per line; overlaps CONNECT groups. Tokens are case-insensitive.
-    Id ID id
-    Uuid UUID uuid
-    Uri URI uri
-    Url URL url
-    Utf UTF utf
-    Utf8 UTF8 utf8
-    Utf16 UTF16 utf16
-    Ascii ASCII ascii
+# One group per line; overlaps CONNECT groups. Tokens are case-insensitive.
+Id ID id
+Uuid UUID uuid
+Uri URI uri
+Url URL url
+Utf UTF utf
+Utf8 UTF8 utf8
+Utf16 UTF16 utf16
+Ascii ASCII ascii
 
-    Http HTTP http
-    Https HTTPS https
-    Tcp TCP tcp
-    Udp UDP udp
-    Ip IP ip
-    Ipv4 IPv4 ipv4
-    Ipv6 IPv6 ipv6
-    Dns DNS dns
-    Ssl SSL ssl
-    Tls TLS tls
-    Ssh SSH ssh
+Http HTTP http
+Https HTTPS https
+Tcp TCP tcp
+Udp UDP udp
+Ip IP ip
+Ipv4 IPv4 ipv4
+Ipv6 IPv6 ipv6
+Dns DNS dns
+Ssl SSL ssl
+Tls TLS tls
+Ssh SSH ssh
 
-    Json JSON json
-    Xml XML xml
-    Html HTML html
-    Css CSS css
-    Sql SQL sql
-    Db DB db
-    Api API api
-    Ui UI ui
-    Gui GUI gui
-    Cli CLI cli
+Json JSON json
+Xml XML xml
+Html HTML html
+Css CSS css
+Sql SQL sql
+Db DB db
+Api API api
+Ui UI ui
+Gui GUI gui
+Cli CLI cli
 
-    Jvm JVM jvm
-    Jit JIT jit
-    Gc GC gc
-    Cpu CPU cpu
-    Gpu GPU gpu
-    Os OS os
-    Fs FS fs
-    Io IO io
+Jvm JVM jvm
+Jit JIT jit
+Gc GC gc
+Cpu CPU cpu
+Gpu GPU gpu
+Os OS os
+Fs FS fs
+Io IO io
 
-    Pdf PDF pdf
-    Csv CSV csv
-    Tsv TSV tsv
-    Yaml YAML yaml
-    Toml TOML toml
-    Ini INI ini
-    Zip ZIP zip
-    Gzip GZIP gzip
+Pdf PDF pdf
+Csv CSV csv
+Tsv TSV tsv
+Yaml YAML yaml
+Toml TOML toml
+Ini INI ini
+Zip ZIP zip
+Gzip GZIP gzip
 
-    Png PNG png
-    Jpg JPG jpg
-    Jpeg JPEG jpeg
-    Gif GIF gif
-    Svg SVG svg
-    Bmp BMP bmp
-    Webp WEBP webp
-    Mp3 MP3 mp3
-    Mp4 MP4 mp4
-    Wav WAV wav
-    Flac FLAC flac
+Png PNG png
+Jpg JPG jpg
+Jpeg JPEG jpeg
+Gif GIF gif
+Svg SVG svg
+Bmp BMP bmp
+Webp WEBP webp
+Mp3 MP3 mp3
+Mp4 MP4 mp4
+Wav WAV wav
+Flac FLAC flac
 
-    Sha SHA sha
-    Sha1 SHA1 sha1
-    Sha256 SHA256 sha256
-    Sha512 SHA512 sha512
-    Hmac HMAC hmac
-    Md5 MD5 md5
-    Aes AES aes
-    Rsa RSA rsa
-    Ecdsa ECDSA ecdsa
-    Jwt JWT jwt
-    OAuth OAuth2 oauth oauth2
-    """;
+Sha SHA sha
+Sha1 SHA1 sha1
+Sha256 SHA256 sha256
+Sha512 SHA512 sha512
+Hmac HMAC hmac
+Md5 MD5 md5
+Aes AES aes
+Rsa RSA rsa
+Ecdsa ECDSA ecdsa
+Jwt JWT jwt
+OAuth OAuth2 oauth oauth2
+""";
 }
