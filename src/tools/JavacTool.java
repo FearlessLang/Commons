@@ -22,7 +22,7 @@ public final class JavacTool{
   public static final String consoleKey= "console";
   public static final String winKey= "w";
   //--enable-native-access needed to coordinator (example, forcing english language)
-  public static final List<String> javaOptions= List.of("-ea", "-Xss16m", "--enable-native-access=Commons,Coordinator", "-D"+appDirKey+"=$APPDIR");
+  public static final List<String> javaOptions= List.of("-ea", "-Xss16m", "--enable-native-access=Commons,Coordinator", "-Dsun.java2d.d3d=false", "-D"+appDirKey+"=$APPDIR");
   // Local build-time staging dir we hand to `jpackage --module-path`, holding
   // the module jars (the compiled modules of the app + external jars).
   public static final String buildModsDirName= "_mods";
