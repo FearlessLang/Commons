@@ -15,13 +15,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import utils.Bug;
 
@@ -29,19 +27,19 @@ import utils.Bug;
 /// with the file name encoding of the system, and loads classes from the decoded text: a folder
 /// whose name is not valid text in that encoding holds classes the JVM cannot load. A Path keeps
 /// the bytes of a name, so this loader reads the jars of a Fearless program through Paths, and the
-/// folders holding them reach it as the properties fearlessCode.<n>, written by text(Path).
+/// folders holding them reach it as the properties fearlessCode.<n>, written by argOf(Path).
 public final class PathClassLoader extends ClassLoader{
   static{ registerAsParallelCapable(); }
   public static final String codeKey= "fearlessCode.";
   private final List<Path> jars;
   private PathClassLoader(List<Path> jars){ super(ClassLoader.getPlatformClassLoader()); this.jars= jars; }
-  /// A path as ASCII text that path(String) reads back as the same path: on Windows a name is
-  /// 16 bit units and a Java String holds any of them; elsewhere a name is bytes, and a file URI
-  /// writes every byte that is not a plain ASCII character as an escape.
-  public static String text(Path p){ return Fs.isWindows() ? p.toString() : p.toUri().toString(); }
-  public static Path path(String text){ return Fs.isWindows() ? Path.of(text) : Path.of(URI.create(text)); }
+  /// A path as an argument that pathOf(String) reads back as the same path. On Windows it is the path
+  /// itself: a name is 16 bit units, and a Java String holds any of them. Elsewhere a name is bytes, and
+  /// the argument is the file URI, which writes every byte that is not a plain ASCII character as an escape.
+  public static String argOf(Path p){ return Fs.isWindows() ? p.toString() : p.toUri().toString(); }
+  public static Path pathOf(String arg){ return Fs.isWindows() ? Path.of(arg) : Path.of(URI.create(arg)); }
   public static List<String> codeArgs(List<Path> dirs){
-    return IntStream.range(0, dirs.size()).mapToObj(i -> "-D"+codeKey+i+"="+text(dirs.get(i))).toList();
+    return IntStream.range(0, dirs.size()).mapToObj(i -> "-D"+codeKey+i+"="+argOf(dirs.get(i))).toList();
   }
   /// The location of a module is the file URI of its jar, with every byte of its name; a URL of the
   /// same jar loses the third slash of "file:///", and Path.of then reads it as text in UTF-8.
@@ -52,15 +50,12 @@ public final class PathClassLoader extends ClassLoader{
     catch (URISyntaxException e){ throw Bug.of(e); }
   }
   public static void main(String[] args) throws Throwable{
-    var dirs= System.getProperties().stringPropertyNames().stream().filter(k -> k.startsWith(codeKey)).map(k -> path(System.getProperty(k)));
-    var jars= dirs.flatMap(PathClassLoader::jarsIn).sorted(Comparator.comparing(p -> p.getFileName().toString())).map(PathClassLoader::root).toList();
+    var dirs= System.getProperties().stringPropertyNames().stream().filter(k -> k.startsWith(codeKey)).map(k -> pathOf(System.getProperty(k))).toList();
+    var jars= JavaTool.jars(dirs).stream().map(PathClassLoader::root).toList();
     var loader= new PathClassLoader(jars);
     Thread.currentThread().setContextClassLoader(loader);
     var main= MethodHandles.publicLookup().findStatic(loader.loadClass(args[0]), "main", MethodType.methodType(void.class, String[].class));
     main.invokeExact(Arrays.copyOfRange(args, 1, args.length));
-  }
-  private static Stream<Path> jarsIn(Path dir){
-    return Fs.walk(dir, s -> s.filter(p -> p.getFileName().toString().endsWith(".jar")).toList()).stream();
   }
   private static Path root(Path jar){
     return Fs.of(() -> FileSystems.newFileSystem(jar, Map.of("releaseVersion", "runtime"))).getPath("/");
