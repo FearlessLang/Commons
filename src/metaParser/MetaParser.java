@@ -189,7 +189,7 @@ public abstract class MetaParser<
     return p.splitBy(frameNameIn, probe, r);
   }
   ///Suitable to divide two non empty lists of tokens, especially if
-  ///the division can not be easily located by looking at a few tokens forward.
+  ///the division cannot be easily located by looking at a few tokens forward.
   ///Parses a (possibly empty) list of tokens from the start of this parser.
   ///If the probe eats all the tokens, all the tokens are parsed.
   ///The probe accepting all the token signals no prefix.
@@ -200,7 +200,7 @@ public abstract class MetaParser<
     return parseAll(frameName, first);
   }
   ///Suitable to divide two non empty lists of tokens, especially if
-  ///the division can not be easily located by looking at a few tokens forward.
+  ///the division cannot be easily located by looking at a few tokens forward.
   ///Parses a (non empty) list of tokens from the start of this parser.
   ///(set parameter emptyAllowed=true to allow a non progressing probe)
   ///Must be a proper division, that is, if the probe eats all the tokens we get an Optional.empty() result.
@@ -221,7 +221,7 @@ public abstract class MetaParser<
     return Optional.of(res);
   }
   ///Suitable to divide two non empty lists of tokens, especially if
-  ///the division can not be easily located by looking at a few tokens backwards.
+  ///the division cannot be easily located by looking at a few tokens backwards.
   ///Parses a (non empty) list of tokens from the end of this parser.
   ///(set parameter emptyAllowed=true to allow a non progressing probe)
   ///Must be a proper division, that is, if the probe eats all the tokens we get an Optional.empty() result.
