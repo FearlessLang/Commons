@@ -7,4 +7,5 @@ module Commons{
   requires java.desktop;
   requires jdk.compiler;
   requires jdk.jartool;
+  requires jdk.zipfs;
 }

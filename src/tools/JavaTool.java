@@ -4,7 +4,6 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
-import java.util.function.Consumer;
 
 import utils.Join;
 import utils.Push;
@@ -14,19 +13,9 @@ public final class JavaTool{
     var l= jarsCp(List.of(libs));
     return _runMain(jvmArgs, l.isEmpty() ? classesDir.toString() : classesDir+File.pathSeparator+l, mainClass, mainArgs);
   }
-  public static String runMainFromJars(List<String> jvmArgs, List<Path> jarDirs, String mainClass, String... mainArgs) throws InterruptedException{
-    return _runMain(jvmArgs, jarsCp(jarDirs), mainClass, mainArgs);
-  }
-  public static ChildJvm startMainFromJars(List<String> jvmArgs, List<Path> jarDirs, String mainClass, Consumer<String> out, String... mainArgs){
-    return start(jvmArgs, jarsCp(jarDirs), mainClass, out, mainArgs);
-  }
-  private static ChildJvm start(List<String> jvmArgs, String classPath, String mainClass, Consumer<String> out, String... mainArgs){
-    assert !classPath.isEmpty();
-    return ChildJvm.start(Push.of(List.of(jvmArgs, List.of("-cp", classPath, mainClass), List.of(mainArgs))), out);
-  }
   private static String _runMain(List<String> jvmArgs, String classPath, String mainClass, String... mainArgs) throws InterruptedException{
     var sb= new StringBuilder();
-    var jvm= start(jvmArgs, classPath, mainClass, s -> echo(sb, s), mainArgs);
+    var jvm= ChildJvm.start(Push.of(List.of(jvmArgs, List.of("-cp", classPath, mainClass), List.of(mainArgs))), s -> echo(sb, s));
     Fs.checkTool("java", jvm.await(), jvm.cmd(), sb.toString());
     return sb.toString();
   }
