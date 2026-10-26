@@ -16,7 +16,6 @@ public record ChildJvm(Process p, Thread pump, List<String> cmd){
   public static ChildJvm start(List<String> args, Consumer<String> out){
     var cmd= Push.of(List.of(List.<String>of(Path.of(System.getProperty("java.home"), "bin", Fs.isWindows() ? "java.exe" : "java").toString(), "-ea", "-Xss16m", "-D"+lifelineKey+"="+lifelineValue), rootLocale, args));
     var pb= Fs.processBuilder(cmd);
-    pb.environment().put("LC_ALL", "C.UTF-8");
     var p= Fs.of(() -> pb.redirectErrorStream(true).start());
     var pump= new Thread(() -> pumpOutput(p, out), "FearlessJvmOut");
     pump.setDaemon(true);
