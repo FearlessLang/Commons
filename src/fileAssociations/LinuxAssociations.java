@@ -107,7 +107,7 @@ public final class LinuxAssociations{
   private static Optional<Path> commandOf(String identity){
     return desktops().filter(f -> baseName(f).equals(identity)).findFirst()
       .flatMap(f -> lines(f).stream().filter(l -> l.startsWith("Exec=")).findFirst())
-      .map(l -> l.substring("Exec=".length(), l.lastIndexOf(" %f")).replace("\\\\", "\\").replace("%%", "%"))
+      .map(l -> l.substring("Exec=".length(), l.lastIndexOf(" %f")).replaceFirst("^env LC_ALL=C\\.UTF-8 ", "").replace("\\\\", "\\").replace("%%", "%"))
       .map(s -> Path.of(s.substring(1, s.length()-1).replaceAll("\\\\(.)", "$1")));
   }
   private static List<Path> registrations(){
@@ -228,7 +228,7 @@ public final class LinuxAssociations{
 [Desktop Entry]
 Type=Application
 Name=%s
-Exec=%s %%f
+Exec=env LC_ALL=C.UTF-8 %s %%f
 Icon=%s
 StartupWMClass=%s
 Terminal=false
@@ -240,7 +240,7 @@ MimeType=%s;
 [Desktop Entry]
 Type=Application
 Name=%s
-Exec=%s %s
+Exec=env LC_ALL=C.UTF-8 %s %s
 Icon=%s
 StartupWMClass=%s
 NoDisplay=true
