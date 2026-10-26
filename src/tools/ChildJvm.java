@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -12,9 +13,12 @@ import utils.Push;
 public record ChildJvm(Process p, Thread pump, List<String> cmd){
   public static final String lifelineKey= "fearless.parentLifeline";
   public static final String lifelineValue= "stdin";
-  public static ChildJvm start(List<String> args, Consumer<String> out){
-    var cmd= Push.of(List.<String>of(Path.of(System.getProperty("java.home"), "bin", Fs.isWindows() ? "java.exe" : "java").toString(), "-ea", "-Xss16m", "-D"+lifelineKey+"="+lifelineValue), args);
+  public static final List<String> rootLocale= List.of("-Duser.language=", "-Duser.country=", "-Duser.script=", "-Duser.variant=", "-Dfile.encoding=UTF-8", "-Dstdin.encoding=UTF-8", "-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8");
+  public static ChildJvm start(List<String> args, Consumer<String> out){ return start(args, Map.of(), out); }
+  public static ChildJvm start(List<String> args, Map<String,String> env, Consumer<String> out){
+    var cmd= Push.of(List.of(List.<String>of(Path.of(System.getProperty("java.home"), "bin", Fs.isWindows() ? "java.exe" : "java").toString(), "-ea", "-Xss16m", "-D"+lifelineKey+"="+lifelineValue), rootLocale, args));
     var pb= Fs.processBuilder(cmd);
+    pb.environment().putAll(env);
     var p= Fs.of(() -> pb.redirectErrorStream(true).start());
     var pump= new Thread(() -> pumpOutput(p, out), "FearlessJvmOut");
     pump.setDaemon(true);
