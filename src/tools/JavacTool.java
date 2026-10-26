@@ -2,13 +2,26 @@ package tools;
 
 import java.lang.module.ModuleDescriptor.Requires;
 import java.lang.module.ModuleFinder;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 import java.util.stream.Collectors;
+
+import javax.tools.StandardLocation;
+import javax.tools.ToolProvider;
 
 import offensiveUtils.Require;
 import utils.Join;
@@ -31,18 +44,51 @@ public final class JavacTool{
   // <dest>/<name>/lib/app/mods). We don't choose this name, jpackage does
   public static final String deployedModsDirName= "mods";
   public static final List<String> javacArgs= List.of("-encoding", "UTF-8", "-Xlint:all,-auxiliaryclass,-missing-explicit-ctor", "-Werror");
-  public static String compileTree(Path srcRoot, Path classesDir, Runnable postProcess, Path jarPath, List<Path> extraClasspathDirs){
+  /// javac takes the sources, the class path and the output as Paths, and the jar is written through a
+  /// Path: a project compiles also in a folder whose name is not text in the file name encoding.
+  /// javac reads the manifest of every jar file on its class path through java.io.File, whose name is
+  /// text; the root of a zip file system on the jar is a folder, and javac reads a folder through Paths.
+  /// The annotation processors would be loaded from the class path through java.io.File: they have
+  /// an empty path of their own.
+  public static String compileTree(Path srcRoot, Path classesDir, Runnable postProcess, Path jarPath, List<Path> extraClasspathDirs) throws IOException{
     var srcs= javaSourcesUnder(srcRoot);
-    Fs.ofV(() -> Fs.deleteIfExists(jarPath));
+    Fs.deleteIfExists(jarPath);
     Require.check(!srcs.isEmpty(), "Expected .java files under "+srcRoot);
-    var args= new ArrayList<String>(List.of("-encoding", "UTF-8", "-d", abs(classesDir)));
-    var cp= JavaTool.jarsCp(Push.of(jarPath.getParent(), extraClasspathDirs));
-    if (!cp.isEmpty()){ args.add("-cp"); args.add(cp); }
-    srcs.forEach(p -> args.add(abs(p)));
-    var javacOut= runJavacArgFile(jarPath.getParent(), args);
-    postProcess.run();
-    jar(classesDir, jarPath);
-    return javacOut;
+    var jars= new ArrayList<FileSystem>();
+    try{
+      for (var j : JavaTool.jars(Push.of(jarPath.getParent(), extraClasspathDirs))){ jars.add(FileSystems.newFileSystem(j)); }
+      var out= javac(srcs, classesDir, jars.stream().map(fs -> fs.getPath("/")).toList());
+      postProcess.run();
+      writeJar(classesDir, jarPath);
+      return out;
+    }
+    finally{ for (var fs : jars){ fs.close(); } }
+  }
+  private static String javac(List<Path> srcs, Path classesDir, List<Path> classPath) throws IOException{
+    var compiler= ToolProvider.getSystemJavaCompiler();
+    var out= new StringWriter();
+    try (var fm= compiler.getStandardFileManager(null, null, StandardCharsets.UTF_8)){
+      fm.setLocationFromPaths(StandardLocation.CLASS_OUTPUT, List.of(classesDir));
+      fm.setLocationFromPaths(StandardLocation.CLASS_PATH, classPath);
+      fm.setLocationFromPaths(StandardLocation.ANNOTATION_PROCESSOR_PATH, List.of());
+      var ok= compiler.getTask(out, fm, null, List.of(), null, fm.getJavaFileObjectsFromPaths(srcs)).call();
+      Fs.checkTool("javac", ok ? 0 : 1, srcs.stream().map(Path::toString).toList(), out.toString());
+    }
+    return out.toString();
+  }
+  private static void writeJar(Path classesDir, Path jarFile) throws IOException{
+    var manifest= new Manifest();
+    manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+    var entries= Fs.walk(classesDir, s -> s.filter(p -> !p.equals(classesDir)).sorted(Comparator.comparing(p -> entryName(classesDir, p))).toList());
+    try (var jar= new JarOutputStream(Files.newOutputStream(jarFile), manifest)){
+      for (var e : entries){ writeEntry(jar, entryName(classesDir, e), e); }
+    }
+  }
+  private static String entryName(Path root, Path p){ return root.relativize(p).toString().replace(p.getFileSystem().getSeparator(), "/")+(Files.isDirectory(p) ? "/" : ""); }
+  private static void writeEntry(JarOutputStream jar, String name, Path p) throws IOException{
+    jar.putNextEntry(new JarEntry(name));
+    if (!name.endsWith("/")){ Files.copy(p, jar); }
+    jar.closeEntry();
   }
   static List<Path> javaSourcesUnder(Path root){
     return Fs.walk(root, s -> s

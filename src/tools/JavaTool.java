@@ -23,9 +23,10 @@ public final class JavaTool{
     sb.append(s);
     System.out.print(s);
   }
-  static String jarsCp(List<Path> jarDirs){
-    return Join.of(jarDirs.stream()
-      .flatMap(dir -> Fs.walk(dir, s -> s.filter(p -> p.toString().endsWith(".jar")).toList()).stream())
-      .sorted(Comparator.comparing(p -> p.getFileName().toString())), "", File.pathSeparator, "", "");
+  static String jarsCp(List<Path> jarDirs){ return Join.of(jars(jarDirs).stream(), "", File.pathSeparator, "", ""); }
+  static List<Path> jars(List<Path> jarDirs){
+    return jarDirs.stream()
+      .flatMap(dir -> Fs.walk(dir, s -> s.filter(p -> p.getFileName().toString().endsWith(".jar")).toList()).stream())
+      .sorted(Comparator.comparing(p -> p.getFileName().toString())).toList();
   }
 }
