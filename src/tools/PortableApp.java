@@ -3,6 +3,7 @@ package tools;
 import java.lang.module.ModuleFinder;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import utils.OneOr;
 
@@ -20,23 +21,24 @@ public record PortableApp(
   private void _build(Path tmp, Path modsDir){
     Fs.cleanDir(modsDir);
     Fs.copyTreeFlat(depJar, modsDir);
-    removeOtherPlatformSkijaJars(modsDir);
+    removeOtherPlatformJars(modsDir);
     modules.forEach(m -> compileMod(m, modsDir, tmp));
     var stdLib= prepareAppContent(tmp);
     JavacTool.jpackage(out, packaging, appName, versionId, moduleMain, stdLib);
   }
-  private static void removeOtherPlatformSkijaJars(Path modsDir){
+  private static void removeOtherPlatformJars(Path modsDir){
     var currentTag= (Fs.isWindows() ? "windows" : Fs.isMac() ? "macos" : "linux")
       +"-"+(System.getProperty("os.arch").contains("aarch64") ? "arm64" : "x64");
     Fs.walk(modsDir, s -> s
       .filter(Fs::isRegularFile)
-      .filter(p -> otherPlatformSkija(p.getFileName().toString(), currentTag))
+      .filter(p -> otherPlatform(p.getFileName().toString(), currentTag))
       .toList()
     ).forEach(Fs::rmTree);
   }
-  private static boolean otherPlatformSkija(String name, String currentTag){
-    return name.startsWith("skija-") && !name.startsWith("skija-shared-") && !name.startsWith("skija-"+currentTag+"-");
+  private static boolean otherPlatform(String name, String currentTag){
+    return platformJar.matcher(name).find() && !name.contains("-"+currentTag+"-");
   }
+  private static final Pattern platformJar= Pattern.compile("-(windows|macos|linux)-(x64|arm64)-");
   private void reqInputs(){
     Fs.reqDir(base, "base"); Fs.reqDir(rt, "rt");
     modules.stream().flatMap(List::stream).forEach(p -> Fs.reqDir(p, "module source root"));
