@@ -37,7 +37,7 @@ public final class LinuxAssociations{
   public static Function<String,String> env= System::getenv;
   public static BiConsumer<List<String>,Function<String,RuntimeException>> run= Shell::req;
   private static final int iconSide= 256;
-  private static final Pattern declared= Pattern.compile("<mime-type type=\"([^\"]*)\"");
+  private static final Pattern declared= Pattern.compile("<mime-type type=[\"']([^\"']*)[\"']");
   private static final String defaults= "[Default Applications]";
   private static final String added= "[Added Associations]";
   record Glob(String type, String pattern, boolean cs){
@@ -141,7 +141,7 @@ public final class LinuxAssociations{
   }
   private static Predicate<String> keep(Path dir, Predicate<String> belongsToFamily){
     var packages= listed(dir.resolve("packages"), ".xml").stream().collect(Collectors.partitioningBy(f -> belongsToFamily.test(baseName(f))));
-    var family= packages.get(true).stream().flatMap(f -> lines(f).stream()).filter(l -> l.contains("<glob "))
+    var family= packages.get(true).stream().flatMap(f -> lines(f).stream())
       .map(declared::matcher).filter(Matcher::find).map(m -> m.group(1)).collect(Collectors.toUnmodifiableSet());
     if (!dir.equals(home("mime"))){ return t -> !family.contains(t); }
     var others= Join.of(packages.get(false).stream().flatMap(f -> lines(f).stream()), "", "\n", "", "");
@@ -202,7 +202,7 @@ public final class LinuxAssociations{
   private static void rebuild(List<Path> gone, Function<String,RuntimeException> halfDone){
     mimeDirs().stream().filter(d -> d.equals(home("mime")) || gone.stream().anyMatch(f -> f.getParent().equals(d.resolve("packages"))))
       .forEach(d -> run.accept(List.of("update-mime-database", d.toString()), halfDone));
-    Xdg.appDirs().stream().filter(Files::isDirectory).filter(Files::isWritable)
+    Xdg.appDirs().stream().filter(d -> d.equals(home("applications")) || gone.stream().anyMatch(f -> f.getParent().equals(d)))
       .forEach(d -> run.accept(List.of("update-desktop-database", d.toString()), halfDone));
   }
   private static Path home(String folder){ return Xdg.dataHome().resolve(folder); }
