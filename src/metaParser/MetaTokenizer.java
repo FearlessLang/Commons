@@ -29,6 +29,7 @@ public abstract class MetaTokenizer<
   private List<T> allTokens;
   private List<T> tree;
   private Span base;
+  private Layout layout= Layout.same;
   private Err errFactory;
   private boolean frozen= false;
   public abstract Tokenizer self();
@@ -40,7 +41,7 @@ public abstract class MetaTokenizer<
     finally{ frozen = prev; }
   }
   private RuntimeException error(){
-    return withFrozen(() -> errFactory().unrecognizedTextAt(new Span(fileName, line, col, line, col), "", self()));
+    return withFrozen(() -> errFactory().unrecognizedTextAt(at(line, col, line, col), "", self()));
   }
   private void advance(String matched){
     for (int cp : matched.codePoints().toArray()){
@@ -52,7 +53,7 @@ public abstract class MetaTokenizer<
   private Optional<T> current(TK kind){
     return kind
       .matcher().apply(input, pos)
-      .map(text -> make(kind, text, line, col, List.of()));
+      .map(text -> make(kind, text, layout.line(line), layout.column(line, col), List.of()));
   }
   private Optional<T> findNext(){
     return kinds.stream()
@@ -72,6 +73,14 @@ public abstract class MetaTokenizer<
     this.fileName = Objects.requireNonNull(fileName);
     this.input = Objects.requireNonNull(normalizeSource(input));
     return self();
+  }
+  public Tokenizer layout(Layout layout){
+    assert !frozen : "cannot call .layout during .tokenize, .postTokenize, .buildTokenTree";
+    this.layout = Objects.requireNonNull(layout);
+    return self();
+  }
+  private Span at(int startLine, int startCol, int endLine, int endCol){
+    return new Span(fileName, layout.line(startLine), layout.column(startLine, startCol), layout.line(endLine), layout.column(endLine, endCol));
   }
   public Tokenizer tokenKinds(List<TK> tks, TK sof, TK eof){
     assert !frozen : "cannot call .tokenKinds during .tokenize, .postTokenize, .buildTokenTree";
@@ -93,7 +102,7 @@ public abstract class MetaTokenizer<
     assert input != null : "call method .input before .whiteList";
     int l= 1, c= 1;
     for (int cp : input.codePoints().toArray()){
-      if (whiteList.indexOf(cp) < 0){ var at= new Span(fileName, l, c, l, c); throw withFrozen(() -> errFactory().illegalCharAt(at, cp, self())); }
+      if (whiteList.indexOf(cp) < 0){ var at= at(l, c, l, c); throw withFrozen(() -> errFactory().illegalCharAt(at, cp, self())); }
       if (cp == '\n'){ l += 1; c = 1; }
       else{ c += 1; }
     }
@@ -105,11 +114,11 @@ public abstract class MetaTokenizer<
     assert input != null : "call method .input before .tokenize";
     assert kinds != null : "call method .tokenKinds before .tokenize";
     assert errFactory != null : "call method .setErrFactory before .tokenize";
-    tmp.add(make(sof, "", line, col, List.of()));
+    tmp.add(make(sof, "", layout.line(line), layout.column(line, col), List.of()));
     tmp.addAll(withFrozen(this::scan));
-    tmp.add(make(eof, "", line, col, List.of()));
+    tmp.add(make(eof, "", layout.line(line), layout.column(line, col), List.of()));
     allTokens = List.copyOf(tmp);
-    base = new Span(fileName, 1, 1, line, col);
+    base = at(1, 1, line, col);
     assertMonotonic(allTokens);
     return self();
   }
