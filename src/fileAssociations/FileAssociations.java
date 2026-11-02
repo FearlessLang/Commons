@@ -107,12 +107,16 @@ import utils.Bug;
  * from the current extensions list. [Windows only] For each such extension, a
  * now-empty OpenWithProgids key, and a now-empty Classes\(extension) key left with no
  * default value and no remaining subkeys, are removed too, rather than left behind as
- * an empty container.
+ * an empty container. A default value of Classes\(extension) naming the identity goes back
+ * to the value step 7 found there when the identity took the extension, kept in
+ * Software\(identity)\PreviousDefaults; with none kept, the default value is deleted.
  *
  * 7. If extensions is not empty, identity is created declaring exactly the extensions in
  * extensions, the same way for both kinds. For each: its own file icon; command
  * followed by the operating system's own file-argument placeholder ("%1" on Windows,
- * %f on Linux) as the open command. programIco/programPng is recorded as identity's own
+ * %f on Linux) as the open command. [Windows only] The default value of Classes\(extension)
+ * found before the identity takes the extension is kept in Software\(identity)\PreviousDefaults.
+ * programIco/programPng is recorded as identity's own
  * application icon, independent of the per-extension file icons. If extensions is
  * empty, nothing is created: identity is left entirely unregistered.
  * [Linux only] The MIME-package file defines the type of every extension, with the
