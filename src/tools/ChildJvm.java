@@ -2,6 +2,8 @@ package tools;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +40,11 @@ public record ChildJvm(Process p, Thread pump, List<String> cmd){
     finally{ closeQuietly(lifeline); }
     joinUninterruptibly(pump);
     return ec;
+  }
+  /// Writes one line on the standard input of the child: the lifeline, which the child also reads.
+  public void send(String line){
+    try{ p.getOutputStream().write((line+"\n").getBytes(StandardCharsets.UTF_8)); p.getOutputStream().flush(); }
+    catch (IOException e){ throw new UncheckedIOException(e); }
   }
   public void kill(){
     if (!p.isAlive()){ return; }
