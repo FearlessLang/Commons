@@ -110,6 +110,10 @@ import utils.Bug;
  * an empty container. A default value of Classes\(extension) naming the identity goes back
  * to the value step 7 found there when the identity took the extension, kept in
  * Software\(identity)\PreviousDefaults; with none kept, the default value is deleted.
+ * [Windows only] The "Open with" history Explorer keeps for each such extension, and for
+ * each extension of step 7, loses the entries naming a program of the Fearless family
+ * (FileExts\(extension)\OpenWithList and OpenWithProgids): Explorer would otherwise offer
+ * a deleted member of the Fearless family.
  *
  * 7. If extensions is not empty, identity is created declaring exactly the extensions in
  * extensions, the same way for both kinds. For each: its own file icon; command
