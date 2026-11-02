@@ -63,13 +63,15 @@ import utils.Bug;
  * HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\(extension)\UserChoice
  * and UserChoiceLatest are read. If a value is present there for any of them - naming
  * any ProgId at all, including one belonging to identity - the operation refuses with
- * userLocked applied to the list of every such extension, in the order of extensions.
+ * userLocked applied to a map from every such extension, in the order of extensions, to the
+ * ProgIds named there.
  * No program can remove or change this value: Settings, Apps, Default apps, Reset is
  * the only way to clear it, and Reset affects every app default on the machine.
  * Linux: for every system extension in extensions, a [Default Applications] entry of a
  * choice file naming its type and a program whose identity does not satisfy
  * belongsToFamily is the user's own choice: the operation refuses with userLocked
- * applied to the list of every such extension, in the order of extensions.
+ * applied to a map from every such extension, in the order of extensions, to the programs
+ * those entries name.
  * Nothing is changed.
  *
  * 3. For every Fearless extension in extensions, its current claimants are determined -
@@ -169,7 +171,7 @@ public interface FileAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, List<WindowIcon> windows, Path programIco, Path programPng, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
-      Function<List<String>,RuntimeException> userLocked,
+      Function<Map<String,List<String>>,RuntimeException> userLocked,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){

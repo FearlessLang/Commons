@@ -34,14 +34,16 @@ public final class WindowsAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programIco, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
-      Function<List<String>,RuntimeException> userLocked,
+      Function<Map<String,List<String>>,RuntimeException> userLocked,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
     if (existing.size() > 1){ throw ambiguous.apply(Join.of(existing, "", "\n", "")); }
-    var locked= extensions.stream().map(Icon::extension)
-      .filter(e -> regValue(userChoiceKey(e), "ProgId").isPresent() || regValue(hkcu(fileExts+e+"\\UserChoiceLatest\\ProgId"), "ProgId").isPresent()).toList();
-    if (!locked.isEmpty()){ throw userLocked.apply(locked); }
+    var locked= new LinkedHashMap<String,List<String>>();
+    extensions.stream().map(Icon::extension)
+      .forEach(e -> locked.put(e, Stream.concat(regValue(userChoiceKey(e), "ProgId").stream(), regValue(hkcu(fileExts+e+"\\UserChoiceLatest\\ProgId"), "ProgId").stream()).distinct().toList()));
+    locked.values().removeIf(List::isEmpty);
+    if (!locked.isEmpty()){ throw userLocked.apply(Collections.unmodifiableMap(locked)); }
     var foreign= new LinkedHashMap<String,List<String>>();
     extensions.stream().map(Icon::extension).filter(e -> !Icon.system(e)).forEach(e -> foreign.put(e, held(e, belongsToFamily)));
     foreign.values().removeIf(List::isEmpty);

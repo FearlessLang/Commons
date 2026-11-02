@@ -59,7 +59,7 @@ public final class LinuxAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, List<WindowIcon> windows, Path programPng, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
-      Function<List<String>,RuntimeException> userLocked,
+      Function<Map<String,List<String>>,RuntimeException> userLocked,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
@@ -67,9 +67,11 @@ public final class LinuxAssociations{
     if (existing.size() > 1){ throw ambiguous.apply(Join.of(existing, "", "\n", "")); }
     var globs= globs(belongsToFamily);
     var openers= openers().stream().filter(o -> !belongsToFamily.test(o.program())).toList();
-    var locked= extensions.stream().map(Icon::extension).filter(Icon::system)
-      .filter(e -> openers.stream().anyMatch(o -> o.section().equals(defaults) && o.type().equals(typeOf(e)))).toList();
-    if (!locked.isEmpty()){ throw userLocked.apply(locked); }
+    var locked= new LinkedHashMap<String,List<String>>();
+    extensions.stream().map(Icon::extension).filter(Icon::system)
+      .forEach(e -> locked.put(e, openers.stream().filter(o -> o.section().equals(defaults) && o.type().equals(typeOf(e))).map(Opener::program).distinct().toList()));
+    locked.values().removeIf(List::isEmpty);
+    if (!locked.isEmpty()){ throw userLocked.apply(Collections.unmodifiableMap(locked)); }
     var foreign= new LinkedHashMap<String,List<String>>();
     extensions.stream().map(Icon::extension).filter(e -> !Icon.system(e)).forEach(e -> foreign.put(e, held(e, globs, openers)));
     foreign.values().removeIf(List::isEmpty);
