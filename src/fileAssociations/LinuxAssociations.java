@@ -81,7 +81,7 @@ public final class LinuxAssociations{
     var refused= Stream.concat(unwritable, targets).map(Path::toString).toList();
     if (!refused.isEmpty()){ throw notWritable.apply(Join.of(refused, "", "\n", "")); }
     var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, command, extensions, windows, programPng, globs);
-    if (alreadyMatches(existing, identity, wanted)){ return; }
+    if (alreadyMatches(existing, identity, wanted)){ if (!wanted.isEmpty()){ rebuild(List.of(), halfDone); } return; }
     existing.forEach(s -> commandOf(s).filter(c -> !c.equals(command)).ifPresent(replaced));
     var gone= owned(Push.of(existing, identity)::contains);
     gone.forEach(f -> Fs.ofV(() -> Files.delete(f)));

@@ -46,7 +46,7 @@ public final class WindowsAssociations{
     extensions.stream().map(Icon::extension).filter(e -> !Icon.system(e)).forEach(e -> foreign.put(e, held(e, belongsToFamily)));
     foreign.values().removeIf(List::isEmpty);
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
-    if (alreadyMatches(existing, identity, command, extensions, programIco)){ return; }
+    if (alreadyMatches(existing, identity, command, extensions, programIco)){ if (!extensions.isEmpty()){ notifyShellOfChange(); } return; }
     existing.forEach(s -> commandOf(s).filter(c -> !c.equals(command)).ifPresent(replaced));
     existing.forEach(s -> eradicate(s, belongsToFamily));
     if (!extensions.isEmpty()){

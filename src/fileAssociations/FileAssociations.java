@@ -96,8 +96,8 @@ import utils.Bug;
  *
  * 5. If exactly one identity was found in step 1, it equals identity, and it already
  * declares exactly extensions (same extensions, same per-extension icons), the same
- * command, and the same program icon, nothing further happens: this is a successful
- * call that changes nothing. [Linux only] It also requires the same system types for
+ * command, and the same program icon, steps 6 and 7 are skipped: this is a successful
+ * call that changes no registry key and no file. [Linux only] It also requires the same system types for
  * every extension, the same windows, and that no icon file of identity is left beyond
  * those of extensions and windows.
  *
@@ -132,8 +132,9 @@ import utils.Bug;
  *
  * 8. One shell or database refresh is issued for the whole of steps 6-7 combined -
  * SHChangeNotify once (Windows) or update-mime-database/update-desktop-database once
- * (Linux) - never per extension, never per intermediate write, and never at all when
- * step 5 applied.
+ * (Linux) - never per extension, never per intermediate write, and also when step 5
+ * applied, so a changed image at the same path shows too; none when step 5 applied
+ * with extensions empty.
  *
  * What is guaranteed, and what is not:
  *
