@@ -63,13 +63,15 @@ import utils.Bug;
  * HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\(extension)\UserChoice
  * and UserChoiceLatest are read. If a value is present there for any of them - naming
  * any ProgId at all, including one belonging to identity - the operation refuses with
- * userLocked applied to the list of every such extension, in the order of extensions.
+ * userLocked applied to a map from every such extension, in the order of extensions, to the
+ * ProgIds named there.
  * No program can remove or change this value: Settings, Apps, Default apps, Reset is
  * the only way to clear it, and Reset affects every app default on the machine.
  * Linux: for every system extension in extensions, a [Default Applications] entry of a
  * choice file naming its type and a program whose identity does not satisfy
  * belongsToFamily is the user's own choice: the operation refuses with userLocked
- * applied to the list of every such extension, in the order of extensions.
+ * applied to a map from every such extension, in the order of extensions, to the programs
+ * those entries name.
  * Nothing is changed.
  *
  * 3. For every Fearless extension in extensions, its current claimants are determined -
@@ -96,8 +98,8 @@ import utils.Bug;
  *
  * 5. If exactly one identity was found in step 1, it equals identity, and it already
  * declares exactly extensions (same extensions, same per-extension icons), the same
- * command, and the same program icon, nothing further happens: this is a successful
- * call that changes nothing. [Linux only] It also requires the same system types for
+ * command, and the same program icon, steps 6 and 7 are skipped: this is a successful
+ * call that changes no registry key and no file. [Linux only] It also requires the same system types for
  * every extension, the same windows, and that no icon file of identity is left beyond
  * those of extensions and windows.
  *
@@ -107,12 +109,20 @@ import utils.Bug;
  * from the current extensions list. [Windows only] For each such extension, a
  * now-empty OpenWithProgids key, and a now-empty Classes\(extension) key left with no
  * default value and no remaining subkeys, are removed too, rather than left behind as
- * an empty container.
+ * an empty container. A default value of Classes\(extension) naming the identity goes back
+ * to the value step 7 found there when the identity took the extension, kept in
+ * Software\(identity)\PreviousDefaults; with none kept, the default value is deleted.
+ * [Windows only] The "Open with" history Explorer keeps for each such extension, and for
+ * each extension of step 7, loses the entries naming a program of the Fearless family
+ * (FileExts\(extension)\OpenWithList and OpenWithProgids): Explorer would otherwise offer
+ * a deleted member of the Fearless family.
  *
  * 7. If extensions is not empty, identity is created declaring exactly the extensions in
  * extensions, the same way for both kinds. For each: its own file icon; command
  * followed by the operating system's own file-argument placeholder ("%1" on Windows,
- * %f on Linux) as the open command. programIco/programPng is recorded as identity's own
+ * %f on Linux) as the open command. [Windows only] The default value of Classes\(extension)
+ * found before the identity takes the extension is kept in Software\(identity)\PreviousDefaults.
+ * programIco/programPng is recorded as identity's own
  * application icon, independent of the per-extension file icons. If extensions is
  * empty, nothing is created: identity is left entirely unregistered.
  * [Linux only] The MIME-package file defines the type of every extension, with the
@@ -132,8 +142,9 @@ import utils.Bug;
  *
  * 8. One shell or database refresh is issued for the whole of steps 6-7 combined -
  * SHChangeNotify once (Windows) or update-mime-database/update-desktop-database once
- * (Linux) - never per extension, never per intermediate write, and never at all when
- * step 5 applied.
+ * (Linux) - never per extension, never per intermediate write, and also when step 5
+ * applied, so a changed image at the same path shows too; none when step 5 applied
+ * with extensions empty.
  *
  * What is guaranteed, and what is not:
  *
@@ -160,7 +171,7 @@ public interface FileAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, List<WindowIcon> windows, Path programIco, Path programPng, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
-      Function<List<String>,RuntimeException> userLocked,
+      Function<Map<String,List<String>>,RuntimeException> userLocked,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){

@@ -34,24 +34,28 @@ public final class WindowsAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programIco, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
-      Function<List<String>,RuntimeException> userLocked,
+      Function<Map<String,List<String>>,RuntimeException> userLocked,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
     if (existing.size() > 1){ throw ambiguous.apply(Join.of(existing, "", "\n", "")); }
-    var locked= extensions.stream().map(Icon::extension)
-      .filter(e -> regValue(userChoiceKey(e), "ProgId").isPresent() || regValue(hkcu(fileExts+e+"\\UserChoiceLatest\\ProgId"), "ProgId").isPresent()).toList();
-    if (!locked.isEmpty()){ throw userLocked.apply(locked); }
+    var locked= new LinkedHashMap<String,List<String>>();
+    extensions.stream().map(Icon::extension)
+      .forEach(e -> locked.put(e, Stream.concat(regValue(userChoiceKey(e), "ProgId").stream(), regValue(hkcu(fileExts+e+"\\UserChoiceLatest\\ProgId"), "ProgId").stream()).distinct().toList()));
+    locked.values().removeIf(List::isEmpty);
+    if (!locked.isEmpty()){ throw userLocked.apply(Collections.unmodifiableMap(locked)); }
     var foreign= new LinkedHashMap<String,List<String>>();
     extensions.stream().map(Icon::extension).filter(e -> !Icon.system(e)).forEach(e -> foreign.put(e, held(e, belongsToFamily)));
     foreign.values().removeIf(List::isEmpty);
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
-    if (alreadyMatches(existing, identity, command, extensions, programIco)){ return; }
+    if (alreadyMatches(existing, identity, command, extensions, programIco)){ if (!extensions.isEmpty()){ notifyShellOfChange(); } return; }
     existing.forEach(s -> commandOf(s).filter(c -> !c.equals(command)).ifPresent(replaced));
     existing.forEach(s -> eradicate(s, belongsToFamily));
     if (!extensions.isEmpty()){
       extensions.forEach(icon -> forgetOpenWithHistory(icon.extension(), belongsToFamily));
-      Shell.req(importReg(regFile(identity, command, extensions, programIco)), halfDone);
+      var previous= new LinkedHashMap<String,String>();
+      extensions.forEach(icon -> regValue(hkcu(classes)+icon.extension(), "").ifPresent(p -> previous.put(icon.extension(), p)));
+      Shell.req(importReg(regFile(identity, command, extensions, programIco, previous)), halfDone);
     }
     notifyShellOfChange();
   }
@@ -111,7 +115,8 @@ public final class WindowsAssociations{
       Shell.exec(List.of("reg", "delete", extKey+"\\OpenWithProgids", "/f"));
     }
     if (regValue(extKey, "").equals(Optional.of(progId))){
-      Shell.exec(List.of("reg", "delete", extKey, "/ve", "/f"));
+      var previous= regValue(hkcu(previousDefaults(owner(progId, ext))), ext);
+      Shell.exec(previous.map(p -> List.of("reg", "add", extKey, "/ve", "/d", p, "/f")).orElse(List.of("reg", "delete", extKey, "/ve", "/f")));
     }
     if (listSubkeys(classes+ext).isEmpty() && regValues(extKey).isEmpty()){
       Shell.exec(List.of("reg", "delete", extKey, "/f"));
@@ -132,11 +137,13 @@ public final class WindowsAssociations{
     });
     if (regValues(progIdsKey).isEmpty()){ Shell.exec(List.of("reg", "delete", progIdsKey, "/f")); }
   }
-  public static String regFile(String identity, Path command, List<Icon> extensions, Path programIco){
+  /// previous: the default value of Classes\(extension) before identity takes the extension, kept so that dropping the extension puts it back.
+  public static String regFile(String identity, Path command, List<Icon> extensions, Path programIco, Map<String,String> previous){
     var res= new StringBuilder("Windows Registry Editor Version 5.00\r\n");
     res.append(regEntry(capabilities(identity), "ApplicationName", identity));
     res.append(regEntry(capabilities(identity), "ApplicationIcon", programIco+",0"));
     extensions.forEach(icon -> res.append(oneKind(identity, command, icon)));
+    previous.forEach((ext, p) -> res.append(regEntry(previousDefaults(identity), ext, p)));
     res.append(regEntry(registeredApplications, identity, "Software\\"+identity+"\\Capabilities"));
     return res.toString();
   }
@@ -153,6 +160,7 @@ public final class WindowsAssociations{
   private static String openCommand(Path command){ return "\""+command+"\" \"%1\""; }
   private static String capabilities(String identity){ return softwareRoot+"\\"+identity+"\\Capabilities"; }
   public static String fileAssociations(String identity){ return capabilities(identity)+"\\FileAssociations"; }
+  private static String previousDefaults(String identity){ return softwareRoot+"\\"+identity+"\\PreviousDefaults"; }
   public static String progId(String identity, String ext){ return identity+"."+ext.substring(1); }
   private static String regEntry(String key, String data){ return regEntry(key, "", data); }
   private static String regEntry(String key, String name, String data){
