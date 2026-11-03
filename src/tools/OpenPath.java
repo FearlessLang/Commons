@@ -7,8 +7,8 @@ import java.util.List;
 //Desktop.getDesktop().open(path.toFile())
 //has a bug connected with JPackage (shell poisoning)
 public final class OpenPath{
-  public static void open(Path path){
-    Fs.ofV(Fs.processBuilder(command(path))::start);
+  public static Process open(Path path){
+    return Fs.of(Fs.processBuilder(command(path))::start);
   }
   private static List<String> command(Path path){
     var p= path.toAbsolutePath().toString();
