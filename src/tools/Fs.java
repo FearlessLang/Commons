@@ -68,8 +68,20 @@ public final class Fs{
   public static Function<Path,RuntimeException> onSymbolicLink= p -> new IllegalArgumentException(
     "\""+p+"\" is a symbolic link; Fs does not read, write, copy or delete through symbolic links: replace it with the file or folder it points to.");
   private static Path noLink(Path p){
-    if (Files.isSymbolicLink(p) && !isJlinkLegalNotice(p)){ throw onSymbolicLink.apply(p); }
+    if (isLink(p)){ throw onSymbolicLink.apply(p); }
     return p;
+  }
+  public static boolean isLink(Path p){
+    try{ return isLink(p, Files.readAttributes(p, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS)); }
+    catch (IOException _){ return false; }
+  }
+  // On Windows a junction or a drive mounted in a folder is a reparse point (isOther) that resolves elsewhere, or nowhere.
+  // A OneDrive placeholder is a reparse point too, but it resolves to itself.
+  public static boolean isLink(Path p, BasicFileAttributes a){
+    if (a.isSymbolicLink()){ return !isJlinkLegalNotice(p); }
+    if (!isWindows() || !a.isOther()){ return false; }
+    try{ return !p.toRealPath().equals(p.toAbsolutePath().getParent().toRealPath().resolve(p.getFileName())); }
+    catch (IOException _){ return true; }
   }
   // Whitelisted link: on Linux and macOS jlink writes the legal notices of every module but java.base
   // as links legal/<module>/<name> -> ../java.base/<name>, so runtime images and app images hold them.
@@ -229,7 +241,7 @@ public final class Fs{
     catch (IOException e){ throw new UncheckedIOException(e); }
   }
   private static boolean noLink(Path p, BasicFileAttributes a){
-    if (a.isSymbolicLink() && !isJlinkLegalNotice(p)){ throw onSymbolicLink.apply(p); }
+    if (isLink(p, a)){ throw onSymbolicLink.apply(p); }
     return true;
   }
   public static void walkV(Path p, WalkVoid f){
