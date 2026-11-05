@@ -10,12 +10,15 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -33,11 +36,23 @@ public final class PathClassLoader extends ClassLoader{
   public static final String codeKey= "fearlessCode.";
   private final List<Path> jars;
   private PathClassLoader(List<Path> jars){ super(ClassLoader.getPlatformClassLoader()); this.jars= jars; }
-  /// A path as an argument that pathOf(String) reads back as the same path. On Windows it is the path
-  /// itself: a name is 16 bit units, and a Java String holds any of them. Elsewhere a name is bytes, and
+  /// A path as an argument that pathOf(String) reads back as the same path. On Windows a name is 16 bit
+  /// units, and a child process receives its arguments in the code page of the system: the argument is
+  /// "Base16:" then the units, little endian, two uppercase hex digits each. Elsewhere a name is bytes, and
   /// the argument is the file URI, which writes every byte that is not a plain ASCII character as an escape.
-  public static String argOf(Path p){ return Fs.isWindows() ? p.toString() : p.toUri().toString(); }
-  public static Path pathOf(String arg){ return Fs.isWindows() ? Path.of(arg) : Path.of(URI.create(arg)); }
+  public static String argOf(Path p){
+    if (!Fs.isWindows()){ return p.toUri().toString(); }
+    var units= ByteBuffer.allocate(2*p.toString().length()).order(ByteOrder.LITTLE_ENDIAN);
+    units.asCharBuffer().put(p.toString());
+    return "Base16:"+HexFormat.of().withUpperCase().formatHex(units.array());
+  }
+  public static Path pathOf(String arg){
+    if (!Fs.isWindows()){ return Path.of(URI.create(arg)); }
+    assert arg.startsWith("Base16:");
+    var units= HexFormat.of().parseHex(arg, "Base16:".length(), arg.length());
+    assert units.length % 2 == 0;
+    return Path.of(ByteBuffer.wrap(units).order(ByteOrder.LITTLE_ENDIAN).asCharBuffer().toString());
+  }
   public static List<String> codeArgs(List<Path> dirs){
     return IntStream.range(0, dirs.size()).mapToObj(i -> "-D"+codeKey+i+"="+argOf(dirs.get(i))).toList();
   }
