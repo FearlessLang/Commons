@@ -108,9 +108,8 @@ public final class LinuxAssociations{
   private static Stream<Path> desktops(){ return Xdg.appDirs().stream().flatMap(d -> listed(d, ".desktop").stream()); }
   private static Optional<Path> commandOf(String identity){
     return desktops().filter(f -> baseName(f).equals(identity)).findFirst()
-      .flatMap(f -> lines(f).stream().filter(l -> l.startsWith("Exec=")).findFirst())
-      .map(l -> l.substring("Exec=".length(), l.lastIndexOf(" %f")).replaceFirst("^env LC_ALL=C\\.UTF-8 ", "").replace("\\\\", "\\").replace("%%", "%"))
-      .map(s -> Path.of(s.substring(1, s.length()-1).replaceAll("\\\\(.)", "$1")));
+      .flatMap(f -> lines(f).stream().filter(l -> l.startsWith("TryExec=")).findFirst())
+      .map(l -> Path.of(l.substring("TryExec=".length()).replace("\\\\", "\\")));
   }
   private static List<Path> registrations(){
     return Stream.concat(desktops(), mimeDirs().stream().flatMap(d -> listed(d.resolve("packages"), ".xml").stream())).toList();
@@ -231,11 +230,12 @@ public final class LinuxAssociations{
 Type=Application
 Name=%s
 Exec=env LC_ALL=C.UTF-8 %s %%f
+TryExec=%s
 Icon=%s
 StartupWMClass=%s
 Terminal=false
 MimeType=%s;
-""".formatted(identity, execArg(command), identity, windowClass, Join.of(types, "", ";", ""));
+""".formatted(identity, execArg(command), command.replace("\\", "\\\\"), identity, windowClass, Join.of(types, "", ";", ""));
   }
   private static String windowEntry(String icon, String command, WindowIcon w){
     return """
