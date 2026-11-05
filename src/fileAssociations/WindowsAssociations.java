@@ -18,6 +18,8 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import tools.Fs;
@@ -31,6 +33,7 @@ public final class WindowsAssociations{
   private static final String fileExts= "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\";
   private static final String valueNotSet= "(value not set)";
   private static final int assocChanged= 0x08000000;
+  private static final Pattern opened= Pattern.compile("\"([^\"]*)\" \"%1\"");
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programIco, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
@@ -100,7 +103,7 @@ public final class WindowsAssociations{
   private static Optional<Path> commandOf(String identity){
     return regValues(hkcu(fileAssociations(identity))).values().stream().findFirst()
       .flatMap(progId -> regValue(hkcu(classes)+progId+"\\shell\\open\\command", ""))
-      .map(c -> Path.of(c.substring(1, c.indexOf('"', 1))));
+      .map(opened::matcher).filter(Matcher::matches).map(m -> Path.of(m.group(1)));
   }
   private static void eradicate(String identity, Predicate<String> belongsToFamily){
     regValues(hkcu(fileAssociations(identity))).forEach((ext,progId) -> dropClaim(ext, progId, belongsToFamily));
