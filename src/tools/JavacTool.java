@@ -127,7 +127,7 @@ public final class JavacTool{
   public static Optional<Path> managerFolderOf(Path launcher){
     for (var dir= launcher.getParent(); dir != null && dir.getFileName() != null; dir = dir.getParent()){
       var name= dir.getFileName().toString();
-      if (name.startsWith(managedName)){ return Optional.of(dir.resolveSibling(dataDirNameFor(name.substring(managedName.length())))); }
+      if (name.startsWith(managedName)){ return Optional.of(dir.resolveSibling(dataDirNameFor(name.substring(managedName.length()).replaceFirst("\\.app$", "")))); }
     }
     return Optional.empty();
   }
@@ -186,6 +186,11 @@ public final class JavacTool{
       "--icon", icon.toString(), "--module-path", modsDir.toString(), "--module", moduleMain,
       "--runtime-image", runtimeImage.toString(), "--java-options", Join.of(jvmOpts(consoleKey, versionId), "", " ", "")));
     if (Fs.isWindows()){ args.add("--win-console"); }
+    if (Fs.isMac()){
+      var fearless= tmp.resolve("fearless.properties");
+      Fs.writeUtf8(fearless, "extension=fearless\nmime-type=application/x-fearless\ndescription=Fearless project\nicon="+icon+"\n");
+      args.addAll(List.of("--file-associations", fearless.toString()));
+    }
     args.addAll(List.of("--add-launcher", wName+"="+wProps, "--app-content", appContent.toString()));
     Fs.runTool("jpackage", args);
   }

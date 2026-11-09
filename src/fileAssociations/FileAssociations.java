@@ -10,7 +10,7 @@ import java.util.function.Predicate;
 import tools.Fs;
 import utils.Bug;
 
-/** Reconciles which program a set of file extensions opens on Windows or Linux, for a
+/** Reconciles which program a set of file extensions opens on Windows, Linux or macOS, for a
  * whole family of otherwise-independent executables sharing one identity.
  *
  * Inputs to reconcile():
@@ -19,7 +19,7 @@ import utils.Bug;
  * - command: an absolute executable path.
  * - extensions: a list of (file extension, file icon) pairs. May be empty.
  * - windows: a list of (window class, name, target, icon) entries. May be empty.
- * [Linux only] Windows ignores it.
+ * [Linux only] Windows and macOS ignore it.
  * - programIco, programPng: one icon, independent of extensions.
  * - replaced: applied in step 6 to the command of every identity found in step 1 whose
  * command is not command, before that identity is deleted.
@@ -35,7 +35,18 @@ import utils.Bug;
  * A ProgId (Windows) belongs to identity X if it equals X followed by "." followed by
  * the extension with its leading dot removed. A .desktop file or MIME-package file
  * (Linux) belongs to the identity equal to its own base name, without a final "-"
- * followed by hex digits.
+ * followed by hex digits. A helper bundle (macOS), a folder (identity).app in the
+ * folder fearlessAssociations of ~/Library/Application Support, belongs to the identity
+ * equal to its own base name.
+ *
+ * [macOS only] A program opens types, not extensions, and only the Info.plist of a
+ * bundle declares a type. The bundle of command declares .fearless when it is built:
+ * the helper bundle declares no type for .fearless. The declared type of an extension is
+ * the first type Launch Services lists for the extension that a bundle outside
+ * fearlessAssociations declares. The helper bundle of an identity holds only regular
+ * files: Contents/Info.plist, Contents/MacOS/(identity), a script running the command
+ * of the identity with the arguments of the script, and in Contents/Resources one icns
+ * file for each extension and one for the program.
  *
  * [Linux only] A program opens MIME types, not extensions. The type of .fearless is
  * application/x-fearless; the type of every other extension is application/x-fearless-
@@ -56,7 +67,7 @@ import utils.Bug;
  * 1. Every existing on-system identity for which belongsToFamily holds is collected -
  * Windows: every RegisteredApplications value name, and every name of a
  * Software\*\Capabilities key; Linux: the identity of every .desktop file and of every
- * MIME-package file. If more than one distinct such identity is found, the
+ * MIME-package file; macOS: the identity of every helper bundle. If more than one distinct such identity is found, the
  * operation refuses, naming all of them, and changes nothing.
  *
  * 2. Windows: for every extension in extensions,
@@ -72,12 +83,14 @@ import utils.Bug;
  * belongsToFamily is the user's own choice: the operation refuses with userLocked
  * applied to a map from every such extension, in the order of extensions, to the programs
  * those entries name.
+ * macOS: no check.
  * Nothing is changed.
  *
  * 3. For every Fearless extension in extensions, its current claimants are determined -
  * Windows: the ProgId named by Classes\(extension) (default value), plus every ProgId
  * named under Classes\(extension)\OpenWithProgids; Linux: the openers of its type, and
- * every system type of the extension. For .fearless the [Added Associations] entries
+ * every system type of the extension; macOS: the bundle declaring the declared type
+ * of the extension. For .fearless the [Added Associations] entries
  * are not openers and there are no system types.
  * [Windows only] A registry value reg.exe itself reports as never having been set (the
  * literal text "(value not set)") is deleted on the spot and counted as no claimant at
@@ -90,6 +103,7 @@ import utils.Bug;
  * 4. Every location identity would need to write to, and every location an identity
  * marked for removal would need to be removed from, is confirmed writable - Windows: no
  * additional check, registry keys under HKCU are always removable by their owner;
+ * macOS: no additional check;
  * Linux: every such .desktop file, MIME-package file, and (when the whole file would be
  * deleted) its containing directory, and the icon folders mimetypes and apps. If any are not writable, the operation refuses,
  * naming all of them.
@@ -139,12 +153,20 @@ import utils.Bug;
  * StartupWMClass. GNOME and COSMIC show that icon for every window whose WM_CLASS is
  * the window class; they do not find an icon named by its theme name in
  * $XDG_DATA_HOME/icons.
+ * [macOS only] An extension with no declared type gets the type (identity with every
+ * "_" replaced by "-")(extension): the helper bundle exports that type and opens that
+ * type with the rank Owner. For an extension with a declared type, the helper bundle
+ * opens the declared type with the rank Alternate, so identity is one of the "Open
+ * With" programs of the extension. When a bundle outside /System declares that type
+ * and the helper bundle of identity did not open that type before this call, the
+ * desktop asks the user whether identity becomes the program opening that type.
  *
  * 8. One shell or database refresh is issued for the whole of steps 6-7 combined -
  * SHChangeNotify once (Windows) or update-mime-database/update-desktop-database once
- * (Linux) - never per extension, never per intermediate write, and also when step 5
+ * (Linux) or LSRegisterURL on the helper bundle of identity once (macOS) - never per extension, never per intermediate write, and also when step 5
  * applied, so a changed image at the same path shows too; none when step 5 applied
- * with extensions empty.
+ * with extensions empty. [macOS only] Each other identity deleted in step 6 is
+ * registered once with no type before its files are deleted.
  *
  * What is guaranteed, and what is not:
  *
@@ -185,16 +207,23 @@ public interface FileAssociations{
         ambiguous, userLocked, notOurs, notWritable, halfDone);
       return;
     }
+    if (Fs.isMac()){
+      MacAssociations.reconcile(identity, belongsToFamily, command, extensions, programPng, replaced,
+        ambiguous, notOurs, halfDone);
+      return;
+    }
     throw Bug.unreachable();
   }
   static List<String> identities(Predicate<String> belongsToFamily){
     if (Fs.isWindows()){ return WindowsAssociations.existingIdentities(belongsToFamily); }
     if (Fs.isLinux()){ return LinuxAssociations.existingIdentities(belongsToFamily); }
+    if (Fs.isMac()){ return MacAssociations.existingIdentities(belongsToFamily); }
     throw Bug.unreachable();
   }
   static void eradicateAll(Predicate<String> belongsToFamily, Function<String,RuntimeException> halfDone){
     if (Fs.isWindows()){ WindowsAssociations.eradicateAll(belongsToFamily); return; }
     if (Fs.isLinux()){ LinuxAssociations.eradicateAll(belongsToFamily, halfDone); return; }
+    if (Fs.isMac()){ MacAssociations.eradicateAll(belongsToFamily, halfDone); return; }
     throw Bug.unreachable();
   }
 }
