@@ -45,7 +45,7 @@ import utils.Bug;
  * the first type Launch Services lists for the extension that a bundle outside
  * fearlessAssociations declares. The helper bundle of an identity holds only regular
  * files: Contents/Info.plist, Contents/MacOS/(identity), a script running the command
- * of the identity with the arguments of the script, and in Contents/Resources one icns
+ * of the identity with the one argument FearlessCommandOpened, and in Contents/Resources one icns
  * file for each extension and one for the program.
  *
  * [Linux only] A program opens MIME types, not extensions. The type of .fearless is

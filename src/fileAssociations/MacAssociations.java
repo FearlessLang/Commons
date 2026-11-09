@@ -43,7 +43,7 @@ public final class MacAssociations{
   public static Function<String,List<Declared>> declared= MacAssociations::declaredOnDesktop;
   public static ToIntFunction<Path> register= MacAssociations::registerOnDesktop;
   public static BiConsumer<Path,String> offer= MacAssociations::offerOnDesktop;
-  private static final Pattern launcher= Pattern.compile("#!/bin/sh\nexec '(.*)' \"\\$@\"\n", Pattern.DOTALL);
+  private static final Pattern launcher= Pattern.compile("#!/bin/sh\nexec '(.*)' FearlessCommandOpened\n", Pattern.DOTALL);
   private static final int utf8= 0x08000100;
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programPng, Consumer<Path> replaced,
@@ -122,7 +122,7 @@ public final class MacAssociations{
     }
     res.put(contents.resolve("Resources").resolve("_program.icns"), icns(programPng));
     res.put(contents.resolve("Info.plist"), plist(identity, documents.toString(), exported.toString()).getBytes(UTF_8));
-    res.put(contents.resolve("MacOS").resolve(identity), ("#!/bin/sh\nexec '"+command.toString().replace("'", "'\\''")+"' \"$@\"\n").getBytes(UTF_8));
+    res.put(contents.resolve("MacOS").resolve(identity), ("#!/bin/sh\nexec '"+command.toString().replace("'", "'\\''")+"' FearlessCommandOpened\n").getBytes(UTF_8));
     return Collections.unmodifiableMap(res);
   }
   private static byte[] icns(Path png){
