@@ -12,7 +12,6 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -74,12 +73,8 @@ public final class WindowsAssociations{
     notifyShellOfChange();
   }
   static List<String> existingIdentities(Predicate<String> belongsToFamily){
-    var res= new LinkedHashSet<String>();
-    res.addAll(regValues(hkcu(registeredApplications)).keySet());
-    for (var name : listSubkeys(softwareRoot)){
-      if (keyExists(hkcu(capabilities(name)))){ res.add(name); }
-    }
-    return res.stream().filter(belongsToFamily).sorted().toList();
+    var declared= listSubkeys(softwareRoot).stream().filter(belongsToFamily).filter(n -> keyExists(hkcu(capabilities(n))));
+    return Stream.concat(regValues(hkcu(registeredApplications)).keySet().stream(), declared).filter(belongsToFamily).distinct().sorted().toList();
   }
   static void forgetChoices(Map<String,List<String>> choices, Function<String,RuntimeException> notWritable){
     forget(choices.keySet(), notWritable);
