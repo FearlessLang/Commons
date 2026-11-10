@@ -78,12 +78,7 @@ import utils.Bug;
  * ProgIds named there.
  * No program can remove or change this value: Settings, Apps, Default apps, Reset is
  * the only way to clear it, and Reset affects every app default on the machine.
- * Linux: for every system extension in extensions, a [Default Applications] entry of a
- * choice file naming its type and a program whose identity does not satisfy
- * belongsToFamily is the user's own choice: the operation refuses with userLocked
- * applied to a map from every such extension, in the order of extensions, to the programs
- * those entries name.
- * macOS: no check.
+ * Linux and macOS: no check.
  * Nothing is changed.
  *
  * 3. For every Fearless extension in extensions, its current claimants are determined -
@@ -204,7 +199,7 @@ public interface FileAssociations{
     }
     if (Fs.isLinux()){
       LinuxAssociations.reconcile(identity, belongsToFamily, command, extensions, windows, programPng, replaced,
-        ambiguous, userLocked, notOurs, notWritable, halfDone);
+        ambiguous, notOurs, notWritable, halfDone);
       return;
     }
     if (Fs.isMac()){
