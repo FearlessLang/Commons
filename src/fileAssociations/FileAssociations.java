@@ -59,8 +59,7 @@ import utils.Bug;
  * rebuilt after every change, also leaves out the types no other MIME-package file
  * there names. The system types of an extension other than .fearless are the types of
  * the globs matching it. The openers of a type are every .desktop file whose MimeType=
- * line names it, and every [Default Applications] and [Added Associations] entry of a
- * choice file naming it.
+ * line names it.
  *
  * Checks performed before any state is changed:
  *
@@ -78,15 +77,20 @@ import utils.Bug;
  * ProgIds named there.
  * No program can remove or change this value: Settings, Apps, Default apps, Reset is
  * the only way to clear it, and Reset affects every app default on the machine.
- * Linux and macOS: no check.
+ * Linux: a line of a choice file, in any section, mentions the family when its key is
+ * application/x-fearless or application/x-fearless- followed by any text, or when a
+ * .desktop file it names belongs to an identity for which belongsToFamily holds. If any
+ * choice file holds such a line, also when extensions is empty, the operation refuses
+ * with userLocked applied to a map from every such choice file, in the order the desktop
+ * consults them, to those lines.
+ * macOS: no check.
  * Nothing is changed.
  *
  * 3. For every Fearless extension in extensions, its current claimants are determined -
  * Windows: the ProgId named by Classes\(extension) (default value), plus every ProgId
  * named under Classes\(extension)\OpenWithProgids; Linux: the openers of its type, and
  * every system type of the extension; macOS: the bundle declaring the declared type
- * of the extension. For .fearless the [Added Associations] entries
- * are not openers and there are no system types.
+ * of the extension. For .fearless there are no system types.
  * [Windows only] A registry value reg.exe itself reports as never having been set (the
  * literal text "(value not set)") is deleted on the spot and counted as no claimant at
  * all, rather than as a claimant named "(value not set)".
@@ -199,7 +203,7 @@ public interface FileAssociations{
     }
     if (Fs.isLinux()){
       LinuxAssociations.reconcile(identity, belongsToFamily, command, extensions, windows, programPng, replaced,
-        ambiguous, notOurs, notWritable, halfDone);
+        ambiguous, userLocked, notOurs, notWritable, halfDone);
       return;
     }
     if (Fs.isMac()){
