@@ -9,10 +9,12 @@ import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -37,21 +39,24 @@ public final class WindowsAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programIco, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
-      Function<Map<String,List<String>>,RuntimeException> userLocked,
+      Function<Map<String,List<String>>,RuntimeException> chosenByHand,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
+      Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
     if (existing.size() > 1){ throw ambiguous.apply(Join.of(existing, "", "\n", "")); }
     var wanted= extensions.stream().map(Icon::extension).toList();
-    var locked= new LinkedHashMap<String,List<String>>();
-    userChoices().forEach((e,ps) -> locked.put(e, ps.stream().filter(p -> wanted.contains(e) || belongsToFamily.test(owner(p, e))).toList()));
-    locked.values().removeIf(List::isEmpty);
-    if (!locked.isEmpty()){ throw userLocked.apply(Collections.unmodifiableMap(locked)); }
+    var declared= existing.stream().flatMap(s -> regValues(hkcu(fileAssociations(s))).keySet().stream()).toList();
+    var chosen= new LinkedHashMap<String,List<String>>();
+    userChoices().forEach((e,ps) -> chosen.put(e, ps.stream().filter(p -> !Icon.system(e) || declared.contains(e) || belongsToFamily.test(owner(p, e))).toList()));
+    chosen.values().removeIf(List::isEmpty);
+    if (!chosen.isEmpty()){ throw chosenByHand.apply(Collections.unmodifiableMap(chosen)); }
     var foreign= new LinkedHashMap<String,List<String>>();
-    extensions.stream().map(Icon::extension).filter(e -> !Icon.system(e)).forEach(e -> foreign.put(e, held(e, belongsToFamily)));
+    wanted.stream().filter(e -> !Icon.system(e)).forEach(e -> foreign.put(e, held(e, belongsToFamily)));
     foreign.values().removeIf(List::isEmpty);
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
     if (alreadyMatches(existing, identity, command, extensions, programIco)){ if (!extensions.isEmpty()){ notifyShellOfChange(); } return; }
+    forget(wanted, notWritable);
     existing.forEach(s -> commandOf(s).filter(c -> !c.equals(command)).ifPresent(replaced));
     existing.forEach(s -> eradicate(s, belongsToFamily));
     if (!extensions.isEmpty()){
@@ -77,9 +82,12 @@ public final class WindowsAssociations{
     return res.stream().filter(belongsToFamily).sorted().toList();
   }
   static void forgetChoices(Map<String,List<String>> choices, Function<String,RuntimeException> notWritable){
-    choices.keySet().stream().flatMap(e -> Stream.of(userChoiceKey(e), hkcu(fileExts+e+"\\UserChoiceLatest"))).filter(WindowsAssociations::keyExists)
-      .forEach(k -> Shell.req(List.of("reg", "delete", k, "/f"), notWritable));
+    forget(choices.keySet(), notWritable);
     notifyShellOfChange();
+  }
+  private static void forget(Collection<String> extensions, Function<String,RuntimeException> notWritable){
+    extensions.stream().flatMap(e -> Stream.of(userChoiceKey(e), hkcu(fileExts+e+"\\UserChoiceLatest"))).filter(WindowsAssociations::keyExists)
+      .forEach(k -> Shell.req(List.of("reg", "delete", k, "/f"), notWritable));
   }
   public static String userChoiceKey(String ext){ return hkcu(fileExts+ext+"\\UserChoice"); }
   private static Map<String,List<String>> userChoices(){
@@ -90,7 +98,7 @@ public final class WindowsAssociations{
       if (line.startsWith("HKEY_")){ key = line; continue; }
       var choice= key.matches(Pattern.quote(fileExts)+"[^\\\\]+\\\\(UserChoice|UserChoiceLatest\\\\ProgId)");
       if (!choice || !line.contains("REG_")){ continue; }
-      res.merge(key.substring(fileExts.length()).split("\\\\")[0], List.of(regQueried(line)), (a,b) -> Stream.concat(a.stream(), b.stream()).distinct().toList());
+      res.merge(key.substring(fileExts.length()).split("\\\\")[0].toLowerCase(Locale.ROOT), List.of(regQueried(line)), (a,b) -> Stream.concat(a.stream(), b.stream()).distinct().toList());
     }
     return Collections.unmodifiableMap(res);
   }

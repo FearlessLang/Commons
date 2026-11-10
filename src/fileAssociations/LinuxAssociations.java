@@ -57,7 +57,7 @@ public final class LinuxAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, List<WindowIcon> windows, Path programPng, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
-      Function<Map<String,List<String>>,RuntimeException> userLocked,
+      Function<Map<String,List<String>>,RuntimeException> chosenByHand,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
@@ -66,7 +66,7 @@ public final class LinuxAssociations{
     var broken= new LinkedHashMap<String,List<String>>();
     Xdg.choiceFiles().forEach(f -> broken.put(f.toString(), lines(f).stream().filter(l -> mentions(l, belongsToFamily)).map(String::strip).toList()));
     broken.values().removeIf(List::isEmpty);
-    if (!broken.isEmpty()){ throw userLocked.apply(Collections.unmodifiableMap(broken)); }
+    if (!broken.isEmpty()){ throw chosenByHand.apply(Collections.unmodifiableMap(broken)); }
     var globs= globs(belongsToFamily);
     var openers= openers().stream().filter(o -> !belongsToFamily.test(o.program())).toList();
     var foreign= new LinkedHashMap<String,List<String>>();
@@ -97,7 +97,7 @@ public final class LinuxAssociations{
   static void forgetChoices(Map<String,List<String>> choices, Function<String,RuntimeException> notWritable){
     var refused= choices.keySet().stream().filter(f -> !Files.isWritable(Path.of(f))).toList();
     if (!refused.isEmpty()){ throw notWritable.apply(Join.of(refused, "", "\n", "")); }
-    choices.forEach((f,ls) -> Fs.writeUtf8(Path.of(f), Join.of(lines(Path.of(f)).stream().filter(l -> !ls.contains(l.strip())), "", "\n", "\n", "")));
+    choices.forEach((f,ls) -> Fs.ofV(() -> Files.writeString(Path.of(f), Join.of(lines(Path.of(f)).stream().filter(l -> !ls.contains(l.strip())), "", "\n", "\n", ""))));
   }
   private static List<String> held(String ext, List<Glob> globs, List<Opener> openers){
     var programs= openers.stream().filter(o -> o.type().equals(typeOf(ext))).map(Opener::program);
@@ -155,7 +155,7 @@ public final class LinuxAssociations{
   }
   private static boolean mentions(String line, Predicate<String> belongsToFamily){
     var eq= line.indexOf('=');
-    if (eq<0 || line.startsWith("#")){ return false; }
+    if (eq<0 || line.strip().startsWith("#")){ return false; }
     var familyType= line.substring(0, eq).strip().matches("application/x-fearless(-.*)?");
     return familyType || split(line.substring(eq + 1)).anyMatch(n -> belongsToFamily.test(n.replaceFirst("\\.desktop$", "").replaceFirst("-[0-9a-f]+$", "")));
   }
