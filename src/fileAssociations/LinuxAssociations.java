@@ -54,7 +54,7 @@ public final class LinuxAssociations{
     }
   }
   record Opener(String program, String type){}
-  static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
+  static void reconcile(String identity, String name, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, List<WindowIcon> windows, Path programPng, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
       Function<Map<String,List<String>>,RuntimeException> chosenByHand,
@@ -79,7 +79,7 @@ public final class LinuxAssociations{
       : Stream.of(home("applications"), home("mime/packages"), iconDir("mimetypes"), iconDir("apps")).filter(d -> !writableForCreation(d));
     var refused= Stream.concat(unwritable, targets).map(Path::toString).toList();
     if (!refused.isEmpty()){ throw notWritable.apply(Join.of(refused, "", "\n", "")); }
-    var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, command, extensions, windows, programPng, globs);
+    var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, name, command, extensions, windows, programPng, globs);
     if (alreadyMatches(existing, identity, wanted)){ if (!wanted.isEmpty()){ rebuild(List.of(), halfDone); } return; }
     existing.forEach(s -> commandOf(s).filter(c -> !c.equals(command)).ifPresent(replaced));
     var gone= owned(Push.of(existing, identity)::contains);
@@ -162,7 +162,7 @@ public final class LinuxAssociations{
   private static boolean writableForCreation(Path dir){
     return Stream.iterate(dir, Objects::nonNull, Path::getParent).filter(Files::exists).findFirst().filter(Files::isWritable).isPresent();
   }
-  private static Map<Path,byte[]> wanted(String identity, Path command, List<Icon> extensions, List<WindowIcon> windows, Path programPng, List<Glob> globs){
+  private static Map<Path,byte[]> wanted(String identity, String name, Path command, List<Icon> extensions, List<WindowIcon> windows, Path programPng, List<Glob> globs){
     var res= new LinkedHashMap<Path,byte[]>();
     var body= new StringBuilder();
     for (var icon : extensions){
@@ -173,7 +173,7 @@ public final class LinuxAssociations{
       res.put(home("applications").resolve(identity+"-"+hash(utf8(w.windowClass()))+".desktop"), utf8(entry));
     }
     var types= extensions.stream().map(i -> typeOf(i.extension())).toList();
-    res.put(home("applications").resolve(identity+".desktop"), utf8(desktopEntry(identity, command.toString(), windowClass(), types)));
+    res.put(home("applications").resolve(identity+".desktop"), utf8(desktopEntry(identity, name, command.toString(), windowClass(), types)));
     res.put(home("mime/packages").resolve(identity+".xml"), utf8("""
 <?xml version="1.0" encoding="UTF-8"?>
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
@@ -217,7 +217,7 @@ public final class LinuxAssociations{
       +"<glob pattern=\"*%s\" weight=\"100\"/>%s<icon name=\"%s\"/></mime-type>\n")
       .formatted(typeOf(ext), identity, ext, subclass, icon);
   }
-  public static String desktopEntry(String identity, String command, String windowClass, List<String> types){
+  public static String desktopEntry(String identity, String name, String command, String windowClass, List<String> types){
     return """
 [Desktop Entry]
 Type=Application
@@ -228,7 +228,7 @@ Icon=%s
 StartupWMClass=%s
 Terminal=false
 MimeType=%s;
-""".formatted(identity, execArg(command), command.replace("\\", "\\\\"), identity, windowClass, Join.of(types, "", ";", ""));
+""".formatted(name, execArg(command), command.replace("\\", "\\\\"), identity, windowClass, Join.of(types, "", ";", ""));
   }
   private static String windowEntry(String icon, String command, WindowIcon w){
     return """

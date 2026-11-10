@@ -15,6 +15,7 @@ import utils.Bug;
  *
  * Inputs to reconcile():
  * - identity: a string, supplied by the caller.
+ * - name: the application name the desktop shows for identity.
  * - belongsToFamily: a predicate over strings, supplied by the caller.
  * - command: an absolute executable path.
  * - extensions: a list of (file extension, file icon) pairs. May be empty.
@@ -146,7 +147,7 @@ import utils.Bug;
  * %f on Linux) as the open command. [Windows only] The default value of Classes\(extension)
  * found before the identity takes the extension is kept in Software\(identity)\PreviousDefaults.
  * command (Windows) or programPng (Linux and macOS) is recorded as identity's own
- * application icon, independent of the per-extension file icons. If extensions is
+ * application icon, and name as identity's own application name, independent of the per-extension file icons. If extensions is
  * empty, nothing is created: identity is left entirely unregistered.
  * [Linux only] The MIME-package file defines the type of every extension, with the
  * glob "*" followed by the extension, weight 100, and one sub-class-of for each of its
@@ -208,7 +209,7 @@ import utils.Bug;
  * whole operation, or none at all if no identity matched.
  */
 public interface FileAssociations{
-  static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
+  static void reconcile(String identity, String name, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, List<WindowIcon> windows, Path programPng, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
       Function<Map<String,List<String>>,RuntimeException> chosenByHand,
@@ -216,17 +217,17 @@ public interface FileAssociations{
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
     if (Fs.isWindows()){
-      WindowsAssociations.reconcile(identity, belongsToFamily, command, extensions, replaced,
+      WindowsAssociations.reconcile(identity, name, belongsToFamily, command, extensions, replaced,
         ambiguous, chosenByHand, notOurs, notWritable, halfDone);
       return;
     }
     if (Fs.isLinux()){
-      LinuxAssociations.reconcile(identity, belongsToFamily, command, extensions, windows, programPng, replaced,
+      LinuxAssociations.reconcile(identity, name, belongsToFamily, command, extensions, windows, programPng, replaced,
         ambiguous, chosenByHand, notOurs, notWritable, halfDone);
       return;
     }
     if (Fs.isMac()){
-      MacAssociations.reconcile(identity, belongsToFamily, command, extensions, programPng, replaced,
+      MacAssociations.reconcile(identity, name, belongsToFamily, command, extensions, programPng, replaced,
         ambiguous, notOurs, halfDone);
       return;
     }
