@@ -69,14 +69,13 @@ import utils.Bug;
  * MIME-package file; macOS: the identity of every helper bundle. If more than one distinct such identity is found, the
  * operation refuses, naming all of them, and changes nothing.
  *
- * 2. Windows: for every extension in extensions,
+ * 2. Windows: the ProgId of every
  * HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\(extension)\UserChoice
- * and UserChoiceLatest are read. If a value is present there for any of them - naming
- * any ProgId at all, including one belonging to identity - the operation refuses with
- * userLocked applied to a map from every such extension, in the order of extensions, to the
- * ProgIds named there.
- * No program can remove or change this value: Settings, Apps, Default apps, Reset is
- * the only way to clear it, and Reset affects every app default on the machine.
+ * and UserChoiceLatest is read, for every extension, with one reg query. A ProgId named there
+ * counts when its extension is in extensions - any ProgId at all, including one belonging
+ * to identity - or when its owner satisfies belongsToFamily. If any ProgId counts, the
+ * operation refuses with userLocked applied to a map from every such extension, in the
+ * order reg lists them, to the ProgIds that count.
  * Linux: a line of a choice file, in any section, mentions the family when its key is
  * application/x-fearless or application/x-fearless- followed by any text, or when a
  * .desktop file it names belongs to an identity for which belongsToFamily holds. If any
@@ -178,6 +177,14 @@ import utils.Bug;
  * - A successful return means identity declares exactly, and only, the extensions in
  * extensions - or, when extensions is empty, that identity is not registered at all.
  *
+ * forgetChoices(choices, notWritable) removes the choices of a map given to userLocked,
+ * and nothing else - Windows: the keys UserChoice and UserChoiceLatest of every extension
+ * of choices, then one SHChangeNotify; Linux: every line of choices from its choice file,
+ * the other lines of that file kept in their order. [Linux only] If any choice file is not
+ * writable, it refuses with notWritable, naming all of them, and changes nothing.
+ * [Windows only] A reg delete that fails ends it with notWritable applied to the
+ * command and its output.
+ *
  * identities(belongsToFamily) is the list of step 1: every existing on-system identity
  * for which belongsToFamily holds, sorted. It changes nothing.
  *
@@ -217,6 +224,11 @@ public interface FileAssociations{
     if (Fs.isWindows()){ return WindowsAssociations.existingIdentities(belongsToFamily); }
     if (Fs.isLinux()){ return LinuxAssociations.existingIdentities(belongsToFamily); }
     if (Fs.isMac()){ return MacAssociations.existingIdentities(belongsToFamily); }
+    throw Bug.unreachable();
+  }
+  static void forgetChoices(Map<String,List<String>> choices, Function<String,RuntimeException> notWritable){
+    if (Fs.isWindows()){ WindowsAssociations.forgetChoices(choices, notWritable); return; }
+    if (Fs.isLinux()){ LinuxAssociations.forgetChoices(choices, notWritable); return; }
     throw Bug.unreachable();
   }
   static void eradicateAll(Predicate<String> belongsToFamily, Function<String,RuntimeException> halfDone){

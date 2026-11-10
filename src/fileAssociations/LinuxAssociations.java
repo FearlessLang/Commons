@@ -94,6 +94,11 @@ public final class LinuxAssociations{
     gone.forEach(f -> Fs.ofV(() -> Files.delete(f)));
     if (!existing.isEmpty()){ rebuild(gone, halfDone); }
   }
+  static void forgetChoices(Map<String,List<String>> choices, Function<String,RuntimeException> notWritable){
+    var refused= choices.keySet().stream().filter(f -> !Files.isWritable(Path.of(f))).toList();
+    if (!refused.isEmpty()){ throw notWritable.apply(Join.of(refused, "", "\n", "")); }
+    choices.forEach((f,ls) -> Fs.writeUtf8(Path.of(f), Join.of(lines(Path.of(f)).stream().filter(l -> !ls.contains(l.strip())), "", "\n", "\n", "")));
+  }
   private static List<String> held(String ext, List<Glob> globs, List<Opener> openers){
     var programs= openers.stream().filter(o -> o.type().equals(typeOf(ext))).map(Opener::program);
     return Stream.concat(programs, globTypes(ext, globs).stream()).distinct().toList();
