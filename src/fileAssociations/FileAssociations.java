@@ -20,7 +20,8 @@ import utils.Bug;
  * - extensions: a list of (file extension, file icon) pairs. May be empty.
  * - windows: a list of (window class, name, target, icon) entries. May be empty.
  * [Linux only] Windows and macOS ignore it.
- * - programIco, programPng: one icon, independent of extensions.
+ * - programPng: one icon, independent of extensions.
+ * [Linux and macOS only] Windows uses the icon inside command.
  * - replaced: applied in step 6 to the command of every identity found in step 1 whose
  * command is not command, before that identity is deleted.
  * - ambiguous, chosenByHand, notOurs, notWritable, halfDone: one function per kind of
@@ -144,7 +145,7 @@ import utils.Bug;
  * followed by the operating system's own file-argument placeholder ("%1" on Windows,
  * %f on Linux) as the open command. [Windows only] The default value of Classes\(extension)
  * found before the identity takes the extension is kept in Software\(identity)\PreviousDefaults.
- * programIco/programPng is recorded as identity's own
+ * command (Windows) or programPng (Linux and macOS) is recorded as identity's own
  * application icon, independent of the per-extension file icons. If extensions is
  * empty, nothing is created: identity is left entirely unregistered.
  * [Linux only] The MIME-package file defines the type of every extension, with the
@@ -208,14 +209,14 @@ import utils.Bug;
  */
 public interface FileAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
-      List<Icon> extensions, List<WindowIcon> windows, Path programIco, Path programPng, Consumer<Path> replaced,
+      List<Icon> extensions, List<WindowIcon> windows, Path programPng, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
       Function<Map<String,List<String>>,RuntimeException> chosenByHand,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
     if (Fs.isWindows()){
-      WindowsAssociations.reconcile(identity, belongsToFamily, command, extensions, programIco, replaced,
+      WindowsAssociations.reconcile(identity, belongsToFamily, command, extensions, replaced,
         ambiguous, chosenByHand, notOurs, notWritable, halfDone);
       return;
     }
