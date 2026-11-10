@@ -127,7 +127,7 @@ public final class JavacTool{
   public static Optional<Path> managerFolderOf(Path launcher){
     for (var dir= launcher.getParent(); dir != null && dir.getFileName() != null; dir = dir.getParent()){
       var name= dir.getFileName().toString();
-      if (name.startsWith(managedName)){ return Optional.of(dir.resolveSibling(dataDirNameFor(name.substring(managedName.length())))); }
+      if (name.startsWith(managedName)){ return Optional.of(dir.resolveSibling(dataDirNameFor(name.substring(managedName.length()).replaceFirst("\\.app$", "")))); }
     }
     return Optional.empty();
   }
@@ -181,11 +181,16 @@ public final class JavacTool{
     var icon= iconForCurrentOs(packaging);
     var wProps= tmp.resolve(wName+".properties");
     var winConsole= Fs.isWindows() ? "win-console=false\n" : "";
-    Fs.writeUtf8(wProps, "module="+moduleMain+"\njava-options="+Join.of(jvmOpts(winKey, versionId), "", " ", "")+"\n"+winConsole+"icon="+icon.toString().replace("\\", "\\\\")+"\n");
+    Fs.writeUtf8(wProps, "module="+moduleMain+"\njava-options="+Join.of(jvmOpts(winKey, versionId, appName), "", " ", "")+"\n"+winConsole+"icon="+icon.toString().replace("\\", "\\\\")+"\n");
     var args= new ArrayList<String>(List.of("--type", "app-image", "--dest", dest.toString(), "--name", appName,
       "--icon", icon.toString(), "--module-path", modsDir.toString(), "--module", moduleMain,
-      "--runtime-image", runtimeImage.toString(), "--java-options", Join.of(jvmOpts(consoleKey, versionId), "", " ", "")));
+      "--runtime-image", runtimeImage.toString(), "--java-options", Join.of(jvmOpts(consoleKey, versionId, appName), "", " ", "")));
     if (Fs.isWindows()){ args.add("--win-console"); }
+    if (Fs.isMac()){
+      var fearless= tmp.resolve("fearless.properties");
+      Fs.writeUtf8(fearless, "extension=fearless\nmime-type=application/x-fearless\ndescription=Fearless project\nicon="+icon+"\n");
+      args.addAll(List.of("--file-associations", fearless.toString()));
+    }
     args.addAll(List.of("--add-launcher", wName+"="+wProps, "--app-content", appContent.toString()));
     Fs.runTool("jpackage", args);
   }
@@ -202,8 +207,8 @@ public final class JavacTool{
     if (Fs.isMac()){ return mac; }
     return linux;
   }
-  private static List<String> jvmOpts(String launcherValue, String versionId){
-    return Push.<String>of(javaOptions, List.of("-D"+launcherKey+"="+launcherValue, "-D"+versionIdKey+"="+versionId));
+  private static List<String> jvmOpts(String launcherValue, String versionId, String appName){
+    return Push.<String>of(javaOptions, List.of("-D"+launcherKey+"="+launcherValue, "-D"+versionIdKey+"="+versionId, "-Dapple.awt.application.name="+appName));
   }
   public static void javac(List<Path> srcs, Path classesDir, Path modsDir){
     javac(srcs, classesDir, modsDir, List.of());
