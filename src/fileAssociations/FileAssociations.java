@@ -74,8 +74,10 @@ import utils.Bug;
  * and UserChoiceLatest is read, for every extension, with one reg query. The extension of a
  * UserChoice is the name of its FileExts key in lower case: the registry ignores the case
  * of a key name. A ProgId named there
- * counts when its extension is in extensions - any ProgId at all, including one belonging
- * to identity - or when its owner satisfies belongsToFamily. If any ProgId counts, the
+ * counts when its extension is a Fearless extension or an extension an identity of step 1
+ * declares - any ProgId at all, including one belonging
+ * to identity - or when its owner satisfies belongsToFamily. If any ProgId counts, also
+ * when extensions is empty, the
  * operation refuses with chosenByHand applied to a map from every such extension, in the
  * order reg lists them, to the ProgIds that count.
  * Linux: a line of a choice file, in any section, that is not a comment (its first
@@ -118,7 +120,12 @@ import utils.Bug;
  * every extension, the same windows, and that no icon file of identity is left beyond
  * those of extensions and windows.
  *
- * 6. Otherwise, replaced is applied to the command of every identity found in step 1
+ * 6. Otherwise, [Windows only] the keys UserChoice and UserChoiceLatest of every extension
+ * in extensions are deleted first: a UserChoice left in place would keep opening the
+ * extension with its own program. A reg delete that fails ends the operation with
+ * notWritable applied to the command and its output; the keys deleted before that one
+ * stay deleted, and nothing else has been touched.
+ * Then replaced is applied to the command of every identity found in step 1
  * whose command is not command, then every identity found in step 1 is deleted in full - every registry key
  * or file it created, for every extension it declared, including extensions absent
  * from the current extensions list. [Windows only] For each such extension, a
@@ -209,7 +216,7 @@ public interface FileAssociations{
       Function<String,RuntimeException> halfDone){
     if (Fs.isWindows()){
       WindowsAssociations.reconcile(identity, belongsToFamily, command, extensions, programIco, replaced,
-        ambiguous, chosenByHand, notOurs, halfDone);
+        ambiguous, chosenByHand, notOurs, notWritable, halfDone);
       return;
     }
     if (Fs.isLinux()){

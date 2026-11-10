@@ -9,6 +9,7 @@ import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -40,12 +41,14 @@ public final class WindowsAssociations{
       Function<String,RuntimeException> ambiguous,
       Function<Map<String,List<String>>,RuntimeException> chosenByHand,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
+      Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
     if (existing.size() > 1){ throw ambiguous.apply(Join.of(existing, "", "\n", "")); }
     var wanted= extensions.stream().map(Icon::extension).toList();
+    var declared= existing.stream().flatMap(s -> regValues(hkcu(fileAssociations(s))).keySet().stream()).toList();
     var chosen= new LinkedHashMap<String,List<String>>();
-    userChoices().forEach((e,ps) -> chosen.put(e, ps.stream().filter(p -> wanted.contains(e) || belongsToFamily.test(owner(p, e))).toList()));
+    userChoices().forEach((e,ps) -> chosen.put(e, ps.stream().filter(p -> !Icon.system(e) || declared.contains(e) || belongsToFamily.test(owner(p, e))).toList()));
     chosen.values().removeIf(List::isEmpty);
     if (!chosen.isEmpty()){ throw chosenByHand.apply(Collections.unmodifiableMap(chosen)); }
     var foreign= new LinkedHashMap<String,List<String>>();
@@ -53,6 +56,7 @@ public final class WindowsAssociations{
     foreign.values().removeIf(List::isEmpty);
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
     if (alreadyMatches(existing, identity, command, extensions, programIco)){ if (!extensions.isEmpty()){ notifyShellOfChange(); } return; }
+    forget(wanted, notWritable);
     existing.forEach(s -> commandOf(s).filter(c -> !c.equals(command)).ifPresent(replaced));
     existing.forEach(s -> eradicate(s, belongsToFamily));
     if (!extensions.isEmpty()){
@@ -78,9 +82,12 @@ public final class WindowsAssociations{
     return res.stream().filter(belongsToFamily).sorted().toList();
   }
   static void forgetChoices(Map<String,List<String>> choices, Function<String,RuntimeException> notWritable){
-    choices.keySet().stream().flatMap(e -> Stream.of(userChoiceKey(e), hkcu(fileExts+e+"\\UserChoiceLatest"))).filter(WindowsAssociations::keyExists)
-      .forEach(k -> Shell.req(List.of("reg", "delete", k, "/f"), notWritable));
+    forget(choices.keySet(), notWritable);
     notifyShellOfChange();
+  }
+  private static void forget(Collection<String> extensions, Function<String,RuntimeException> notWritable){
+    extensions.stream().flatMap(e -> Stream.of(userChoiceKey(e), hkcu(fileExts+e+"\\UserChoiceLatest"))).filter(WindowsAssociations::keyExists)
+      .forEach(k -> Shell.req(List.of("reg", "delete", k, "/f"), notWritable));
   }
   public static String userChoiceKey(String ext){ return hkcu(fileExts+ext+"\\UserChoice"); }
   private static Map<String,List<String>> userChoices(){
