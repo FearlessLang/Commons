@@ -49,8 +49,10 @@ public record ReadZip(
   }
   private Map<String,byte[]> cleanUp(LinkedHashMap<String,byte[]> map){
     for (var e : map.entrySet()){
-      var emptyDir= e.getValue()==null && map.keySet().stream().noneMatch(k -> k.startsWith(e.getKey()+"/"));
-      if (emptyDir){ throw emptyDirErr.apply(e.getKey()); }
+      var k= e.getKey();
+      var inDotDir= ("/"+k.substring(0, k.lastIndexOf('/')+1)).contains("/.");
+      var emptyDir= e.getValue()==null && !inDotDir && map.keySet().stream().noneMatch(o -> o.startsWith(k+"/"));
+      if (emptyDir){ throw emptyDirErr.apply(k); }
     }
     map.values().removeIf(v -> v == null);
     return Collections.unmodifiableMap(map);//to keep the order instead of Map.copyOf undocumented behaviour exactly here
