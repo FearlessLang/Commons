@@ -57,7 +57,7 @@ public final class LinuxAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, List<WindowIcon> windows, Path programPng, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
-      Function<Map<String,List<String>>,RuntimeException> userLocked,
+      Function<Map<String,List<String>>,RuntimeException> chosenByHand,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
@@ -66,7 +66,7 @@ public final class LinuxAssociations{
     var broken= new LinkedHashMap<String,List<String>>();
     Xdg.choiceFiles().forEach(f -> broken.put(f.toString(), lines(f).stream().filter(l -> mentions(l, belongsToFamily)).map(String::strip).toList()));
     broken.values().removeIf(List::isEmpty);
-    if (!broken.isEmpty()){ throw userLocked.apply(Collections.unmodifiableMap(broken)); }
+    if (!broken.isEmpty()){ throw chosenByHand.apply(Collections.unmodifiableMap(broken)); }
     var globs= globs(belongsToFamily);
     var openers= openers().stream().filter(o -> !belongsToFamily.test(o.program())).toList();
     var foreign= new LinkedHashMap<String,List<String>>();

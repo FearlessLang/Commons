@@ -23,7 +23,7 @@ import utils.Bug;
  * - programIco, programPng: one icon, independent of extensions.
  * - replaced: applied in step 6 to the command of every identity found in step 1 whose
  * command is not command, before that identity is deleted.
- * - ambiguous, userLocked, notOurs, notWritable, halfDone: one function per kind of
+ * - ambiguous, chosenByHand, notOurs, notWritable, halfDone: one function per kind of
  * failure, each turning what was found into the exception reconcile throws.
  *
  * Each extension is of one of two kinds, given by its text (Icon.system): .fearless,
@@ -76,14 +76,14 @@ import utils.Bug;
  * of a key name. A ProgId named there
  * counts when its extension is in extensions - any ProgId at all, including one belonging
  * to identity - or when its owner satisfies belongsToFamily. If any ProgId counts, the
- * operation refuses with userLocked applied to a map from every such extension, in the
+ * operation refuses with chosenByHand applied to a map from every such extension, in the
  * order reg lists them, to the ProgIds that count.
  * Linux: a line of a choice file, in any section, that is not a comment (its first
  * character after any leading white space is not "#") mentions the family when its key is
  * application/x-fearless or application/x-fearless- followed by any text, or when a
  * .desktop file it names belongs to an identity for which belongsToFamily holds. If any
  * choice file holds such a line, also when extensions is empty, the operation refuses
- * with userLocked applied to a map from every such choice file, in the order the desktop
+ * with chosenByHand applied to a map from every such choice file, in the order the desktop
  * consults them, to those lines.
  * macOS: no check.
  * Nothing is changed.
@@ -180,7 +180,7 @@ import utils.Bug;
  * - A successful return means identity declares exactly, and only, the extensions in
  * extensions - or, when extensions is empty, that identity is not registered at all.
  *
- * forgetChoices(choices, notWritable) removes the choices of a map given to userLocked,
+ * forgetChoices(choices, notWritable) removes the choices of a map given to chosenByHand,
  * and nothing else - Windows: the keys UserChoice and UserChoiceLatest of every extension
  * of choices, then one SHChangeNotify; Linux: every line of choices from its choice file,
  * the other lines of that file kept in their order. [Linux only] A choice file that is a
@@ -203,18 +203,18 @@ public interface FileAssociations{
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, List<WindowIcon> windows, Path programIco, Path programPng, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
-      Function<Map<String,List<String>>,RuntimeException> userLocked,
+      Function<Map<String,List<String>>,RuntimeException> chosenByHand,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
     if (Fs.isWindows()){
       WindowsAssociations.reconcile(identity, belongsToFamily, command, extensions, programIco, replaced,
-        ambiguous, userLocked, notOurs, halfDone);
+        ambiguous, chosenByHand, notOurs, halfDone);
       return;
     }
     if (Fs.isLinux()){
       LinuxAssociations.reconcile(identity, belongsToFamily, command, extensions, windows, programPng, replaced,
-        ambiguous, userLocked, notOurs, notWritable, halfDone);
+        ambiguous, chosenByHand, notOurs, notWritable, halfDone);
       return;
     }
     if (Fs.isMac()){
