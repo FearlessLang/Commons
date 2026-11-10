@@ -62,7 +62,7 @@ public final class WindowsAssociations{
       extensions.forEach(icon -> forgetOpenWithHistory(icon.extension(), belongsToFamily));
       var previous= new LinkedHashMap<String,String>();
       extensions.forEach(icon -> regValue(hkcu(classes)+icon.extension(), "").ifPresent(p -> previous.put(icon.extension(), p)));
-      Shell.req(importReg(regFile(identity, command, extensions, programIco, previous)), halfDone);
+      importReg(regFile(identity, command, extensions, programIco, previous), halfDone);
     }
     notifyShellOfChange();
   }
@@ -227,11 +227,11 @@ public final class WindowsAssociations{
     return end<0 ? "" : line.substring(end).strip();
   }
   private static String hkcu(String key){ return "HKCU"+key.substring("HKEY_CURRENT_USER".length()); }
-  private static List<String> importReg(String content){
+  private static void importReg(String content, Function<String,RuntimeException> halfDone){
     var file= Fs.of(() -> Files.createTempFile("association", ".reg"));
     Fs.ofV(() -> Files.write(file, ("\uFEFF"+content).getBytes(StandardCharsets.UTF_16LE)));
-    file.toFile().deleteOnExit();
-    return List.of("reg", "import", file.toString());
+    try{ Shell.req(List.of("reg", "import", file.toString()), halfDone); }
+    finally{ Fs.ofV(() -> Fs.delete(file)); }
   }
   @SuppressWarnings("restricted")
   private static void notifyShellOfChange(){
