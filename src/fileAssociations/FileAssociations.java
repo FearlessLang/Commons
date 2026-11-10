@@ -71,12 +71,15 @@ import utils.Bug;
  *
  * 2. Windows: the ProgId of every
  * HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\(extension)\UserChoice
- * and UserChoiceLatest is read, for every extension, with one reg query. A ProgId named there
+ * and UserChoiceLatest is read, for every extension, with one reg query. The extension of a
+ * UserChoice is the name of its FileExts key in lower case: the registry ignores the case
+ * of a key name. A ProgId named there
  * counts when its extension is in extensions - any ProgId at all, including one belonging
  * to identity - or when its owner satisfies belongsToFamily. If any ProgId counts, the
  * operation refuses with userLocked applied to a map from every such extension, in the
  * order reg lists them, to the ProgIds that count.
- * Linux: a line of a choice file, in any section, mentions the family when its key is
+ * Linux: a line of a choice file, in any section, that is not a comment (its first
+ * character after any leading white space is not "#") mentions the family when its key is
  * application/x-fearless or application/x-fearless- followed by any text, or when a
  * .desktop file it names belongs to an identity for which belongsToFamily holds. If any
  * choice file holds such a line, also when extensions is empty, the operation refuses
@@ -180,7 +183,8 @@ import utils.Bug;
  * forgetChoices(choices, notWritable) removes the choices of a map given to userLocked,
  * and nothing else - Windows: the keys UserChoice and UserChoiceLatest of every extension
  * of choices, then one SHChangeNotify; Linux: every line of choices from its choice file,
- * the other lines of that file kept in their order. [Linux only] If any choice file is not
+ * the other lines of that file kept in their order. [Linux only] A choice file that is a
+ * symbolic link is written through the link. [Linux only] If any choice file is not
  * writable, it refuses with notWritable, naming all of them, and changes nothing.
  * [Windows only] A reg delete that fails ends it with notWritable applied to the
  * command and its output.

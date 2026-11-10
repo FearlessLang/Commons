@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -48,7 +49,7 @@ public final class WindowsAssociations{
     locked.values().removeIf(List::isEmpty);
     if (!locked.isEmpty()){ throw userLocked.apply(Collections.unmodifiableMap(locked)); }
     var foreign= new LinkedHashMap<String,List<String>>();
-    extensions.stream().map(Icon::extension).filter(e -> !Icon.system(e)).forEach(e -> foreign.put(e, held(e, belongsToFamily)));
+    wanted.stream().filter(e -> !Icon.system(e)).forEach(e -> foreign.put(e, held(e, belongsToFamily)));
     foreign.values().removeIf(List::isEmpty);
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
     if (alreadyMatches(existing, identity, command, extensions, programIco)){ if (!extensions.isEmpty()){ notifyShellOfChange(); } return; }
@@ -90,7 +91,7 @@ public final class WindowsAssociations{
       if (line.startsWith("HKEY_")){ key = line; continue; }
       var choice= key.matches(Pattern.quote(fileExts)+"[^\\\\]+\\\\(UserChoice|UserChoiceLatest\\\\ProgId)");
       if (!choice || !line.contains("REG_")){ continue; }
-      res.merge(key.substring(fileExts.length()).split("\\\\")[0], List.of(regQueried(line)), (a,b) -> Stream.concat(a.stream(), b.stream()).distinct().toList());
+      res.merge(key.substring(fileExts.length()).split("\\\\")[0].toLowerCase(Locale.ROOT), List.of(regQueried(line)), (a,b) -> Stream.concat(a.stream(), b.stream()).distinct().toList());
     }
     return Collections.unmodifiableMap(res);
   }
