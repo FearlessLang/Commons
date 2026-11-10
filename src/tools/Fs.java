@@ -197,7 +197,9 @@ public final class Fs{
   private static final List<String> ownScope= isLinux() && Files.isDirectory(Path.of("/run/systemd/system")) ? List.of("systemd-run", "--user", "--scope", "--quiet", "--collect", "--") : List.of();
   public static ProcessBuilder processBuilder(List<String> cmd){
     var pb= new ProcessBuilder(Push.of(ownScope, cmd));
-    pb.environment().remove("_JPACKAGE_LAUNCHER");
+    //The launcher marks the process it starts with _JPACKAGE_ variables; a launcher started by
+    //that process inherits them, takes itself for that process, and ends with 1.
+    pb.environment().keySet().removeIf(k -> k.startsWith("_JPACKAGE_"));
     return pb;
   }
   ///Returns the filename with extension (the substring after the last '/').
