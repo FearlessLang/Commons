@@ -48,11 +48,15 @@ public record ReadZip(
     catch (OutOfMemoryError _){ throw tooLargeErr.apply(name); }
   }
   private Map<String,byte[]> cleanUp(LinkedHashMap<String,byte[]> map){
+    var res= new LinkedHashMap<String,byte[]>();
     for (var e : map.entrySet()){
-      var emptyDir= e.getValue()==null && map.keySet().stream().noneMatch(k -> k.startsWith(e.getKey()+"/"));
-      if (emptyDir){ throw emptyDirErr.apply(e.getKey()); }
+      var k= e.getKey();
+      var emptyDir= e.getValue()==null && map.keySet().stream().noneMatch(o -> o.startsWith(k+"/"));
+      var inDotDir= ("/"+k.substring(0, k.lastIndexOf('/')+1)).contains("/.");
+      if (emptyDir && !inDotDir){ throw emptyDirErr.apply(k); }
+      if (emptyDir){ res.put(k+"/", new byte[0]); }
+      if (e.getValue() != null){ res.put(k, e.getValue()); }
     }
-    map.values().removeIf(v -> v == null);
-    return Collections.unmodifiableMap(map);//to keep the order instead of Map.copyOf undocumented behaviour exactly here
+    return Collections.unmodifiableMap(res);//to keep the order instead of Map.copyOf undocumented behaviour exactly here
   }
 }
