@@ -42,9 +42,9 @@ public final class WindowsAssociations{
       Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
     if (existing.size() > 1){ throw ambiguous.apply(Join.of(existing, "", "\n", "")); }
+    var wanted= extensions.stream().map(Icon::extension).toList();
     var locked= new LinkedHashMap<String,List<String>>();
-    extensions.stream().map(Icon::extension)
-      .forEach(e -> locked.put(e, Stream.concat(regValue(userChoiceKey(e), "ProgId").stream(), regValue(hkcu(fileExts+e+"\\UserChoiceLatest\\ProgId"), "ProgId").stream()).distinct().toList()));
+    userChoices().forEach((e,ps) -> locked.put(e, ps.stream().filter(p -> wanted.contains(e) || belongsToFamily.test(owner(p, e))).toList()));
     locked.values().removeIf(List::isEmpty);
     if (!locked.isEmpty()){ throw userLocked.apply(Collections.unmodifiableMap(locked)); }
     var foreign= new LinkedHashMap<String,List<String>>();
@@ -76,7 +76,24 @@ public final class WindowsAssociations{
     }
     return res.stream().filter(belongsToFamily).sorted().toList();
   }
+  static void forgetChoices(Map<String,List<String>> choices, Function<String,RuntimeException> notWritable){
+    choices.keySet().stream().flatMap(e -> Stream.of(userChoiceKey(e), hkcu(fileExts+e+"\\UserChoiceLatest"))).filter(WindowsAssociations::keyExists)
+      .forEach(k -> Shell.req(List.of("reg", "delete", k, "/f"), notWritable));
+    notifyShellOfChange();
+  }
   public static String userChoiceKey(String ext){ return hkcu(fileExts+ext+"\\UserChoice"); }
+  private static Map<String,List<String>> userChoices(){
+    var res= new LinkedHashMap<String,List<String>>();
+    var key= "";
+    var listed= Shell.exec(List.of("reg", "query", hkcu(fileExts), "/s", "/v", "ProgId")).filter(ran -> ran.code() == 0).map(Shell.Ran::out).orElse("");
+    for (var line : listed.lines().map(String::strip).toList()){
+      if (line.startsWith("HKEY_")){ key = line; continue; }
+      var choice= key.matches(Pattern.quote(fileExts)+"[^\\\\]+\\\\(UserChoice|UserChoiceLatest\\\\ProgId)");
+      if (!choice || !line.contains("REG_")){ continue; }
+      res.merge(key.substring(fileExts.length()).split("\\\\")[0], List.of(regQueried(line)), (a,b) -> Stream.concat(a.stream(), b.stream()).distinct().toList());
+    }
+    return Collections.unmodifiableMap(res);
+  }
   private static List<String> held(String ext, Predicate<String> belongsToFamily){
     var progIds= Stream.concat(regValue(hkcu(classes)+ext, "").stream(), regValues(hkcu(classes)+ext+"\\OpenWithProgids").keySet().stream());
     return progIds.distinct().filter(p -> !belongsToFamily.test(owner(p, ext))).toList();

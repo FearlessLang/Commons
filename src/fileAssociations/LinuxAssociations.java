@@ -38,8 +38,6 @@ public final class LinuxAssociations{
   public static BiConsumer<List<String>,Function<String,RuntimeException>> run= Shell::req;
   private static final int iconSide= 256;
   private static final Pattern declared= Pattern.compile("<mime-type type=[\"']([^\"']*)[\"']");
-  private static final String defaults= "[Default Applications]";
-  private static final String added= "[Added Associations]";
   record Glob(String type, String pattern, boolean cs){
     boolean is(String ext){
       var regex= new StringBuilder();
@@ -55,15 +53,20 @@ public final class LinuxAssociations{
       };
     }
   }
-  record Opener(String program, String type, String section){}
+  record Opener(String program, String type){}
   static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, List<WindowIcon> windows, Path programPng, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
+      Function<Map<String,List<String>>,RuntimeException> userLocked,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
     if (existing.size() > 1){ throw ambiguous.apply(Join.of(existing, "", "\n", "")); }
+    var broken= new LinkedHashMap<String,List<String>>();
+    Xdg.choiceFiles().forEach(f -> broken.put(f.toString(), lines(f).stream().filter(l -> mentions(l, belongsToFamily)).map(String::strip).toList()));
+    broken.values().removeIf(List::isEmpty);
+    if (!broken.isEmpty()){ throw userLocked.apply(Collections.unmodifiableMap(broken)); }
     var globs= globs(belongsToFamily);
     var openers= openers().stream().filter(o -> !belongsToFamily.test(o.program())).toList();
     var foreign= new LinkedHashMap<String,List<String>>();
@@ -91,8 +94,13 @@ public final class LinuxAssociations{
     gone.forEach(f -> Fs.ofV(() -> Files.delete(f)));
     if (!existing.isEmpty()){ rebuild(gone, halfDone); }
   }
+  static void forgetChoices(Map<String,List<String>> choices, Function<String,RuntimeException> notWritable){
+    var refused= choices.keySet().stream().filter(f -> !Files.isWritable(Path.of(f))).toList();
+    if (!refused.isEmpty()){ throw notWritable.apply(Join.of(refused, "", "\n", "")); }
+    choices.forEach((f,ls) -> Fs.writeUtf8(Path.of(f), Join.of(lines(Path.of(f)).stream().filter(l -> !ls.contains(l.strip())), "", "\n", "\n", "")));
+  }
   private static List<String> held(String ext, List<Glob> globs, List<Opener> openers){
-    var programs= openers.stream().filter(o -> o.type().equals(typeOf(ext)) && !(ext.equals(".fearless") && o.section().equals(added))).map(Opener::program);
+    var programs= openers.stream().filter(o -> o.type().equals(typeOf(ext))).map(Opener::program);
     return Stream.concat(programs, globTypes(ext, globs).stream()).distinct().toList();
   }
   private static List<String> globTypes(String ext, List<Glob> globs){
@@ -130,10 +138,7 @@ public final class LinuxAssociations{
     }
     return List.copyOf(res);
   }
-  private static List<Opener> openers(){
-    var listing= desktops().flatMap(f -> opens(f).map(t -> new Opener(baseName(f), t, "[Desktop Entry]")));
-    return Stream.concat(listing, Xdg.choiceFiles().stream().flatMap(f -> chosen(f).stream())).toList();
-  }
+  private static List<Opener> openers(){ return desktops().flatMap(f -> opens(f).map(t -> new Opener(baseName(f), t))).toList(); }
   private static Predicate<String> keep(Path dir, Predicate<String> belongsToFamily){
     var packages= listed(dir.resolve("packages"), ".xml").stream().collect(Collectors.partitioningBy(f -> belongsToFamily.test(baseName(f))));
     var family= packages.get(true).stream().flatMap(f -> lines(f).stream())
@@ -148,17 +153,11 @@ public final class LinuxAssociations{
   private static Stream<String> opens(Path desktopFile){
     return lines(desktopFile).stream().filter(l -> l.startsWith("MimeType=")).findFirst().stream().flatMap(l -> split(l.substring("MimeType=".length())));
   }
-  private static List<Opener> chosen(Path file){
-    var res= new ArrayList<Opener>();
-    var section= "";
-    for (var line : lines(file)){
-      if (line.startsWith("[")){ section = line.strip(); continue; }
-      var eq= line.indexOf('=');
-      if (eq<0 || !List.of(defaults, added).contains(section)){ continue; }
-      var at= section;
-      split(line.substring(eq + 1)).forEach(n -> res.add(new Opener(n.replaceFirst("\\.desktop$", ""), line.substring(0, eq).strip(), at)));
-    }
-    return List.copyOf(res);
+  private static boolean mentions(String line, Predicate<String> belongsToFamily){
+    var eq= line.indexOf('=');
+    if (eq<0 || line.startsWith("#")){ return false; }
+    var familyType= line.substring(0, eq).strip().matches("application/x-fearless(-.*)?");
+    return familyType || split(line.substring(eq + 1)).anyMatch(n -> belongsToFamily.test(n.replaceFirst("\\.desktop$", "").replaceFirst("-[0-9a-f]+$", "")));
   }
   private static boolean writableForCreation(Path dir){
     return Stream.iterate(dir, Objects::nonNull, Path::getParent).filter(Files::exists).findFirst().filter(Files::isWritable).isPresent();
