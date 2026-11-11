@@ -45,7 +45,7 @@ public final class MacAssociations{
   public static BiConsumer<Path,String> offer= MacAssociations::offerOnDesktop;
   private static final Pattern launcher= Pattern.compile("#!/bin/sh\nexec '(.*)' FearlessCommandOpened\n", Pattern.DOTALL);
   private static final int utf8= 0x08000100;
-  static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
+  static void reconcile(String identity, String name, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programPng, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
@@ -58,7 +58,7 @@ public final class MacAssociations{
     var foreign= new LinkedHashMap<String,List<String>>();
     others.forEach((e,d) -> { if (!Icon.system(e)){ foreign.put(e, List.of(baseName(d.bundle()))); } });
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
-    var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, command, icons, programPng, others);
+    var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, name, command, icons, programPng, others);
     if (alreadyMatches(existing, identity, wanted)){ if (!wanted.isEmpty()){ refresh(identity, halfDone); } return; }
     existing.forEach(s -> commandOf(s).filter(c -> !c.equals(command)).ifPresent(replaced));
     var before= text(plist(identity));
@@ -88,7 +88,7 @@ public final class MacAssociations{
   }
   private static void remove(String identity, Function<String,RuntimeException> halfDone){
     Fs.cleanDir(bundle(identity));
-    Fs.writeUtf8(plist(identity), plist(identity, "", ""));
+    Fs.writeUtf8(plist(identity), plist(identity, "", "", ""));
     refresh(identity, halfDone);
     Fs.rmTree(bundle(identity));
   }
@@ -108,7 +108,7 @@ public final class MacAssociations{
     if (!exactlyWanted){ return false; }
     return wanted.entrySet().stream().allMatch(e -> Arrays.equals(Fs.of(() -> Files.readAllBytes(e.getKey())), e.getValue()));
   }
-  private static Map<Path,byte[]> wanted(String identity, Path command, List<Icon> icons, Path programPng, Map<String,Declared> others){
+  private static Map<Path,byte[]> wanted(String identity, String name, Path command, List<Icon> icons, Path programPng, Map<String,Declared> others){
     var res= new LinkedHashMap<Path,byte[]>();
     var contents= bundle(identity).resolve("Contents");
     var documents= new StringBuilder();
@@ -121,7 +121,7 @@ public final class MacAssociations{
       if (other.isEmpty()){ exported.append(exported(identity, ext)); }
     }
     res.put(contents.resolve("Resources").resolve("_program.icns"), icns(programPng));
-    res.put(contents.resolve("Info.plist"), plist(identity, documents.toString(), exported.toString()).getBytes(UTF_8));
+    res.put(contents.resolve("Info.plist"), plist(identity, name, documents.toString(), exported.toString()).getBytes(UTF_8));
     res.put(contents.resolve("MacOS").resolve(identity), ("#!/bin/sh\nexec '"+command.toString().replace("'", "'\\''")+"' FearlessCommandOpened\n").getBytes(UTF_8));
     return Collections.unmodifiableMap(res);
   }
@@ -139,7 +139,7 @@ public final class MacAssociations{
       +"<key>UTTypeConformsTo</key><array>"+string("public.data")+"</array>"
       +"<key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array>"+string(ext)+"</array></dict></dict>\n";
   }
-  public static String plist(String identity, String documents, String exported){
+  public static String plist(String identity, String name, String documents, String exported){
     return """
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -155,7 +155,7 @@ public final class MacAssociations{
 <key>UTExportedTypeDeclarations</key><array>
 %s</array>
 </dict></plist>
-""".formatted(identity, identity.replace('_', '-'), identity, documents, exported);
+""".formatted(identity, identity.replace('_', '-'), name, documents, exported);
   }
   private static String baseName(Path file){
     var name= file.getFileName().toString();

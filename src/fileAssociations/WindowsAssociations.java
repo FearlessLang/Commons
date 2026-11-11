@@ -35,7 +35,7 @@ public final class WindowsAssociations{
   private static final String valueNotSet= "(value not set)";
   private static final int assocChanged= 0x08000000;
   private static final Pattern opened= Pattern.compile("\"([^\"]*)\" \"%1\"");
-  static void reconcile(String identity, Predicate<String> belongsToFamily, Path command,
+  static void reconcile(String identity, String name, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
       Function<Map<String,List<String>>,RuntimeException> chosenByHand,
@@ -54,7 +54,7 @@ public final class WindowsAssociations{
     wanted.stream().filter(e -> !Icon.system(e)).forEach(e -> foreign.put(e, held(e, belongsToFamily)));
     foreign.values().removeIf(List::isEmpty);
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
-    if (alreadyMatches(existing, identity, command, extensions)){ if (!extensions.isEmpty()){ notifyShellOfChange(); } return; }
+    if (alreadyMatches(existing, identity, name, command, extensions)){ if (!extensions.isEmpty()){ notifyShellOfChange(); } return; }
     forget(wanted, notWritable);
     existing.forEach(s -> commandOf(s).filter(c -> !c.equals(command)).ifPresent(replaced));
     existing.forEach(s -> eradicate(s, belongsToFamily));
@@ -62,7 +62,7 @@ public final class WindowsAssociations{
       extensions.forEach(icon -> forgetOpenWithHistory(icon.extension(), belongsToFamily));
       var previous= new LinkedHashMap<String,String>();
       extensions.forEach(icon -> regValue(hkcu(classes)+icon.extension(), "").ifPresent(p -> previous.put(icon.extension(), p)));
-      importReg(regFile(identity, command, extensions, previous), halfDone);
+      importReg(regFile(identity, name, command, extensions, previous), halfDone);
     }
     notifyShellOfChange();
   }
@@ -105,7 +105,7 @@ public final class WindowsAssociations{
     var suffix= "."+ext.substring(1);
     return progId.endsWith(suffix) ? progId.substring(0, progId.length() - suffix.length()) : progId;
   }
-  private static boolean alreadyMatches(List<String> existing, String identity, Path command, List<Icon> extensions){
+  private static boolean alreadyMatches(List<String> existing, String identity, String name, Path command, List<Icon> extensions){
     if (extensions.isEmpty()){ return existing.isEmpty(); }
     if (!existing.equals(List.of(identity))){ return false; }
     var declared= regValues(hkcu(fileAssociations(identity)));
@@ -118,7 +118,8 @@ public final class WindowsAssociations{
       var sameCommand= regValue(hkcu(classes)+progId+"\\shell\\open\\command", "").equals(Optional.of(openCommand(command)));
       if (!sameCommand){ return false; }
     }
-    return regValue(hkcu(capabilities(identity)), "ApplicationIcon").equals(Optional.of(command+",0"));
+    var sameName= regValue(hkcu(capabilities(identity)), "ApplicationName").equals(Optional.of(name));
+    return sameName && regValue(hkcu(capabilities(identity)), "ApplicationIcon").equals(Optional.of(command+",0"));
   }
   private static Optional<Path> commandOf(String identity){
     return regValues(hkcu(fileAssociations(identity))).values().stream().findFirst()
@@ -161,9 +162,9 @@ public final class WindowsAssociations{
     if (regValues(progIdsKey).isEmpty()){ Shell.exec(List.of("reg", "delete", progIdsKey, "/f")); }
   }
   /// previous: the default value of Classes\(extension) before identity takes the extension, kept so that dropping the extension puts it back.
-  public static String regFile(String identity, Path command, List<Icon> extensions, Map<String,String> previous){
+  public static String regFile(String identity, String name, Path command, List<Icon> extensions, Map<String,String> previous){
     var res= new StringBuilder("Windows Registry Editor Version 5.00\r\n");
-    res.append(regEntry(capabilities(identity), "ApplicationName", identity));
+    res.append(regEntry(capabilities(identity), "ApplicationName", name));
     res.append(regEntry(capabilities(identity), "ApplicationIcon", command+",0"));
     extensions.forEach(icon -> res.append(oneKind(identity, command, icon)));
     previous.forEach((ext, p) -> res.append(regEntry(previousDefaults(identity), ext, p)));
