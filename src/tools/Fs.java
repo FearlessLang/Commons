@@ -21,7 +21,9 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -110,12 +112,21 @@ public final class Fs{
   public static void ensureDir(Path p){ ofV(() -> createDirectories(p)); }
   public static void cleanDirContents(Path p){
     reqDir(p, "cleaning");
+    opened(p);
     var xs= walk(p, s -> s
       .filter(x -> !x.equals(p))
       .sorted(Comparator.reverseOrder())
       .toList()
     );
     xs.forEach(x -> ofV(() -> forceDelete(x)));
+  }
+  private static void opened(Path folder){
+    if (isWindows()){ return; }
+    ofV(() -> {
+      var all= Files.getPosixFilePermissions(folder, LinkOption.NOFOLLOW_LINKS);
+      if (all.addAll(EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE))){ Files.setPosixFilePermissions(folder, all); }
+      try (var s= Files.list(folder)){ s.filter(e -> Files.isDirectory(e, LinkOption.NOFOLLOW_LINKS)).forEach(Fs::opened); }
+    });
   }
   private static void forceDelete(Path p) throws IOException{
     if (isWindows()){ Files.setAttribute(p, "dos:readonly", false, LinkOption.NOFOLLOW_LINKS); }
