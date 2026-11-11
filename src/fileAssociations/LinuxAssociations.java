@@ -166,7 +166,7 @@ public final class LinuxAssociations{
     var res= new LinkedHashMap<Path,byte[]>();
     var body= new StringBuilder();
     for (var icon : extensions){
-      body.append(mimeType(identity, icon.extension(), icon(res, identity, icon.png()), globTypes(icon.extension(), globs)));
+      body.append(mimeType(icon.extension(), icon(res, identity, icon.png()), globTypes(icon.extension(), globs)));
     }
     for (var w : windows){
       var entry= windowEntry(iconDir("mimetypes").resolve(icon(res, identity, w.png())+".png").toString(), command.toString(), w);
@@ -211,11 +211,11 @@ public final class LinuxAssociations{
     for (var b : bytes){ h = (h ^ (b & 0xff)) * 0x100000001b3L; }
     return Long.toHexString(h);
   }
-  private static String mimeType(String identity, String ext, String icon, List<String> supertypes){
+  private static String mimeType(String ext, String icon, List<String> supertypes){
     var subclass= Join.of(supertypes.stream().map(t -> "<sub-class-of type=\"%s\"/>".formatted(t)), "", "", "", "");
-    return ("  <mime-type type=\"%s\"><comment>%s</comment>"
+    return ("  <mime-type type=\"%s\">"
       +"<glob pattern=\"*%s\" weight=\"100\"/>%s<icon name=\"%s\"/></mime-type>\n")
-      .formatted(typeOf(ext), identity, ext, subclass, icon);
+      .formatted(typeOf(ext), ext, subclass, icon);
   }
   public static String desktopEntry(String identity, String name, String command, String windowClass, List<String> types){
     return """
