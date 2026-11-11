@@ -174,8 +174,7 @@ public final class WindowsAssociations{
   private static String oneKind(String identity, Path command, Icon icon){
     var ext= icon.extension();
     var progId= progId(identity, ext);
-    return regEntry(classes+progId, identity)
-      +regEntry(classes+progId+"\\DefaultIcon", icon.ico()+",0")
+    return regEntry(classes+progId+"\\DefaultIcon", icon.ico()+",0")
       +regEntry(classes+progId+"\\shell\\open\\command", openCommand(command))
       +regEntry(classes+ext, progId)
       +regEntry(classes+ext+"\\OpenWithProgids", progId, "")

@@ -135,7 +135,7 @@ public final class MacAssociations{
       +"<key>LSHandlerRank</key>"+string(rank)+"<key>LSItemContentTypes</key><array>"+string(type)+"</array></dict>\n";
   }
   private static String exported(String identity, String ext){
-    return "<dict><key>UTTypeIdentifier</key>"+string(typeOf(identity, "."+ext))+"<key>UTTypeDescription</key>"+string(identity)+"<key>UTTypeIconFile</key>"+string(ext+".icns")
+    return "<dict><key>UTTypeIdentifier</key>"+string(typeOf(identity, "."+ext))+"<key>UTTypeIconFile</key>"+string(ext+".icns")
       +"<key>UTTypeConformsTo</key><array>"+string("public.data")+"</array>"
       +"<key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array>"+string(ext)+"</array></dict></dict>\n";
   }
