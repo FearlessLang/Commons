@@ -68,7 +68,7 @@ public final class Fs{
     return Optional.of(res).filter(r -> r.matches("[a-z_][a-z0-9_]*") && capFirst(r).equals(type));
   }
   public static Function<Path,RuntimeException> onSymbolicLink= p -> new IllegalArgumentException(
-    "\""+p+"\" is a symbolic link/junction/mount point; Fs does not read, write, copy or delete through symbolic links/junctions/mount points: replace it with the file or folder it points to.");
+    "\""+p+"\" is a symbolic link/junction/mount point; Fs does not read, write, copy or delete through symbolic links/junctions/mount points.");
   private static Path noLink(Path p){
     if (isLink(p)){ throw onSymbolicLink.apply(p); }
     return p;
