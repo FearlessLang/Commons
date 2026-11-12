@@ -4,6 +4,7 @@ import java.lang.module.ModuleDescriptor.Requires;
 import java.lang.module.ModuleFinder;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -187,9 +188,10 @@ public final class JavacTool{
       "--runtime-image", runtimeImage.toString(), "--java-options", Join.of(jvmOpts(consoleKey, versionId, appName), "", " ", "")));
     if (Fs.isWindows()){ args.add("--win-console"); }
     if (Fs.isMac()){
-      var fearless= tmp.resolve("fearless.properties");
-      Fs.writeUtf8(fearless, "extension=fearless\nmime-type=application/x-fearless\ndescription=Fearless project\nicon="+icon+"\n");
-      args.addAll(List.of("--file-associations", fearless.toString()));
+      var template= Fs.readUtf8(FileSystems.getFileSystem(URI.create("jrt:/")).getPath("/modules/jdk.jpackage/jdk/jpackage/internal/resources/Info-lite.plist.template"));
+      // The JVM takes the files of an open event only when the Info.plist declares a document type; with LSHandlerRank None macOS never chooses this application to open a file
+      Fs.writeUtf8(tmp.resolve("_resources").resolve("Info.plist"), template.replace("DEPLOY_FILE_ASSOCIATIONS", "\n  <key>CFBundleDocumentTypes</key><array><dict><key>CFBundleTypeRole</key><string>Viewer</string><key>LSHandlerRank</key><string>None</string><key>LSItemContentTypes</key><array><string>public.item</string></array></dict></array>"));
+      args.addAll(List.of("--resource-dir", tmp.resolve("_resources").toString()));
     }
     args.addAll(List.of("--add-launcher", wName+"="+wProps, "--app-content", appContent.toString()));
     Fs.runTool("jpackage", args);

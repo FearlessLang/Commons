@@ -61,9 +61,8 @@ public final class MacAssociations{
     var picked= new LinkedHashMap<>(choices());
     picked.keySet().removeIf(t -> own.stream().noneMatch(t.toLowerCase(Locale.ROOT)::startsWith));
     if (!picked.isEmpty()){ throw chosenByHand.apply(Collections.unmodifiableMap(picked)); }
-    var icons= extensions.stream().filter(i -> !i.extension().equals(".fearless")).toList();
     var others= new LinkedHashMap<String,Declared>();
-    for (var i : icons){ declared.apply(i.extension().substring(1)).stream().filter(d -> !d.bundle().startsWith(home)).findFirst().ifPresent(d -> others.put(i.extension(), d)); }
+    for (var i : extensions){ declared.apply(i.extension().substring(1)).stream().filter(d -> !d.bundle().startsWith(home)).findFirst().ifPresent(d -> others.put(i.extension(), d)); }
     var foreign= new LinkedHashMap<String,List<String>>();
     others.forEach((e,d) -> { if (!Icon.system(e)){ foreign.put(e, List.of(baseName(d.bundle()))); } });
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
@@ -71,7 +70,7 @@ public final class MacAssociations{
     var targets= extensions.isEmpty() && existing.isEmpty() ? Stream.<Path>of() : Stream.of(home).filter(d -> !LinuxAssociations.writableForCreation(d));
     var refused= Stream.concat(unwritable, targets).map(Path::toString).toList();
     if (!refused.isEmpty()){ throw notWritable.apply(Join.of(refused, "", "\n", "")); }
-    var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, name, command, icons, programPng, others);
+    var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, name, command, extensions, programPng, others);
     if (alreadyMatches(existing, identity, wanted)){ if (!wanted.isEmpty()){ refresh(identity, halfDone); } return; }
     existing.forEach(s -> commandOf(s).filter(c -> !c.equals(command)).ifPresent(replaced));
     var before= text(plist(identity));

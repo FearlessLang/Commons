@@ -42,8 +42,8 @@ import utils.Bug;
  * equal to its own base name.
  *
  * [macOS only] A program opens types, not extensions, and only the Info.plist of a
- * bundle declares a type. The bundle of command declares .fearless when it is built:
- * the helper bundle declares no type for .fearless. The declared type of an extension is
+ * bundle declares a type. The bundle of command declares no type: the helper bundle
+ * declares .fearless like every other extension. The declared type of an extension is
  * the first type Launch Services lists for the extension that a bundle outside
  * fearlessAssociations declares. The helper bundle of an identity holds only regular
  * files: Contents/Info.plist, Contents/MacOS/(identity), a script running the command
