@@ -112,7 +112,8 @@ import utils.Bug;
  * 4. Every location identity would need to write to, and every location an identity
  * marked for removal would need to be removed from, is confirmed writable - Windows: no
  * additional check, registry keys under HKCU are always removable by their owner;
- * macOS: no additional check;
+ * macOS: every folder of the helper bundle of an identity found in step 1, and the folder
+ * fearlessAssociations;
  * Linux: every such .desktop file, MIME-package file, and (when the whole file would be
  * deleted) its containing directory, and the icon folders mimetypes and apps. If any are not writable, the operation refuses,
  * naming all of them.
@@ -201,6 +202,9 @@ import utils.Bug;
  * the other lines of that file kept in their order. [Linux only] A choice file that is a
  * symbolic link is written through the link. [Linux only] If any choice file is not
  * writable, it refuses with notWritable, naming all of them, and changes nothing.
+ * [macOS only] If the file of the LaunchServices preferences (Library/Preferences/(domain).plist
+ * in the home folder) is not writable, it refuses with notWritable naming that file, and
+ * changes nothing: macOS reports no failure when it can not write that file.
  * [Windows only] A reg delete that fails ends it with notWritable applied to the
  * command and its output.
  *
@@ -234,7 +238,7 @@ public interface FileAssociations{
     }
     if (Fs.isMac()){
       MacAssociations.reconcile(identity, name, belongsToFamily, command, extensions, programPng, replaced,
-        ambiguous, chosenByHand, notOurs, halfDone);
+        ambiguous, chosenByHand, notOurs, notWritable, halfDone);
       return;
     }
     throw Bug.unreachable();
