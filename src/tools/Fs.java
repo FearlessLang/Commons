@@ -68,7 +68,7 @@ public final class Fs{
     return Optional.of(res).filter(r -> r.matches("[a-z_][a-z0-9_]*") && capFirst(r).equals(type));
   }
   public static Function<Path,RuntimeException> onSymbolicLink= p -> new IllegalArgumentException(
-    "\""+p+"\" is a symbolic link/junction; Fs does not read, write, copy or delete through symbolic links/junctions: replace it with the file or folder it points to.");
+    "\""+p+"\" is a symbolic link/junction/mount point; Fs does not read, write, copy or delete through symbolic links/junctions/mount points: replace it with the file or folder it points to.");
   private static Path noLink(Path p){
     if (isLink(p)){ throw onSymbolicLink.apply(p); }
     return p;
@@ -81,9 +81,29 @@ public final class Fs{
   // A OneDrive placeholder is a reparse point too, but it resolves to itself.
   public static boolean isLink(Path p, BasicFileAttributes a){
     if (a.isSymbolicLink()){ return !isJlinkLegalNotice(p); }
-    if (!isWindows() || !a.isOther()){ return false; }
+    if (!isWindows()){ return a.isDirectory() && isMountPoint(p); }
+    if (!a.isOther()){ return false; }
     try{ return !p.toRealPath().equals(p.toAbsolutePath().getParent().toRealPath().resolve(p.getFileName())); }
     catch (IOException _){ return true; }
+  }
+  private static boolean isMountPoint(Path p){
+    var parent= p.toAbsolutePath().getParent();
+    if (parent == null){ return false; }
+    if (isMac()){ return !of(() -> Files.getFileStore(p)).equals(of(() -> Files.getFileStore(parent))); }
+    var real= of(parent::toRealPath).resolve(p.getFileName());
+    return mountInfo().anyMatch(f -> mountPath(f[4]).equals(real));
+  }
+  public static Stream<String[]> mountInfo(){
+    return new String(of(() -> Files.readAllBytes(Path.of("/proc/self/mountinfo"))), StandardCharsets.ISO_8859_1).lines().map(l -> l.split(" "));
+  }
+  public static Path mountPath(String field){
+    var res= new ByteArrayOutputStream();
+    for (var i= 0; i<field.length(); i += 1){
+      var octal= field.charAt(i)=='\\' && i+3<field.length();
+      res.write(octal ? Integer.parseInt(field.substring(i+1, i+4), 8) : field.charAt(i));
+      if (octal){ i += 3; }
+    }
+    return PathBytes.path(res.toByteArray());
   }
   // Whitelisted link: on Linux and macOS jlink writes the legal notices of every module but java.base
   // as links legal/<module>/<name> -> ../java.base/<name>, so runtime images and app images hold them.
