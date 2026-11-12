@@ -53,6 +53,7 @@ public final class MacAssociations{
       Function<String,RuntimeException> ambiguous,
       Function<Map<String,List<String>>,RuntimeException> chosenByHand,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
+      Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
     if (existing.size() > 1){ throw ambiguous.apply(Join.of(existing, "", "\n", "")); }
@@ -66,6 +67,10 @@ public final class MacAssociations{
     var foreign= new LinkedHashMap<String,List<String>>();
     others.forEach((e,d) -> { if (!Icon.system(e)){ foreign.put(e, List.of(baseName(d.bundle()))); } });
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
+    var unwritable= existing.stream().flatMap(s -> Fs.walk(bundle(s), f -> f.filter(Files::isDirectory).toList()).stream()).filter(d -> !Files.isWritable(d));
+    var targets= extensions.isEmpty() && existing.isEmpty() ? Stream.<Path>of() : Stream.of(home).filter(d -> !LinuxAssociations.writableForCreation(d));
+    var refused= Stream.concat(unwritable, targets).map(Path::toString).toList();
+    if (!refused.isEmpty()){ throw notWritable.apply(Join.of(refused, "", "\n", "")); }
     var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, name, command, icons, programPng, others);
     if (alreadyMatches(existing, identity, wanted)){ if (!wanted.isEmpty()){ refresh(identity, halfDone); } return; }
     existing.forEach(s -> commandOf(s).filter(c -> !c.equals(command)).ifPresent(replaced));
@@ -91,6 +96,8 @@ public final class MacAssociations{
     return Collections.unmodifiableMap(res);
   }
   static void forgetChoices(Map<String,List<String>> choices, Function<String,RuntimeException> notWritable){
+    var file= Path.of(System.getProperty("user.home"), "Library", "Preferences", preferences+".plist");
+    if (!Files.isWritable(file)){ throw notWritable.apply(file.toString()); }
     var all= ptr("CFArrayCreateMutableCopy", MemorySegment.NULL, 0L, handlers());
     for (var i= count(all)-1; i >= 0; i -= 1){ if (type(all, i).filter(choices::containsKey).isPresent()){ call("CFArrayRemoveValueAtIndex", null, all, (long)i); } }
     call("CFPreferencesSetAppValue", null, cfString("LSHandlers"), all, cfString(preferences));

@@ -159,7 +159,7 @@ public final class LinuxAssociations{
     var familyType= line.substring(0, eq).strip().matches("application/x-fearless(-.*)?");
     return familyType || split(line.substring(eq + 1)).anyMatch(n -> belongsToFamily.test(n.replaceFirst("\\.desktop$", "").replaceFirst("-[0-9a-f]+$", "")));
   }
-  private static boolean writableForCreation(Path dir){
+  static boolean writableForCreation(Path dir){
     return Stream.iterate(dir, Objects::nonNull, Path::getParent).filter(Files::exists).findFirst().filter(Files::isWritable).isPresent();
   }
   private static Map<Path,byte[]> wanted(String identity, String name, Path command, List<Icon> extensions, List<WindowIcon> windows, Path programPng, List<Glob> globs){
