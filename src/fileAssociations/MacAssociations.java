@@ -43,15 +43,23 @@ public final class MacAssociations{
   public static Function<String,List<Declared>> declared= MacAssociations::declaredOnDesktop;
   public static ToIntFunction<Path> register= MacAssociations::registerOnDesktop;
   public static BiConsumer<Path,String> offer= MacAssociations::offerOnDesktop;
+  public static String preferences= "com.apple.LaunchServices/com.apple.launchservices.secure";
+  public static List<String> reload= List.of("killall", "lsd");
+  private static final List<String> roles= List.of("LSHandlerRoleAll", "LSHandlerRoleViewer", "LSHandlerRoleEditor");
   private static final Pattern launcher= Pattern.compile("#!/bin/sh\nexec '(.*)' FearlessCommandOpened\n", Pattern.DOTALL);
   private static final int utf8= 0x08000100;
   static void reconcile(String identity, String name, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, Path programPng, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
+      Function<Map<String,List<String>>,RuntimeException> chosenByHand,
       Function<Map<String,List<String>>,RuntimeException> notOurs,
       Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
     if (existing.size() > 1){ throw ambiguous.apply(Join.of(existing, "", "\n", "")); }
+    var own= Stream.concat(existing.stream(), Stream.of(identity)).map(i -> typeOf(i, ".")).toList();
+    var picked= new LinkedHashMap<>(choices());
+    picked.keySet().removeIf(t -> own.stream().noneMatch(t.toLowerCase(Locale.ROOT)::startsWith));
+    if (!picked.isEmpty()){ throw chosenByHand.apply(Collections.unmodifiableMap(picked)); }
     var icons= extensions.stream().filter(i -> !i.extension().equals(".fearless")).toList();
     var others= new LinkedHashMap<String,Declared>();
     for (var i : icons){ declared.apply(i.extension().substring(1)).stream().filter(d -> !d.bundle().startsWith(home)).findFirst().ifPresent(d -> others.put(i.extension(), d)); }
@@ -71,6 +79,40 @@ public final class MacAssociations{
     assert executable;
     refresh(identity, halfDone);
     others.values().stream().filter(d -> !d.bundle().startsWith("/System") && !before.contains(string(d.type()))).forEach(d -> offer.accept(bundle(identity), d.type()));
+  }
+  public static Map<String,List<String>> choices(){
+    var all= handlers();
+    var res= new LinkedHashMap<String,List<String>>();
+    if (all.equals(MemorySegment.NULL)){ return res; }
+    for (int i : Range.of(0, count(all))){
+      var entry= ptr("CFArrayGetValueAtIndex", all, (long)i);
+      type(all, i).ifPresent(t -> res.put(t, roles.stream().map(r -> ptr("CFDictionaryGetValue", entry, cfString(r))).filter(p -> !p.equals(MemorySegment.NULL)).map(MacAssociations::text).toList()));
+    }
+    return Collections.unmodifiableMap(res);
+  }
+  static void forgetChoices(Map<String,List<String>> choices, Function<String,RuntimeException> notWritable){
+    var all= ptr("CFArrayCreateMutableCopy", MemorySegment.NULL, 0L, handlers());
+    for (var i= count(all)-1; i >= 0; i -= 1){ if (type(all, i).filter(choices::containsKey).isPresent()){ call("CFArrayRemoveValueAtIndex", null, all, (long)i); } }
+    call("CFPreferencesSetAppValue", null, cfString("LSHandlers"), all, cfString(preferences));
+    boolean written= call("CFPreferencesAppSynchronize", ValueLayout.JAVA_BOOLEAN, cfString(preferences));
+    if (!written){ throw notWritable.apply(preferences); }
+    Shell.req(reload, notWritable);
+  }
+  private static MemorySegment handlers(){
+    boolean read= call("CFPreferencesAppSynchronize", ValueLayout.JAVA_BOOLEAN, cfString(preferences));
+    assert read;
+    return ptr("CFPreferencesCopyAppValue", cfString("LSHandlers"), cfString(preferences));
+  }
+  private static int count(MemorySegment array){ return (int)(long)call("CFArrayGetCount", ValueLayout.JAVA_LONG, array); }
+  private static Optional<String> type(MemorySegment array, int i){
+    var type= ptr("CFDictionaryGetValue", ptr("CFArrayGetValueAtIndex", array, (long)i), cfString("LSHandlerContentType"));
+    return type.equals(MemorySegment.NULL) ? Optional.empty() : Optional.of(text(type));
+  }
+  private static String text(MemorySegment cf){
+    var buffer= Arena.global().allocate(4096);
+    boolean converted= call("CFStringGetCString", ValueLayout.JAVA_BOOLEAN, cf, buffer, 4096L, utf8);
+    assert converted;
+    return buffer.getString(0);
   }
   static void eradicateAll(Predicate<String> belongsToFamily, Function<String,RuntimeException> halfDone){
     existingIdentities(belongsToFamily).forEach(s -> remove(s, halfDone));
@@ -176,7 +218,8 @@ public final class MacAssociations{
   }
   @SuppressWarnings({"unchecked", "restricted"})
   private static <T> T call(String name, MemoryLayout res, Object... args){
-    var type= FunctionDescriptor.of(res, Stream.of(args).map(MacAssociations::layout).toArray(MemoryLayout[]::new));
+    var layouts= Stream.of(args).map(MacAssociations::layout).toArray(MemoryLayout[]::new);
+    var type= res == null ? FunctionDescriptor.ofVoid(layouts) : FunctionDescriptor.of(res, layouts);
     try{ return (T)Linker.nativeLinker().downcallHandle(Desktop.lib.find(name).orElseThrow(), type).invokeWithArguments(args); }
     catch (Throwable e){ throw Bug.of(e); }
   }

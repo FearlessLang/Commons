@@ -89,7 +89,11 @@ import utils.Bug;
  * choice file holds such a line, also when extensions is empty, the operation refuses
  * with chosenByHand applied to a map from every such choice file, in the order the desktop
  * consults them, to those lines.
- * macOS: no check.
+ * macOS: a choice of the LaunchServices preferences (an entry of LSHandlers) mentions the
+ * family when its content type starts with (an identity of step 1, or identity, in lower case
+ * with - for _) followed by ".", whatever program it names. If any choice mentions the family,
+ * also when extensions is empty, the operation refuses with chosenByHand applied to a map
+ * from every such content type, in the order of LSHandlers, to the programs it names.
  * Nothing is changed.
  *
  * 3. For every Fearless extension in extensions, its current claimants are determined -
@@ -191,7 +195,9 @@ import utils.Bug;
  *
  * forgetChoices(choices, notWritable) removes the choices of a map given to chosenByHand,
  * and nothing else - Windows: the keys UserChoice and UserChoiceLatest of every extension
- * of choices, then one SHChangeNotify; Linux: every line of choices from its choice file,
+ * of choices, then one SHChangeNotify; macOS: every entry of LSHandlers whose content type is
+ * a key of choices, then a restart of lsd, which reads LSHandlers only when it starts;
+ * Linux: every line of choices from its choice file,
  * the other lines of that file kept in their order. [Linux only] A choice file that is a
  * symbolic link is written through the link. [Linux only] If any choice file is not
  * writable, it refuses with notWritable, naming all of them, and changes nothing.
@@ -228,7 +234,7 @@ public interface FileAssociations{
     }
     if (Fs.isMac()){
       MacAssociations.reconcile(identity, name, belongsToFamily, command, extensions, programPng, replaced,
-        ambiguous, notOurs, halfDone);
+        ambiguous, chosenByHand, notOurs, halfDone);
       return;
     }
     throw Bug.unreachable();
@@ -242,6 +248,7 @@ public interface FileAssociations{
   static void forgetChoices(Map<String,List<String>> choices, Function<String,RuntimeException> notWritable){
     if (Fs.isWindows()){ WindowsAssociations.forgetChoices(choices, notWritable); return; }
     if (Fs.isLinux()){ LinuxAssociations.forgetChoices(choices, notWritable); return; }
+    if (Fs.isMac()){ MacAssociations.forgetChoices(choices, notWritable); return; }
     throw Bug.unreachable();
   }
   static void eradicateAll(Predicate<String> belongsToFamily, Function<String,RuntimeException> halfDone){
