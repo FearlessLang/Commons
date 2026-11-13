@@ -1,14 +1,20 @@
 package fileAssociations;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 import tools.Fs;
 import utils.Bug;
+import utils.Join;
 
 /** Reconciles which program a set of file extensions opens on Windows, Linux or macOS, for a
  * whole family of otherwise-independent executables sharing one identity.
@@ -19,20 +25,21 @@ import utils.Bug;
  * - belongsToFamily: a predicate over strings, supplied by the caller.
  * - command: an absolute executable path.
  * - extensions: a list of (file extension, file icon) pairs. May be empty.
+ * - taken: the extensions of extensions that identity may take from a program for which
+ * belongsToFamily does not hold. May be empty.
  * - windows: a list of (window class, name, target, icon) entries. May be empty.
  * [Linux only] Windows and macOS ignore it.
  * - programPng: one icon, independent of extensions.
  * [Linux and macOS only] Windows uses the icon inside command.
- * - replaced: applied in step 6 to the command of every identity found in step 1 whose
+ * - replaced: applied in step 5 to the command of every identity found in step 1 whose
  * command is not command, before that identity is deleted.
- * - ambiguous, chosenByHand, notOurs, notWritable, halfDone: one function per kind of
- * failure, each turning what was found into the exception reconcile throws.
+ * - ambiguous, notOurs, notWritable, halfDone: one function per kind of failure, each
+ * turning what was found into the exception reconcile throws.
  *
  * Each extension is of one of two kinds, given by its text (Icon.system): .fearless,
  * .fapp followed by three digits and .ffile followed by three digits are Fearless
- * extensions, every other extension is a system extension. A Fearless extension
- * belongs to the family alone; a system extension is taken over from whatever program
- * opens it.
+ * extensions, every other extension is a system extension. Both kinds get the same setup
+ * and the same checks.
  *
  * A ProgId (Windows) belongs to identity X if it equals X followed by "." followed by
  * the extension with its leading dot removed. A .desktop file or MIME-package file
@@ -41,6 +48,29 @@ import utils.Bug;
  * folder fearlessAssociations of ~/Library/Application Support, belongs to the identity
  * equal to its own base name.
  *
+ * The holder of an extension is the program the desktop opens a file named "x" followed
+ * by the extension with, by its name -
+ * Windows: the ProgId of the key UserChoiceLatest of
+ * HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\(extension), else of
+ * the key UserChoice there, else the default value of HKEY_CLASSES_ROOT\(extension); its
+ * name is the identity the ProgId belongs to, else the whole ProgId. Linux: the default program of the first type that has one in the list
+ * starting with the type of the glob of highest weight matching the name in the MIME
+ * database, where each type of the list adds to the end of the list each of its parent
+ * types (the second field of each line of a subclasses file of the MIME database whose
+ * first field is that type) not yet in the list. The default program of a type is
+ * the first of: the first installed .desktop file
+ * of the key of that type in the section [Default Applications] of the choice files, in
+ * the order the desktop consults them; the same in the section [Added Associations]; the
+ * first .desktop file whose MimeType= line names that type, among the .desktop files with no
+ * .desktop file of the same name in an earlier applications folder; the last two skip every
+ * .desktop file of the key of that type in the section [Removed Associations] of a choice
+ * file. Its name is the base name of
+ * that .desktop file. No glob matching the name, or no such .desktop file, is no holder.
+ * macOS: the application Launch Services gives as the default for the preferred type of
+ * the extension; its name is the file name of that application without ".app".
+ * The holder is in the family when belongsToFamily holds for its name. The holder is
+ * identity itself when its name is identity.
+ *
  * [macOS only] A program opens types, not extensions, and only the Info.plist of a
  * bundle declares a type. The bundle of command declares no type: the helper bundle
  * declares .fearless like every other extension. The declared type of an extension is
@@ -48,20 +78,22 @@ import utils.Bug;
  * fearlessAssociations declares. The helper bundle of an identity holds only regular
  * files: Contents/Info.plist, Contents/MacOS/(identity), a script running the command
  * of the identity with the one argument FearlessCommandOpened, and in Contents/Resources one icns
- * file for each extension and one for the program.
+ * file for each extension and one for the program, and en.lproj/InfoPlist.strings, giving name as the
+ * CFBundleDisplayName (macOS shows that name only when the Info.plist names the bundle by its file name).
  *
  * [Linux only] A program opens MIME types, not extensions. The type of .fearless is
  * application/x-fearless; the type of every other extension is application/x-fearless-
  * followed by the extension without its dot. The MIME database is the mime folder of
  * $XDG_DATA_HOME and of every $XDG_DATA_DIRS entry: the globs of globs2, matched as
- * file name patterns against "*" followed by the extension (ignoring case unless the
- * glob has the cs flag; a type with __NOGLOBS__ in a folder ignores its globs in every
- * later folder). Each folder leaves out the types with a glob in its own MIME-package
- * files of identities for which belongsToFamily holds; the folder of $XDG_DATA_HOME,
- * rebuilt after every change, also leaves out the types no other MIME-package file
- * there names. The system types of an extension other than .fearless are the types of
- * the globs matching it. The openers of a type are every .desktop file whose MimeType=
- * line names it.
+ * file name patterns (ignoring case unless the glob has the cs flag; a type with
+ * __NOGLOBS__ in a folder ignores its globs in every later folder); the folder of
+ * $XDG_DATA_HOME, rebuilt after every change, leaves out the types no MIME-package file
+ * there names. The system types of an extension are the types matching "*" followed by
+ * the extension in that database, where each folder also leaves out the types with a glob
+ * in its own MIME-package files of identities for which belongsToFamily holds. A choice
+ * file is a mimeapps.list or (desktop)-mimeapps.list, (desktop) each name of
+ * $XDG_CURRENT_DESKTOP in lower case, in $XDG_CONFIG_HOME, in every $XDG_CONFIG_DIRS entry
+ * and in every applications folder.
  *
  * Checks performed before any state is changed:
  *
@@ -71,82 +103,62 @@ import utils.Bug;
  * MIME-package file; macOS: the identity of every helper bundle. If more than one distinct such identity is found, the
  * operation refuses, naming all of them, and changes nothing.
  *
- * 2. Windows: the ProgId of every
- * HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\(extension)\UserChoice
- * and UserChoiceLatest is read, for every extension, with one reg query. The extension of a
- * UserChoice is the name of its FileExts key in lower case: the registry ignores the case
- * of a key name. A ProgId named there
- * counts when its extension is a Fearless extension or an extension an identity of step 1
- * declares - any ProgId at all, including one belonging
- * to identity - or when its owner satisfies belongsToFamily. If any ProgId counts, also
- * when extensions is empty, the
- * operation refuses with chosenByHand applied to a map from every such extension, in the
- * order reg lists them, to the ProgIds that count.
- * Linux: a line of a choice file, in any section, that is not a comment (its first
- * character after any leading white space is not "#") mentions the family when its key is
- * application/x-fearless or application/x-fearless- followed by any text, or when a
- * .desktop file it names belongs to an identity for which belongsToFamily holds. If any
- * choice file holds such a line, also when extensions is empty, the operation refuses
- * with chosenByHand applied to a map from every such choice file, in the order the desktop
- * consults them, to those lines.
- * macOS: a choice of the LaunchServices preferences (an entry of LSHandlers) mentions the
- * family when its content type starts with (an identity of step 1, or identity, in lower case
- * with - for _) followed by ".", whatever program it names. If any choice mentions the family,
- * also when extensions is empty, the operation refuses with chosenByHand applied to a map
- * from every such content type, in the order of LSHandlers, to the programs it names.
- * Nothing is changed.
+ * 2. The holder of every extension of extensions is determined. If the holder of an
+ * extension not in taken is not in the family, the operation refuses with notOurs applied
+ * to a map from each such extension, in the order of extensions, to the name of its
+ * holder, and changes nothing. The taken over extensions are the extensions of taken, and
+ * the extensions whose holder is in the family and is not identity itself.
  *
- * 3. For every Fearless extension in extensions, its current claimants are determined -
- * Windows: the ProgId named by Classes\(extension) (default value), plus every ProgId
- * named under Classes\(extension)\OpenWithProgids; Linux: the openers of its type, and
- * every system type of the extension; macOS: the bundle declaring the declared type
- * of the extension. For .fearless there are no system types.
- * [Windows only] A registry value reg.exe itself reports as never having been set (the
- * literal text "(value not set)") is deleted on the spot and counted as no claimant at
- * all, rather than as a claimant named "(value not set)".
- * If any claimant is a program whose owning identity does not satisfy belongsToFamily,
- * or a system type, the operation refuses with notOurs applied to a map from each such
- * extension, in the order of extensions, to those claimants, and changes nothing.
- * System extensions have no claimants: the programs opening them do not refuse them.
- *
- * 4. Every location identity would need to write to, and every location an identity
- * marked for removal would need to be removed from, is confirmed writable - Windows: no
- * additional check, registry keys under HKCU are always removable by their owner;
- * macOS: every folder of the helper bundle of an identity found in step 1, and the folder
- * fearlessAssociations;
- * Linux: every such .desktop file, MIME-package file, and (when the whole file would be
- * deleted) its containing directory, and the icon folders mimetypes and apps. If any are not writable, the operation refuses,
- * naming all of them.
+ * 3. [Linux and macOS only] Every location identity would need to write to, and every location an
+ * identity marked for removal would need to be removed from, is confirmed writable - Linux: every
+ * such .desktop file, MIME-package file, and (when the whole file would be deleted) its
+ * containing directory, the icon folders mimetypes and apps, and every choice file of
+ * step 4; macOS: every folder of the helper bundle of an identity found in step 1, the
+ * folder fearlessAssociations, and, when an extension is taken over, the file of the
+ * LaunchServices preferences (Library/Preferences/(preferences).plist in the home folder):
+ * macOS reports no failure when it can not write that file. If any are not writable, the
+ * operation refuses with notWritable, naming all of them.
  *
  * What happens once all checks pass:
  *
+ * 4. Every taken over extension is given to identity, also when step 5 is skipped -
+ * Windows: the keys UserChoice and UserChoiceLatest of the extension are deleted; a
+ * deletion that fails ends the operation with notWritable applied to the name of the
+ * Windows function, the key and the text Windows gives for the error code. Linux: every line of a choice file, in any section, whose key is the type of
+ * the extension is removed, the other lines of that file kept in their order; a choice
+ * file that is a symbolic link is written through the link. macOS: in the array LSHandlers
+ * of the LaunchServices preferences (the domain preferences), a choice making the helper
+ * bundle of identity (its bundle identifier: identity with "-" for every "_") the program
+ * of every role of the type of the extension (its declared type, or the type of step 6)
+ * replaces every choice for that type; preferences that report a failed write end the
+ * operation with notWritable applied to the domain. Then the command reload restarts lsd,
+ * once, before any registration of steps 5-7: lsd reads those preferences only when it
+ * starts, and a restart loses the registrations of the seconds before it. A reload that
+ * fails ends the operation with notWritable applied to the command and its output.
+ *
  * 5. If exactly one identity was found in step 1, it equals identity, and it already
  * declares exactly extensions (same extensions, same per-extension icons), the same
- * command, and the same program icon, steps 6 and 7 are skipped: this is a successful
- * call that changes no registry key and no file. [Linux only] It also requires the same system types for
+ * command, the same name, and the same program icon, step 6 is skipped: no registry key and no file
+ * of a setup changes. [Linux only] It also requires the same system types for
  * every extension, the same windows, and that no icon file of identity is left beyond
- * those of extensions and windows.
- *
- * 6. Otherwise, [Windows only] the keys UserChoice and UserChoiceLatest of every extension
- * in extensions are deleted first: a UserChoice left in place would keep opening the
- * extension with its own program. A reg delete that fails ends the operation with
- * notWritable applied to the command and its output; the keys deleted before that one
- * stay deleted, and nothing else has been touched.
- * Then replaced is applied to the command of every identity found in step 1
+ * those of extensions and windows. [macOS only] It also requires the same declared type
+ * for every extension. [Windows only] It also requires that the default value
+ * of Classes\(extension) names the ProgId of identity for every extension.
+ * Otherwise replaced is applied to the command of every identity found in step 1
  * whose command is not command, then every identity found in step 1 is deleted in full - every registry key
  * or file it created, for every extension it declared, including extensions absent
  * from the current extensions list. [Windows only] For each such extension, a
  * now-empty OpenWithProgids key, and a now-empty Classes\(extension) key left with no
  * default value and no remaining subkeys, are removed too, rather than left behind as
  * an empty container. A default value of Classes\(extension) naming the identity goes back
- * to the value step 7 found there when the identity took the extension, kept in
+ * to the value step 6 found there when the identity took the extension, kept in
  * Software\(identity)\PreviousDefaults; with none kept, the default value is deleted.
  * [Windows only] The "Open with" history Explorer keeps for each such extension, and for
- * each extension of step 7, loses the entries naming a program of the Fearless family
+ * each extension of step 6, loses the entries naming a program of the Fearless family
  * (FileExts\(extension)\OpenWithList and OpenWithProgids): Explorer would otherwise offer
  * a deleted member of the Fearless family.
  *
- * 7. If extensions is not empty, identity is created declaring exactly the extensions in
+ * 6. If extensions is not empty, identity is created declaring exactly the extensions in
  * extensions, the same way for both kinds. For each: its own file icon; command
  * followed by the operating system's own file-argument placeholder ("%1" on Windows,
  * %f on Linux) as the open command. [Windows only] The default value of Classes\(extension)
@@ -155,12 +167,12 @@ import utils.Bug;
  * application icon, and name as identity's own application name, independent of the per-extension file icons. If extensions is
  * empty, nothing is created: identity is left entirely unregistered.
  * [Linux only] The MIME-package file defines the type of every extension, with the
- * glob "*" followed by the extension, weight 100, and one sub-class-of for each of its
- * system types; no other type is changed. The .desktop file lists those types. Each
+ * glob "*" followed by the extension, weight 100, one sub-class-of for each of its
+ * system types, and its icon; no other type is changed. The .desktop file lists those types. Each
  * icon is the file $XDG_DATA_HOME/icons/hicolor/256x256/mimetypes/(identity)-(hex
  * hash).png, and the program icon is apps/(identity).png there. Every file named
  * (identity)-(hex hash).png in mimetypes belongs to identity: deleting identity in
- * full, as step 6 and eradicateAll do, and recreating it delete those not wanted.
+ * full, as step 5 and eradicateAll do, and recreating it delete those not wanted.
  * [Linux only] Each window is a .desktop file (identity)-(hex hash of the window
  * class).desktop with NoDisplay=true: the name of the window as its name, command
  * followed by the target of the window as its command, the absolute path of the icon
@@ -168,45 +180,29 @@ import utils.Bug;
  * StartupWMClass. GNOME and COSMIC show that icon for every window whose WM_CLASS is
  * the window class; they do not find an icon named by its theme name in
  * $XDG_DATA_HOME/icons.
- * [macOS only] An extension with no declared type gets the type (identity with every
- * "_" replaced by "-")(extension): the helper bundle exports that type and opens that
- * type with the rank Owner. For an extension with a declared type, the helper bundle
+ * [macOS only] An extension with no declared type gets the type (identity followed by the
+ * extension, with "-" for every "_" and in lower case): the helper bundle exports that
+ * type and opens that type with the rank Owner. For an extension with a declared type, the helper bundle
  * opens the declared type with the rank Alternate, so identity is one of the "Open
- * With" programs of the extension. When a bundle outside /System declares that type
- * and the helper bundle of identity did not open that type before this call, the
- * desktop asks the user whether identity becomes the program opening that type.
+ * With" programs of the extension.
  *
- * 8. One shell or database refresh is issued for the whole of steps 6-7 combined -
+ * 7. One shell or database refresh is issued for the whole of steps 4-6 combined -
  * SHChangeNotify once (Windows) or update-mime-database/update-desktop-database once
  * (Linux) or LSRegisterURL on the helper bundle of identity once (macOS) - never per extension, never per intermediate write, and also when step 5
- * applied, so a changed image at the same path shows too; none when step 5 applied
- * with extensions empty. [macOS only] Each other identity deleted in step 6 is
- * registered once with no type before its files are deleted.
+ * skipped step 6, so a changed image at the same path shows too; none when step 5 skipped
+ * step 6 with extensions empty. [macOS only] Each identity deleted in step 5 and not
+ * created again in step 6 is registered once with no type before its files are deleted.
  *
  * What is guaranteed, and what is not:
  *
- * - If any check in steps 1-4 fails, no registry key or file has been touched, except
- * for a never-set value deleted in step 3 as described above.
- * - If step 6 or 7 fails partway through because the underlying OS write itself fails,
+ * - If any check in steps 1-3 fails, no registry key or file has been touched.
+ * - If step 4, 5 or 6 fails partway through because the underlying OS write itself fails,
  * the system may be left with neither the old identity nor the complete new one
  * present; the resulting error reports this rather than asserting a specific residual
  * state.
  * - A successful return means identity declares exactly, and only, the extensions in
- * extensions - or, when extensions is empty, that identity is not registered at all.
- *
- * forgetChoices(choices, notWritable) removes the choices of a map given to chosenByHand,
- * and nothing else - Windows: the keys UserChoice and UserChoiceLatest of every extension
- * of choices, then one SHChangeNotify; macOS: every entry of LSHandlers whose content type is
- * a key of choices, then a restart of lsd, which reads LSHandlers only when it starts;
- * Linux: every line of choices from its choice file,
- * the other lines of that file kept in their order. [Linux only] A choice file that is a
- * symbolic link is written through the link. [Linux only] If any choice file is not
- * writable, it refuses with notWritable, naming all of them, and changes nothing.
- * [macOS only] If the file of the LaunchServices preferences (Library/Preferences/(domain).plist
- * in the home folder) is not writable, it refuses with notWritable naming that file, and
- * changes nothing: macOS reports no failure when it can not write that file.
- * [Windows only] A reg delete that fails ends it with notWritable applied to the
- * command and its output.
+ * extensions, and holds each of them - or, when extensions is empty, that identity is not
+ * registered at all.
  *
  * identities(belongsToFamily) is the list of step 1: every existing on-system identity
  * for which belongsToFamily holds, sorted. It changes nothing.
@@ -218,47 +214,46 @@ import utils.Bug;
  * belongsToFamily holds is deleted too. One shell or database refresh is issued for the
  * whole operation, or none at all if no identity matched.
  */
-public interface FileAssociations{
-  static void reconcile(String identity, String name, Predicate<String> belongsToFamily, Path command,
-      List<Icon> extensions, List<WindowIcon> windows, Path programPng, Consumer<Path> replaced,
+public final class FileAssociations{
+  public static void reconcile(String identity, String name, Predicate<String> belongsToFamily, Path command,
+      List<Icon> extensions, List<String> taken, List<WindowIcon> windows, Path programPng, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
-      Function<Map<String,List<String>>,RuntimeException> chosenByHand,
-      Function<Map<String,List<String>>,RuntimeException> notOurs,
+      Function<Map<String,String>,RuntimeException> notOurs,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
-    if (Fs.isWindows()){
-      WindowsAssociations.reconcile(identity, name, belongsToFamily, command, extensions, replaced,
-        ambiguous, chosenByHand, notOurs, notWritable, halfDone);
-      return;
-    }
-    if (Fs.isLinux()){
-      LinuxAssociations.reconcile(identity, name, belongsToFamily, command, extensions, windows, programPng, replaced,
-        ambiguous, chosenByHand, notOurs, notWritable, halfDone);
-      return;
-    }
-    if (Fs.isMac()){
-      MacAssociations.reconcile(identity, name, belongsToFamily, command, extensions, programPng, replaced,
-        ambiguous, chosenByHand, notOurs, notWritable, halfDone);
-      return;
-    }
-    throw Bug.unreachable();
+    var names= extensions.stream().map(Icon::extension).toList();
+    assert names.containsAll(taken);
+    var existing= identities(belongsToFamily);
+    if (existing.size() > 1){ throw ambiguous.apply(Join.of(existing, "", "\n", "")); }
+    var holders= Fs.isWindows() ? WindowsAssociations.holders(names) : Fs.isLinux() ? LinuxAssociations.holders(names) : MacAssociations.holders(names);
+    var foreign= new LinkedHashMap<>(holders);
+    foreign.keySet().removeAll(taken);
+    foreign.values().removeIf(belongsToFamily);
+    if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
+    var takenOver= names.stream().filter(e -> taken.contains(e) || !holders.getOrDefault(e, identity).equals(identity)).toList();
+    if (Fs.isWindows()){ WindowsAssociations.reconcile(identity, name, belongsToFamily, command, extensions, existing, takenOver, replaced, notWritable, halfDone); return; }
+    if (Fs.isLinux()){ LinuxAssociations.reconcile(identity, name, belongsToFamily, command, extensions, existing, takenOver, windows, programPng, replaced, notWritable, halfDone); return; }
+    MacAssociations.reconcile(identity, name, command, extensions, existing, takenOver, programPng, replaced, notWritable, halfDone);
   }
-  static List<String> identities(Predicate<String> belongsToFamily){
+  public static List<String> identities(Predicate<String> belongsToFamily){
     if (Fs.isWindows()){ return WindowsAssociations.existingIdentities(belongsToFamily); }
     if (Fs.isLinux()){ return LinuxAssociations.existingIdentities(belongsToFamily); }
     if (Fs.isMac()){ return MacAssociations.existingIdentities(belongsToFamily); }
     throw Bug.unreachable();
   }
-  static void forgetChoices(Map<String,List<String>> choices, Function<String,RuntimeException> notWritable){
-    if (Fs.isWindows()){ WindowsAssociations.forgetChoices(choices, notWritable); return; }
-    if (Fs.isLinux()){ LinuxAssociations.forgetChoices(choices, notWritable); return; }
-    if (Fs.isMac()){ MacAssociations.forgetChoices(choices, notWritable); return; }
-    throw Bug.unreachable();
-  }
-  static void eradicateAll(Predicate<String> belongsToFamily, Function<String,RuntimeException> halfDone){
-    if (Fs.isWindows()){ WindowsAssociations.eradicateAll(belongsToFamily); return; }
+  public static void eradicateAll(Predicate<String> belongsToFamily, Function<String,RuntimeException> halfDone){
+    if (Fs.isWindows()){ WindowsAssociations.eradicateAll(belongsToFamily, halfDone); return; }
     if (Fs.isLinux()){ LinuxAssociations.eradicateAll(belongsToFamily, halfDone); return; }
     if (Fs.isMac()){ MacAssociations.eradicateAll(belongsToFamily, halfDone); return; }
     throw Bug.unreachable();
+  }
+  static boolean same(List<String> existing, String identity, List<Path> files, Map<Path,byte[]> wanted){
+    var exactlyWanted= existing.stream().allMatch(identity::equals) && Set.copyOf(files).equals(wanted.keySet());
+    if (!exactlyWanted){ return false; }
+    return wanted.entrySet().stream().allMatch(e -> Arrays.equals(Fs.of(() -> Files.readAllBytes(e.getKey())), e.getValue()));
+  }
+  static String baseName(Path file){
+    var name= file.getFileName().toString();
+    return name.substring(0, name.lastIndexOf('.'));
   }
 }
