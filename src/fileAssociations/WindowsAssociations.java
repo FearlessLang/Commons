@@ -9,6 +9,7 @@ import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandle;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -24,7 +26,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import utils.Bug;
-import utils.Join;
 
 public final class WindowsAssociations{
   public record Entry(String key, String name, String data){}
@@ -35,6 +36,7 @@ public final class WindowsAssociations{
   private static final int assocChanged= 0x08000000;
   private static final int notFound= 2;
   private static final int noMoreItems= 259;
+  private static final int moreData= 234;
   private static final int regSz= 1;
   private static final int onlyRegSz= 2;
   private static final int keyRead= 0x20019;
@@ -46,12 +48,13 @@ public final class WindowsAssociations{
   public static Runnable notifyShell= WindowsAssociations::notifyShellOfChange;
   static void reconcile(String identity, String name, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, List<String> existing, List<String> takenOver, Consumer<Path> replaced,
+      Function<Map<String,String>,RuntimeException> notTaken,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
-    var choices= takenOver.stream().flatMap(e -> Stream.of(userChoiceKey(e), fileExts+e+"\\UserChoiceLatest")).toList();
-    var locked= choices.stream().flatMap(k -> tree(k).stream()).filter(k -> !deletable(k)).toList();
-    if (!locked.isEmpty()){ throw notWritable.apply(Join.of(locked, "", "\n", "")); }
-    choices.forEach(k -> deleteKey(k, notWritable));
+    var locked= new LinkedHashMap<String,List<String>>();
+    takenOver.forEach(e -> locked.put(e, choices(e).flatMap(k -> tree(k).stream()).filter(k -> !deletable(k)).toList()));
+    FileAssociations.refuseUntaken(locked, notTaken);
+    takenOver.stream().flatMap(WindowsAssociations::choices).forEach(k -> deleteKey(k, notWritable));
     var left= leftovers(existing, belongsToFamily);
     if (left.isEmpty() && alreadyMatches(existing, identity, name, command, extensions)){ if (!extensions.isEmpty()){ notifyShell.run(); } return; }
     existing.forEach(s -> commandOf(s).filter(c -> !c.equals(command)).ifPresent(replaced));
@@ -78,6 +81,7 @@ public final class WindowsAssociations{
     return subkeys(softwareRoot+"\\Classes").stream()
       .filter(p -> p.lastIndexOf('.') > 0 && belongsToFamily.test(p.substring(0, p.lastIndexOf('.'))) && !declared.contains(p)).toList();
   }
+  private static Stream<String> choices(String ext){ return Stream.of(userChoiceKey(ext), fileExts+ext+"\\UserChoiceLatest"); }
   private static List<String> tree(String key){ return Stream.concat(Stream.of(key), subkeys(key).stream().flatMap(s -> tree(key+"\\"+s).stream())).toList(); }
   private static boolean deletable(String key){
     var result= Arena.ofAuto().allocate(ValueLayout.ADDRESS);
@@ -138,6 +142,7 @@ public final class WindowsAssociations{
     forgetOpenWithHistory(ext, belongsToFamily, halfDone);
   }
   private static void forgetOpenWithHistory(String ext, Predicate<String> belongsToFamily, Function<String,RuntimeException> halfDone){
+    if (subkeys(fileExts+ext).isEmpty()){ return; }
     var listKey= fileExts+ext+"\\OpenWithList";
     values(listKey).forEach((name,exe) -> {
       if (!name.equals("MRUList") && belongsToFamily.test(exe)){ deleteValue(listKey, name, halfDone); }
@@ -173,11 +178,11 @@ public final class WindowsAssociations{
   public static String progId(String identity, String ext){ return identity+"."+ext.substring(1); }
   private static Optional<String> value(String key, String name){
     var size= Arena.ofAuto().allocate(ValueLayout.JAVA_INT);
-    if (reg("RegGetValueW", key, wide(name), onlyRegSz, MemorySegment.NULL, MemorySegment.NULL, size) != 0){ return Optional.empty(); }
-    var data= Arena.ofAuto().allocate(size.get(ValueLayout.JAVA_INT, 0));
-    var read= reg("RegGetValueW", key, wide(name), onlyRegSz, MemorySegment.NULL, data, size);
-    assert read == 0;
-    return Optional.of(data.getString(0, UTF_16LE));
+    size.set(ValueLayout.JAVA_INT, 0, 1024);
+    var data= Arena.ofAuto().allocate(1024);
+    var status= reg("RegGetValueW", key, wide(name), onlyRegSz, MemorySegment.NULL, data, size);
+    if (status == moreData){ data = Arena.ofAuto().allocate(size.get(ValueLayout.JAVA_INT, 0)); status = reg("RegGetValueW", key, wide(name), onlyRegSz, MemorySegment.NULL, data, size); }
+    return status == 0 ? Optional.of(data.getString(0, UTF_16LE)) : Optional.empty();
   }
   private static Map<String,String> values(String key){
     var res= new LinkedHashMap<String,String>();
@@ -232,10 +237,14 @@ public final class WindowsAssociations{
     @SuppressWarnings("restricted")
     static final SymbolLookup lib= Stream.of("advapi32.dll", "kernel32.dll", "shell32.dll").map(n -> SymbolLookup.libraryLookup(n, Arena.global())).reduce(SymbolLookup::or).orElseThrow();
   }
+  private static final Map<String,MethodHandle> handles= new ConcurrentHashMap<>();
   @SuppressWarnings("restricted")
-  private static int call(String function, Object... args){
+  private static MethodHandle handle(String function, Object... args){
     var layouts= Stream.of(args).map(a -> a instanceof Integer ? ValueLayout.JAVA_INT : ValueLayout.ADDRESS).toArray(MemoryLayout[]::new);
-    try{ return (int)Linker.nativeLinker().downcallHandle(Desktop.lib.find(function).orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_INT, layouts)).invokeWithArguments(args); }
+    return Linker.nativeLinker().downcallHandle(Desktop.lib.find(function).orElseThrow(), FunctionDescriptor.of(ValueLayout.JAVA_INT, layouts));
+  }
+  private static int call(String function, Object... args){
+    try{ return (int)handles.computeIfAbsent(function, f -> handle(f, args)).invokeWithArguments(args); }
     catch (Throwable e){ throw Bug.of(e); }
   }
   @SuppressWarnings("restricted")

@@ -10,16 +10,19 @@ import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandle;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -31,7 +34,6 @@ import tools.Fs;
 import utils.Bug;
 import utils.Join;
 import utils.Range;
-import utils.Streams;
 
 public final class MacAssociations{
   public record Declared(String type, Path bundle){}
@@ -45,14 +47,19 @@ public final class MacAssociations{
   private static final int utf8= 0x08000100;
   static void reconcile(String identity, String name, Path command,
       List<Icon> extensions, List<String> existing, List<String> takenOver, Path programPng, Consumer<Path> replaced,
+      Function<Map<String,String>,RuntimeException> notTaken,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
+    var choices= Path.of(System.getProperty("user.home"), "Library", "Preferences", preferences+".plist");
+    var untaken= new LinkedHashMap<String,List<String>>();
+    var blocked= LinuxAssociations.writableForCreation(choices) ? List.<String>of() : List.of(choices.toString());
+    takenOver.forEach(e -> untaken.put(e, blocked));
+    FileAssociations.refuseUntaken(untaken, notTaken);
     var others= new LinkedHashMap<String,Declared>();
     for (var i : extensions){ declared.apply(i.extension().substring(1)).stream().filter(d -> !d.bundle().startsWith(home)).findFirst().ifPresent(d -> others.put(i.extension(), d)); }
     var unwritable= existing.stream().flatMap(s -> Fs.walk(bundle(s), f -> f.filter(Files::isDirectory).toList()).stream()).filter(d -> !Files.isWritable(d));
     var targets= extensions.isEmpty() && existing.isEmpty() ? Stream.<Path>of() : Stream.of(home).filter(d -> !LinuxAssociations.writableForCreation(d));
-    var choices= takenOver.isEmpty() ? Stream.<Path>of() : Stream.of(Path.of(System.getProperty("user.home"), "Library", "Preferences", preferences+".plist")).filter(f -> !LinuxAssociations.writableForCreation(f));
-    var refused= Streams.of(unwritable, targets, choices).map(Path::toString).toList();
+    var refused= Stream.concat(unwritable, targets).map(Path::toString).toList();
     if (!refused.isEmpty()){ throw notWritable.apply(Join.of(refused, "", "\n", "")); }
     if (!takenOver.isEmpty()){ choose(takenOver.stream().map(e -> typeOf(identity, others, e)).toList(), identity.replace('_', '-'), notWritable); }
     var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, name, command, extensions, programPng, others);
@@ -97,7 +104,7 @@ public final class MacAssociations{
     return type.equals(MemorySegment.NULL) ? Optional.empty() : Optional.of(text(type));
   }
   private static String text(MemorySegment cf){
-    var buffer= Arena.global().allocate(4096);
+    var buffer= Arena.ofAuto().allocate(4096);
     boolean converted= call("CFStringGetCString", ValueLayout.JAVA_BOOLEAN, cf, buffer, 4096L, utf8);
     assert converted;
     return buffer.getString(0);
@@ -135,32 +142,39 @@ public final class MacAssociations{
   private static Map<Path,byte[]> wanted(String identity, String name, Path command, List<Icon> icons, Path programPng, Map<String,Declared> others){
     var res= new LinkedHashMap<Path,byte[]>();
     var contents= bundle(identity).resolve("Contents");
-    var documents= new StringBuilder();
+    var documents= new LinkedHashMap<List<String>,List<String>>();
     var exported= new StringBuilder();
+    var names= new HashMap<Path,String>();
     for (var i : icons){
       var ext= i.extension().substring(1);
       var other= Optional.ofNullable(others.get(i.extension()));
-      res.put(contents.resolve("Resources").resolve(ext+".icns"), icns(i.png()));
-      documents.append(document(ext, typeOf(identity, others, i.extension()), other.isPresent() ? "Alternate" : "Owner"));
-      if (other.isEmpty()){ exported.append(exported(identity, ext)); }
+      var icon= names.computeIfAbsent(i.png(), p -> icns(res, contents.resolve("Resources"), p));
+      documents.computeIfAbsent(List.of(icon, other.isPresent() ? "Alternate" : "Owner"), _ -> new ArrayList<>()).add(typeOf(identity, others, i.extension()));
+      if (other.isEmpty()){ exported.append(exported(identity, ext, icon)); }
     }
     res.put(contents.resolve("Resources").resolve("_program.icns"), icns(programPng));
     res.put(contents.resolve("Resources").resolve("en.lproj").resolve("InfoPlist.strings"), ("CFBundleDisplayName = \""+name+"\";\n").getBytes(UTF_8));
-    res.put(contents.resolve("Info.plist"), plist(identity, name, documents.toString(), exported.toString()).getBytes(UTF_8));
+    res.put(contents.resolve("Info.plist"), plist(identity, name, Join.of(documents.entrySet().stream().map(d -> document(d.getKey().getFirst(), d.getValue(), d.getKey().getLast())), "", "", "", ""), exported.toString()).getBytes(UTF_8));
     res.put(contents.resolve("MacOS").resolve(identity), ("#!/bin/sh\nexec '"+command.toString().replace("'", "'\\''")+"' FearlessCommandOpened\n").getBytes(UTF_8));
     return Collections.unmodifiableMap(res);
+  }
+  private static String icns(Map<Path,byte[]> res, Path resources, Path png){
+    var bytes= icns(png);
+    var name= LinuxAssociations.hash(bytes)+".icns";
+    res.put(resources.resolve(name), bytes);
+    return name;
   }
   private static byte[] icns(Path png){
     var image= Ico.png(png);
     return ByteBuffer.allocate(16 + image.length).put("icns".getBytes(UTF_8)).putInt(16 + image.length).put("ic08".getBytes(UTF_8)).putInt(8 + image.length).put(image).array();
   }
   private static String string(String value){ return "<string>"+value+"</string>"; }
-  private static String document(String ext, String type, String rank){
-    return "<dict><key>CFBundleTypeRole</key>"+string("Viewer")+"<key>CFBundleTypeIconFile</key>"+string(ext+".icns")
-      +"<key>LSHandlerRank</key>"+string(rank)+"<key>LSItemContentTypes</key><array>"+string(type)+"</array></dict>\n";
+  private static String document(String icon, List<String> types, String rank){
+    return "<dict><key>CFBundleTypeRole</key>"+string("Viewer")+"<key>CFBundleTypeIconFile</key>"+string(icon)
+      +"<key>LSHandlerRank</key>"+string(rank)+"<key>LSItemContentTypes</key><array>"+Join.of(types.stream().map(MacAssociations::string), "", "", "")+"</array></dict>\n";
   }
-  private static String exported(String identity, String ext){
-    return "<dict><key>UTTypeIdentifier</key>"+string(typeOf(identity, "."+ext))+"<key>UTTypeIconFile</key>"+string(ext+".icns")
+  private static String exported(String identity, String ext, String icon){
+    return "<dict><key>UTTypeIdentifier</key>"+string(typeOf(identity, "."+ext))+"<key>UTTypeIconFile</key>"+string(icon)
       +"<key>UTTypeConformsTo</key><array>"+string("public.data")+"</array>"
       +"<key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array>"+string(ext)+"</array></dict></dict>\n";
   }
@@ -196,24 +210,27 @@ public final class MacAssociations{
       default -> throw Bug.unreachable();
     };
   }
-  @SuppressWarnings({"unchecked", "restricted"})
+  private static final Map<List<Object>,MethodHandle> handles= new ConcurrentHashMap<>();
+  @SuppressWarnings("restricted")
+  private static MethodHandle handle(List<Object> key){ return Linker.nativeLinker().downcallHandle(Desktop.lib.find((String)key.getFirst()).orElseThrow(), (FunctionDescriptor)key.getLast()); }
+  @SuppressWarnings("unchecked")
   private static <T> T call(String name, MemoryLayout res, Object... args){
     var layouts= Stream.of(args).map(MacAssociations::layout).toArray(MemoryLayout[]::new);
     var type= res == null ? FunctionDescriptor.ofVoid(layouts) : FunctionDescriptor.of(res, layouts);
-    try{ return (T)Linker.nativeLinker().downcallHandle(Desktop.lib.find(name).orElseThrow(), type).invokeWithArguments(args); }
+    try{ return (T)handles.computeIfAbsent(List.of(name, type), MacAssociations::handle).invokeWithArguments(args); }
     catch (Throwable e){ throw Bug.of(e); }
   }
   private static MemorySegment ptr(String name, Object... args){ return call(name, ValueLayout.ADDRESS, args); }
   private static MemorySegment symbol(String name){ return Desktop.lib.find(name).orElseThrow(); }
-  private static MemorySegment cfString(String s){ return ptr("CFStringCreateWithCString", MemorySegment.NULL, Arena.global().allocateFrom(s), utf8); }
+  private static MemorySegment cfString(String s){ return ptr("CFStringCreateWithCString", MemorySegment.NULL, Arena.ofAuto().allocateFrom(s), utf8); }
   private static MemorySegment cfUrl(Path p){
     var bytes= p.toString().getBytes(UTF_8);
-    return ptr("CFURLCreateFromFileSystemRepresentation", MemorySegment.NULL, Arena.global().allocateFrom(ValueLayout.JAVA_BYTE, bytes), (long)bytes.length, true);
+    return ptr("CFURLCreateFromFileSystemRepresentation", MemorySegment.NULL, Arena.ofAuto().allocateFrom(ValueLayout.JAVA_BYTE, bytes), (long)bytes.length, true);
   }
   private static List<Declared> declaredOnDesktop(String ext){
     var types= ptr("UTTypeCreateAllIdentifiersForTag", cfString("public.filename-extension"), cfString(ext), MemorySegment.NULL);
     var res= new ArrayList<Declared>();
-    var buffer= Arena.global().allocate(4096);
+    var buffer= Arena.ofAuto().allocate(4096);
     for (int i : Range.of(0, (int)count(types))){
       var type= ptr("CFArrayGetValueAtIndex", types, (long)i);
       var url= ptr("UTTypeCopyDeclaringBundleURL", type);
@@ -230,7 +247,7 @@ public final class MacAssociations{
     var type= ptr("UTTypeCreatePreferredIdentifierForTag", cfString("public.filename-extension"), cfString(ext.substring(1)), MemorySegment.NULL);
     var url= ptr("LSCopyDefaultApplicationURLForContentType", type, -1, MemorySegment.NULL);
     if (url.equals(MemorySegment.NULL)){ return Optional.empty(); }
-    var buffer= Arena.global().allocate(4096);
+    var buffer= Arena.ofAuto().allocate(4096);
     boolean located= call("CFURLGetFileSystemRepresentation", ValueLayout.JAVA_BOOLEAN, url, true, buffer, 4096L);
     assert located;
     return Optional.of(Path.of(buffer.getString(0)));

@@ -12,12 +12,15 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -37,12 +40,19 @@ import utils.Streams;
 public final class LinuxAssociations{
   public static Function<String,String> env= System::getenv;
   public static BiConsumer<List<String>,Function<String,RuntimeException>> run= LinuxAssociations::req;
+  private static final Map<String,Pattern> regexes= new ConcurrentHashMap<>();
   private static final Pattern declared= Pattern.compile("<mime-type type=[\"']([^\"']*)[\"']");
   record Glob(int weight, String type, String pattern, boolean cs){
     boolean matches(String name){
+      var shown= cs ? pattern : pattern.toLowerCase(Locale.ROOT);
+      var suffix= shown.startsWith("*") && shown.chars().skip(1).noneMatch(c -> "*?[".indexOf(c) >= 0);
+      if (suffix){ return name.endsWith(shown.substring(1)); }
+      return regexes.computeIfAbsent(shown, Glob::regex).matcher(name).matches();
+    }
+    private static Pattern regex(String shown){
       var regex= new StringBuilder();
-      for (var c : (cs ? pattern : pattern.toLowerCase(Locale.ROOT)).replace("[!", "[^").toCharArray()){ regex.append(wildcard(c)); }
-      return name.matches(regex.toString());
+      for (var c : shown.replace("[!", "[^").toCharArray()){ regex.append(wildcard(c)); }
+      return Pattern.compile(regex.toString());
     }
     private static String wildcard(char c){
       return switch (c){
@@ -55,15 +65,19 @@ public final class LinuxAssociations{
   }
   static void reconcile(String identity, String name, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, List<String> existing, List<String> takenOver, List<WindowIcon> windows, Path programPng, Consumer<Path> replaced,
+      Function<Map<String,String>,RuntimeException> notTaken,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
-    var types= takenOver.stream().map(LinuxAssociations::typeOf).toList();
+    var types= takenOver.stream().map(LinuxAssociations::typeOf).collect(Collectors.toUnmodifiableSet());
     var chosen= choiceFiles().stream().filter(f -> lines(f).stream().anyMatch(l -> keyed(l, types))).toList();
+    var untaken= new LinkedHashMap<String,List<String>>();
+    takenOver.forEach(e -> untaken.put(e, chosen.stream().filter(f -> !Files.isWritable(f) && lines(f).stream().anyMatch(l -> keyed(l, Set.of(typeOf(e))))).map(Path::toString).toList()));
+    FileAssociations.refuseUntaken(untaken, notTaken);
     var unwritable= registrations().stream().filter(f -> existing.contains(identityOf(f)))
       .flatMap(f -> Stream.of(f, f.getParent())).distinct().filter(f -> !Files.isWritable(f));
     var targets= (extensions.isEmpty() && existing.isEmpty()) ? Stream.<Path>of()
       : Stream.of(home("applications"), home("mime/packages"), iconDir("mimetypes"), iconDir("apps")).filter(d -> !writableForCreation(d));
-    var refused= Streams.of(unwritable, targets, chosen.stream().filter(f -> !Files.isWritable(f))).map(Path::toString).toList();
+    var refused= Stream.concat(unwritable, targets).map(Path::toString).toList();
     if (!refused.isEmpty()){ throw notWritable.apply(Join.of(refused, "", "\n", "")); }
     chosen.forEach(f -> Fs.ofV(() -> Files.writeString(f, Join.of(lines(f).stream().filter(l -> !keyed(l, types)), "", "\n", "\n", ""))));
     var wanted= extensions.isEmpty() ? Map.<Path,byte[]>of() : wanted(identity, name, command, extensions, windows, programPng, globs(belongsToFamily));
@@ -83,38 +97,40 @@ public final class LinuxAssociations{
   }
   static Map<String,String> holders(List<String> extensions){
     var database= globs(_ -> false);
-    var parents= mimeDirs().stream().flatMap(d -> fields(d.resolve("subclasses"), " ")).toList();
+    var parents= mimeDirs().stream().flatMap(d -> fields(d.resolve("subclasses"), " ")).collect(Collectors.groupingBy(p -> p.get(0), Collectors.mapping(p -> p.get(1), Collectors.toList())));
+    var installed= desktops().map(f -> f.getFileName().toString()).collect(Collectors.toUnmodifiableSet());
+    var choices= entries();
+    var listing= new HashMap<String,List<String>>();
+    desktops().gather(DistinctBy.of(Path::getFileName)).forEach(f -> opens(f).distinct().forEach(t -> listing.computeIfAbsent(t, _ -> new ArrayList<>()).add(f.getFileName().toString())));
     var res= new LinkedHashMap<String,String>();
-    extensions.forEach(e -> holder(e, database, parents).ifPresent(h -> res.put(e, h)));
+    for (var e : extensions){
+      var types= database.stream().filter(g -> g.matches("x"+e)).max(Comparator.comparingInt(Glob::weight)).map(Glob::type).stream().collect(Collectors.toCollection(ArrayList::new));
+      for (var i= 0; i<types.size(); i++){ parents.getOrDefault(types.get(i), List.of()).stream().filter(p -> !types.contains(p)).forEach(types::add); }
+      types.stream().flatMap(t -> holderOf(t, installed, choices, listing).stream()).findFirst().ifPresent(h -> res.put(e, h));
+    }
     return res;
   }
-  private static Optional<String> holder(String ext, List<Glob> database, List<List<String>> parents){
-    var types= database.stream().filter(g -> g.matches("x"+ext)).max(Comparator.comparingInt(Glob::weight)).map(Glob::type).stream().collect(Collectors.toCollection(ArrayList::new));
-    for (var i= 0; i<types.size(); i++){
-      var type= types.get(i);
-      parents.stream().filter(p -> p.get(0).equals(type) && !types.contains(p.get(1))).forEach(p -> types.add(p.get(1)));
-    }
-    return types.stream().flatMap(t -> holderOf(t).stream()).findFirst();
-  }
-  private static Optional<String> holderOf(String type){
-    var installed= desktops().map(f -> f.getFileName().toString()).toList();
-    var removed= entries("[Removed Associations]", type).toList();
-    var listing= desktops().gather(DistinctBy.of(Path::getFileName)).filter(f -> opens(f).anyMatch(type::equals)).map(f -> f.getFileName().toString());
-    return Stream.concat(entries("[Default Applications]", type), Stream.concat(entries("[Added Associations]", type), listing).filter(n -> !removed.contains(n)))
+  private static Optional<String> holderOf(String type, Set<String> installed, Map<String,Map<String,List<String>>> choices, Map<String,List<String>> listing){
+    Function<String,List<String>> in= section -> choices.getOrDefault(section, Map.of()).getOrDefault(type, List.of());
+    var removed= in.apply("[Removed Associations]");
+    return Stream.concat(in.apply("[Default Applications]").stream(), Stream.concat(in.apply("[Added Associations]").stream(), listing.getOrDefault(type, List.of()).stream()).filter(n -> !removed.contains(n)))
       .filter(installed::contains).findFirst().map(n -> n.replaceFirst("\\.desktop$", ""));
   }
-  private static Stream<String> entries(String section, String type){
-    var res= new ArrayList<String>();
+  private static Map<String,Map<String,List<String>>> entries(){
+    var res= new HashMap<String,Map<String,List<String>>>();
     for (var list : choiceFiles()){
       var here= "";
       for (var l : lines(list).stream().map(String::strip).toList()){
         if (l.startsWith("[")){ here = l; continue; }
-        if (here.equals(section) && keyed(l, List.of(type))){ split(l.substring(l.indexOf('=') + 1)).forEach(res::add); }
+        var eq= l.indexOf('=');
+        if (eq <= 0){ continue; }
+        var types= res.computeIfAbsent(here, _ -> new HashMap<>()).computeIfAbsent(l.substring(0, eq).strip(), _ -> new ArrayList<>());
+        split(l.substring(eq + 1)).forEach(types::add);
       }
     }
-    return res.stream();
+    return res;
   }
-  private static boolean keyed(String line, List<String> types){
+  private static boolean keyed(String line, Set<String> types){
     var eq= line.indexOf('=');
     return eq>0 && types.contains(line.substring(0, eq).strip());
   }
@@ -169,11 +185,12 @@ public final class LinuxAssociations{
   private static Map<Path,byte[]> wanted(String identity, String name, Path command, List<Icon> extensions, List<WindowIcon> windows, Path programPng, List<Glob> globs){
     var res= new LinkedHashMap<Path,byte[]>();
     var body= new StringBuilder();
+    var names= new HashMap<Path,String>();
     for (var icon : extensions){
-      body.append(mimeType(icon.extension(), icon(res, identity, icon.png()), globs));
+      body.append(mimeType(icon.extension(), names.computeIfAbsent(icon.png(), p -> icon(res, identity, p)), globs));
     }
     for (var w : windows){
-      var entry= windowEntry(iconDir("mimetypes").resolve(icon(res, identity, w.png())+".png").toString(), command.toString(), w);
+      var entry= windowEntry(iconDir("mimetypes").resolve(names.computeIfAbsent(w.png(), p -> icon(res, identity, p))+".png").toString(), command.toString(), w);
       res.put(home("applications").resolve(identity+"-"+hash(utf8(w.windowClass()))+".desktop"), utf8(entry));
     }
     var types= extensions.stream().map(i -> typeOf(i.extension())).toList();
@@ -259,7 +276,7 @@ Terminal=false
     catch (IOException e){ throw new UncheckedIOException(e); }
   }
   private static String identityOf(Path file){ return baseName(file).replaceFirst("-[0-9a-f]+$", ""); }
-  private static Path dataHome(){ return dir("XDG_DATA_HOME", userHome().resolve(".local").resolve("share")); }
+  static Path dataHome(){ return dir("XDG_DATA_HOME", userHome().resolve(".local").resolve("share")); }
   private static Path configHome(){ return dir("XDG_CONFIG_HOME", userHome().resolve(".config")); }
   private static Path userHome(){ return Path.of(System.getProperty("user.home")); }
   private static List<Path> dataDirs(){ return dirs("XDG_DATA_DIRS", List.of(Path.of("/usr/local/share"), Path.of("/usr/share"))); }

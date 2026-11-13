@@ -1,7 +1,11 @@
 package fileAssociations;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -33,7 +37,7 @@ import utils.Join;
  * [Linux and macOS only] Windows uses the icon inside command.
  * - replaced: applied in step 5 to the command of every identity found in step 1 whose
  * command is not command, before that identity is deleted.
- * - ambiguous, notOurs, notWritable, halfDone: one function per kind of failure, each
+ * - ambiguous, notOurs, notTaken, notWritable, halfDone: one function per kind of failure, each
  * turning what was found into the exception reconcile throws.
  *
  * Each extension is of one of two kinds, given by its text (Icon.system): .fearless,
@@ -78,7 +82,7 @@ import utils.Join;
  * fearlessAssociations declares. The helper bundle of an identity holds only regular
  * files: Contents/Info.plist, Contents/MacOS/(identity), a script running the command
  * of the identity with the one argument FearlessCommandOpened, and in Contents/Resources one icns
- * file for each extension and one for the program, and en.lproj/InfoPlist.strings, giving name as the
+ * file for each image of an extension and one for the program, and en.lproj/InfoPlist.strings, giving name as the
  * CFBundleDisplayName (macOS shows that name only when the Info.plist names the bundle by its file name).
  *
  * [Linux only] A program opens MIME types, not extensions. The type of .fearless is
@@ -95,6 +99,10 @@ import utils.Join;
  * $XDG_CURRENT_DESKTOP in lower case, in $XDG_CONFIG_HOME, in every $XDG_CONFIG_DIRS entry
  * and in every applications folder.
  *
+ * reconcile and eradicateAll hold, from start to end, the lock of the file
+ * fearlessAssociations.lock in lockFolder: the folder of the data of the user
+ * (%LOCALAPPDATA% on Windows, $XDG_DATA_HOME on Linux, ~/Library/Application Support on macOS).
+ *
  * Checks performed before any state is changed:
  *
  * 1. Every existing on-system identity for which belongsToFamily holds is collected -
@@ -109,18 +117,21 @@ import utils.Join;
  * holder, and changes nothing. The taken over extensions are the extensions of taken, and
  * the extensions whose holder is in the family and is not identity itself.
  *
- * 3. Every location identity would need to write to, and every location an
- * identity marked for removal would need to be removed from, is confirmed writable - Windows: the
- * user holds the right DELETE on the keys UserChoice and UserChoiceLatest of every taken over
- * extension, and on each of their subkeys; the other registry keys under HKCU are always
- * removable by their owner; Linux: every
+ * 3. Every location step 4 would need to change for a taken over extension is confirmed
+ * writable - Windows: the user holds the right DELETE on the keys UserChoice and
+ * UserChoiceLatest of the extension, and on each of their subkeys; Linux: every choice file of
+ * step 4 for the type of the extension; macOS: the file of the LaunchServices preferences
+ * (Library/Preferences/(preferences).plist in the home folder): macOS reports no failure when
+ * it can not write that file. If any are not writable, the operation refuses with notTaken
+ * applied to a map from each such extension, in the order of extensions, to those locations,
+ * one per line.
+ * Then every other location identity would need to write to, and every location an
+ * identity marked for removal would need to be removed from, is confirmed writable - Windows:
+ * the registry keys under HKCU are always removable by their owner; Linux: every
  * such .desktop file, MIME-package file, and (when the whole file would be deleted) its
- * containing directory, the icon folders mimetypes and apps, and every choice file of
- * step 4; macOS: every folder of the helper bundle of an identity found in step 1, the
- * folder fearlessAssociations, and, when an extension is taken over, the file of the
- * LaunchServices preferences (Library/Preferences/(preferences).plist in the home folder):
- * macOS reports no failure when it can not write that file. If any are not writable, the
- * operation refuses with notWritable, naming all of them.
+ * containing directory, and the icon folders mimetypes and apps; macOS: every folder of the
+ * helper bundle of an identity found in step 1, and the folder fearlessAssociations. If any
+ * are not writable, the operation refuses with notWritable, naming all of them.
  *
  * What happens once all checks pass:
  *
@@ -191,7 +202,8 @@ import utils.Join;
  * extension, with "-" for every "_" and in lower case): the helper bundle exports that
  * type and opens that type with the rank Owner. For an extension with a declared type, the helper bundle
  * opens the declared type with the rank Alternate, so identity is one of the "Open
- * With" programs of the extension.
+ * With" programs of the extension. The icon of an extension is the file
+ * Contents/Resources/(hex hash of the icns).icns: extensions with the same image share one file.
  *
  * 7. One shell or database refresh is issued for the whole of steps 4-6 combined -
  * SHChangeNotify once (Windows) or update-mime-database/update-desktop-database once
@@ -224,10 +236,21 @@ import utils.Join;
  * found.
  */
 public final class FileAssociations{
+  public static Path lockFolder= Fs.isWindows() ? Path.of(System.getenv("LOCALAPPDATA")) : Fs.isLinux() ? LinuxAssociations.dataHome() : MacAssociations.home.getParent();
   public static void reconcile(String identity, String name, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, List<String> taken, List<WindowIcon> windows, Path programPng, Consumer<Path> replaced,
       Function<String,RuntimeException> ambiguous,
       Function<Map<String,String>,RuntimeException> notOurs,
+      Function<Map<String,String>,RuntimeException> notTaken,
+      Function<String,RuntimeException> notWritable,
+      Function<String,RuntimeException> halfDone){
+    locked(() -> _reconcile(identity, name, belongsToFamily, command, extensions, taken, windows, programPng, replaced, ambiguous, notOurs, notTaken, notWritable, halfDone));
+  }
+  private static void _reconcile(String identity, String name, Predicate<String> belongsToFamily, Path command,
+      List<Icon> extensions, List<String> taken, List<WindowIcon> windows, Path programPng, Consumer<Path> replaced,
+      Function<String,RuntimeException> ambiguous,
+      Function<Map<String,String>,RuntimeException> notOurs,
+      Function<Map<String,String>,RuntimeException> notTaken,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
     var names= extensions.stream().map(Icon::extension).toList();
@@ -240,9 +263,9 @@ public final class FileAssociations{
     foreign.values().removeIf(belongsToFamily);
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
     var takenOver= names.stream().filter(e -> taken.contains(e) || !holders.getOrDefault(e, identity).equals(identity)).toList();
-    if (Fs.isWindows()){ WindowsAssociations.reconcile(identity, name, belongsToFamily, command, extensions, existing, takenOver, replaced, notWritable, halfDone); return; }
-    if (Fs.isLinux()){ LinuxAssociations.reconcile(identity, name, belongsToFamily, command, extensions, existing, takenOver, windows, programPng, replaced, notWritable, halfDone); return; }
-    MacAssociations.reconcile(identity, name, command, extensions, existing, takenOver, programPng, replaced, notWritable, halfDone);
+    if (Fs.isWindows()){ WindowsAssociations.reconcile(identity, name, belongsToFamily, command, extensions, existing, takenOver, replaced, notTaken, notWritable, halfDone); return; }
+    if (Fs.isLinux()){ LinuxAssociations.reconcile(identity, name, belongsToFamily, command, extensions, existing, takenOver, windows, programPng, replaced, notTaken, notWritable, halfDone); return; }
+    MacAssociations.reconcile(identity, name, command, extensions, existing, takenOver, programPng, replaced, notTaken, notWritable, halfDone);
   }
   public static List<String> identities(Predicate<String> belongsToFamily){
     if (Fs.isWindows()){ return WindowsAssociations.existingIdentities(belongsToFamily); }
@@ -251,10 +274,21 @@ public final class FileAssociations{
     throw Bug.unreachable();
   }
   public static void eradicateAll(Predicate<String> belongsToFamily, Function<String,RuntimeException> halfDone){
-    if (Fs.isWindows()){ WindowsAssociations.eradicateAll(belongsToFamily, halfDone); return; }
-    if (Fs.isLinux()){ LinuxAssociations.eradicateAll(belongsToFamily, halfDone); return; }
-    if (Fs.isMac()){ MacAssociations.eradicateAll(belongsToFamily, halfDone); return; }
-    throw Bug.unreachable();
+    locked(() -> {
+      if (Fs.isWindows()){ WindowsAssociations.eradicateAll(belongsToFamily, halfDone); return; }
+      if (Fs.isLinux()){ LinuxAssociations.eradicateAll(belongsToFamily, halfDone); return; }
+      MacAssociations.eradicateAll(belongsToFamily, halfDone);
+    });
+  }
+  private static void locked(Runnable body){
+    Fs.ensureDir(lockFolder);
+    try (var ch= FileChannel.open(lockFolder.resolve("fearlessAssociations.lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE)){ ch.lock(); body.run(); }
+    catch (IOException e){ throw new UncheckedIOException(e); }
+  }
+  static void refuseUntaken(Map<String,List<String>> locations, Function<Map<String,String>,RuntimeException> notTaken){
+    var res= new LinkedHashMap<String,String>();
+    locations.forEach((e, ls) -> { if (!ls.isEmpty()){ res.put(e, Join.of(ls, "", "\n", "")); } });
+    if (!res.isEmpty()){ throw notTaken.apply(Collections.unmodifiableMap(res)); }
   }
   static boolean same(List<String> existing, String identity, List<Path> files, Map<Path,byte[]> wanted){
     var exactlyWanted= existing.stream().allMatch(identity::equals) && Set.copyOf(files).equals(wanted.keySet());
