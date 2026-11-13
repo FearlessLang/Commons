@@ -122,7 +122,7 @@ import utils.Join;
  * UserChoiceLatest of the extension, and on each of their subkeys; Linux: every choice file of
  * step 4 for the type of the extension; macOS: the file of the LaunchServices preferences
  * (Library/Preferences/(preferences).plist in the home folder): macOS reports no failure when
- * it can not write that file. If any are not writable, the operation refuses with notTaken
+ * it cannot write that file. If any are not writable, the operation refuses with notTaken
  * applied to a map from each such extension, in the order of extensions, to those locations,
  * one per line.
  * Then every other location identity would need to write to, and every location an
