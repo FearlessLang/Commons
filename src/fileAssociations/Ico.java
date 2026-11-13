@@ -37,7 +37,7 @@ public final class Ico{
     frames.forEach(out::writeBytes);
     Fs.ofV(() -> Files.write(ico, out.toByteArray()));
   }
-  static byte[] png(Path png){ return png(scaled(Objects.requireNonNull(Fs.of(() -> ImageIO.read(png.toFile()))), 256)); }
+  public static byte[] png(Path png){ return png(scaled(Objects.requireNonNull(Fs.of(() -> ImageIO.read(png.toFile()))), 256)); }
   private static BufferedImage scaled(BufferedImage img, int size){
     var res= img;
     while (res.getWidth() > 2*size){ res = draw(res, res.getWidth() / 2); }
