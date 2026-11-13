@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import utils.Bug;
+import utils.Join;
 
 public final class WindowsAssociations{
   public record Entry(String key, String name, String data){}
@@ -37,30 +38,52 @@ public final class WindowsAssociations{
   private static final int regSz= 1;
   private static final int onlyRegSz= 2;
   private static final int keyRead= 0x20019;
+  private static final int delete= 0x00010000;
+  private static final int accessDenied= 5;
   private static final int nameMax= 16384;
   private static final int formatFromSystem= 0x12FF;
   private static final Pattern opened= Pattern.compile("\"([^\"]*)\" \"%1\"");
+  public static Runnable notifyShell= WindowsAssociations::notifyShellOfChange;
   static void reconcile(String identity, String name, Predicate<String> belongsToFamily, Path command,
       List<Icon> extensions, List<String> existing, List<String> takenOver, Consumer<Path> replaced,
       Function<String,RuntimeException> notWritable,
       Function<String,RuntimeException> halfDone){
-    takenOver.stream().flatMap(e -> Stream.of(userChoiceKey(e), fileExts+e+"\\UserChoiceLatest")).forEach(k -> deleteKey(k, notWritable));
-    if (alreadyMatches(existing, identity, name, command, extensions)){ if (!extensions.isEmpty()){ notifyShellOfChange(); } return; }
+    var choices= takenOver.stream().flatMap(e -> Stream.of(userChoiceKey(e), fileExts+e+"\\UserChoiceLatest")).toList();
+    var locked= choices.stream().flatMap(k -> tree(k).stream()).filter(k -> !deletable(k)).toList();
+    if (!locked.isEmpty()){ throw notWritable.apply(Join.of(locked, "", "\n", "")); }
+    choices.forEach(k -> deleteKey(k, notWritable));
+    var left= leftovers(existing, belongsToFamily);
+    if (left.isEmpty() && alreadyMatches(existing, identity, name, command, extensions)){ if (!extensions.isEmpty()){ notifyShell.run(); } return; }
     existing.forEach(s -> commandOf(s).filter(c -> !c.equals(command)).ifPresent(replaced));
     existing.forEach(s -> eradicate(s, belongsToFamily, halfDone));
+    left.forEach(p -> dropClaim("."+p.substring(p.lastIndexOf('.') + 1), p, belongsToFamily, halfDone));
     if (!extensions.isEmpty()){
       extensions.forEach(icon -> forgetOpenWithHistory(icon.extension(), belongsToFamily, halfDone));
       var previous= new LinkedHashMap<String,String>();
       extensions.forEach(icon -> value(classes+icon.extension(), "").ifPresent(p -> previous.put(icon.extension(), p)));
       setup(identity, name, command, extensions, previous).forEach(e -> set(e, halfDone));
     }
-    notifyShellOfChange();
+    notifyShell.run();
   }
   static void eradicateAll(Predicate<String> belongsToFamily, Function<String,RuntimeException> halfDone){
     var existing= existingIdentities(belongsToFamily);
-    if (existing.isEmpty()){ return; }
+    var left= leftovers(existing, belongsToFamily);
+    if (existing.isEmpty() && left.isEmpty()){ return; }
     existing.forEach(name -> eradicate(name, belongsToFamily, halfDone));
-    notifyShellOfChange();
+    left.forEach(p -> dropClaim("."+p.substring(p.lastIndexOf('.') + 1), p, belongsToFamily, halfDone));
+    notifyShell.run();
+  }
+  private static List<String> leftovers(List<String> existing, Predicate<String> belongsToFamily){
+    var declared= existing.stream().flatMap(s -> values(fileAssociations(s)).values().stream()).toList();
+    return subkeys(softwareRoot+"\\Classes").stream()
+      .filter(p -> p.lastIndexOf('.') > 0 && belongsToFamily.test(p.substring(0, p.lastIndexOf('.'))) && !declared.contains(p)).toList();
+  }
+  private static List<String> tree(String key){ return Stream.concat(Stream.of(key), subkeys(key).stream().flatMap(s -> tree(key+"\\"+s).stream())).toList(); }
+  private static boolean deletable(String key){
+    var result= Arena.ofAuto().allocate(ValueLayout.ADDRESS);
+    var status= reg("RegOpenKeyExW", key, 0, delete, result);
+    if (status == 0){ call("RegCloseKey", result.get(ValueLayout.ADDRESS, 0)); }
+    return status != accessDenied;
   }
   static List<String> existingIdentities(Predicate<String> belongsToFamily){
     var declared= subkeys(softwareRoot).stream().filter(belongsToFamily).filter(n -> subkeys(softwareRoot+"\\"+n).stream().anyMatch("Capabilities"::equalsIgnoreCase));

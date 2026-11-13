@@ -109,8 +109,11 @@ import utils.Join;
  * holder, and changes nothing. The taken over extensions are the extensions of taken, and
  * the extensions whose holder is in the family and is not identity itself.
  *
- * 3. [Linux and macOS only] Every location identity would need to write to, and every location an
- * identity marked for removal would need to be removed from, is confirmed writable - Linux: every
+ * 3. Every location identity would need to write to, and every location an
+ * identity marked for removal would need to be removed from, is confirmed writable - Windows: the
+ * user holds the right DELETE on the keys UserChoice and UserChoiceLatest of every taken over
+ * extension, and on each of their subkeys; the other registry keys under HKCU are always
+ * removable by their owner; Linux: every
  * such .desktop file, MIME-package file, and (when the whole file would be deleted) its
  * containing directory, the icon folders mimetypes and apps, and every choice file of
  * step 4; macOS: every folder of the helper bundle of an identity found in step 1, the
@@ -143,7 +146,8 @@ import utils.Join;
  * every extension, the same windows, and that no icon file of identity is left beyond
  * those of extensions and windows. [macOS only] It also requires the same declared type
  * for every extension. [Windows only] It also requires that the default value
- * of Classes\(extension) names the ProgId of identity for every extension.
+ * of Classes\(extension) names the ProgId of identity for every extension, and that no ProgId
+ * of the family is left that no identity of step 1 declares.
  * Otherwise replaced is applied to the command of every identity found in step 1
  * whose command is not command, then every identity found in step 1 is deleted in full - every registry key
  * or file it created, for every extension it declared, including extensions absent
@@ -153,6 +157,9 @@ import utils.Join;
  * an empty container. A default value of Classes\(extension) naming the identity goes back
  * to the value step 6 found there when the identity took the extension, kept in
  * Software\(identity)\PreviousDefaults; with none kept, the default value is deleted.
+ * [Windows only] Every ProgId with a key in Classes that belongs to an identity for which
+ * belongsToFamily holds, and that no identity of step 1 declares, is deleted the same way, for
+ * the extension the ProgId ends with.
  * [Windows only] The "Open with" history Explorer keeps for each such extension, and for
  * each extension of step 6, loses the entries naming a program of the Fearless family
  * (FileExts\(extension)\OpenWithList and OpenWithProgids): Explorer would otherwise offer
@@ -209,10 +216,12 @@ import utils.Join;
  *
  * eradicateAll(belongsToFamily) performs none of the checks above: every existing
  * on-system identity for which belongsToFamily holds, however many there are, is
- * deleted in full, and nothing is created. [Linux only] Every icon file in mimetypes
+ * deleted in full, and nothing is created. [Windows only] Every ProgId of step 5 that no such
+ * identity declares is deleted too. [Linux only] Every icon file in mimetypes
  * named (name)-(hex hash).png, and in apps named (name).png, for a name for which
  * belongsToFamily holds is deleted too. One shell or database refresh is issued for the
- * whole operation, or none at all if no identity matched.
+ * whole operation, or none at all if no identity matched and, on Windows, no such ProgId was
+ * found.
  */
 public final class FileAssociations{
   public static void reconcile(String identity, String name, Predicate<String> belongsToFamily, Path command,
