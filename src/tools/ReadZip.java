@@ -35,7 +35,7 @@ public record ReadZip(
   }
   private static String keyOf(String n){ return n.endsWith("/") ? n.substring(0, n.length() - 1) : n; }
   private void reqZipNameOk(String n){
-    var bad= n.isEmpty() || n.startsWith("/") || n.indexOf('\0')>=0;
+    var bad= n.isEmpty() || n.startsWith("/") || n.indexOf('\0')>=0 || n.indexOf('\\')>=0;
     if (bad){ throw badNameErr.apply(n); }
     var sub= keyOf(n);
     for (var seg : sub.split("/", -1)){

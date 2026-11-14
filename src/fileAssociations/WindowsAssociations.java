@@ -96,10 +96,11 @@ public final class WindowsAssociations{
   public static String userChoiceKey(String ext){ return fileExts+ext+"\\UserChoice"; }
   static Map<String,String> holders(List<String> extensions){
     var res= new LinkedHashMap<String,String>();
-    extensions.forEach(e -> value(fileExts+e+"\\UserChoiceLatest\\ProgId", "ProgId").or(() -> value(userChoiceKey(e), "ProgId")).or(() -> value("HKEY_CLASSES_ROOT\\"+e, ""))
-      .ifPresent(p -> res.put(e, owner(p, e))));
+    extensions.forEach(e -> chosen(e).or(() -> value("HKEY_CLASSES_ROOT\\"+e, "")).ifPresent(p -> res.put(e, owner(p, e))));
     return res;
   }
+  private static Optional<String> chosen(String ext){ return value(fileExts+ext+"\\UserChoiceLatest\\ProgId", "ProgId").or(() -> value(userChoiceKey(ext), "ProgId")); }
+  static boolean preferred(String ext){ return chosen(ext).isPresent(); }
   private static String owner(String progId, String ext){
     var suffix= "."+ext.substring(1);
     return progId.endsWith(suffix) ? progId.substring(0, progId.length() - suffix.length()) : progId;

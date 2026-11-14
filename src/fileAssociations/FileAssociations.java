@@ -114,8 +114,11 @@ import utils.Join;
  * 2. The holder of every extension of extensions is determined. If the holder of an
  * extension not in taken is not in the family, the operation refuses with notOurs applied
  * to a map from each such extension, in the order of extensions, to the name of its
- * holder, and changes nothing. The taken over extensions are the extensions of taken, and
- * the extensions whose holder is in the family and is not identity itself.
+ * holder, and changes nothing. The taken over extensions are the extensions of taken, the
+ * extensions whose holder is in the family and is not identity itself, and the extensions
+ * identity holds through a preference of the user - Windows: the extensions with a key
+ * UserChoiceLatest or UserChoice; Linux: every extension identity holds; macOS: none, since
+ * that preference is the choice step 4 writes.
  *
  * 3. Every location step 4 would need to change for a taken over extension is confirmed
  * writable - Windows: the user holds the right DELETE on the keys UserChoice and
@@ -262,7 +265,8 @@ public final class FileAssociations{
     foreign.keySet().removeAll(taken);
     foreign.values().removeIf(belongsToFamily);
     if (!foreign.isEmpty()){ throw notOurs.apply(Collections.unmodifiableMap(foreign)); }
-    var takenOver= names.stream().filter(e -> taken.contains(e) || !holders.getOrDefault(e, identity).equals(identity)).toList();
+    Predicate<String> preferred= Fs.isWindows() ? WindowsAssociations::preferred : _ -> Fs.isLinux();
+    var takenOver= names.stream().filter(e -> taken.contains(e) || (holders.containsKey(e) && (!holders.get(e).equals(identity) || preferred.test(e)))).toList();
     if (Fs.isWindows()){ WindowsAssociations.reconcile(identity, name, belongsToFamily, command, extensions, existing, takenOver, replaced, notTaken, notWritable, halfDone); return; }
     if (Fs.isLinux()){ LinuxAssociations.reconcile(identity, name, belongsToFamily, command, extensions, existing, takenOver, windows, programPng, replaced, notTaken, notWritable, halfDone); return; }
     MacAssociations.reconcile(identity, name, command, extensions, existing, takenOver, programPng, replaced, notTaken, notWritable, halfDone);
