@@ -56,7 +56,7 @@ import utils.Join;
  * by the extension with, by its name -
  * Windows: the ProgId of the key UserChoiceLatest of
  * HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\(extension), else of
- * the key UserChoice there, else the default value of HKEY_CLASSES_ROOT\(extension); its
+ * the key UserChoice there, else the default value of HKEY_CLASSES_ROOT\(extension) when not empty; its
  * name is the identity the ProgId belongs to, else the whole ProgId. Linux: the default program of the first type that has one in the list
  * starting with the type of the glob of highest weight matching the name in the MIME
  * database, where each type of the list adds to the end of the list each of its parent
