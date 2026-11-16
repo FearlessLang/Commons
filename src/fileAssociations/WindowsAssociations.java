@@ -96,7 +96,7 @@ public final class WindowsAssociations{
   public static String userChoiceKey(String ext){ return fileExts+ext+"\\UserChoice"; }
   static Map<String,String> holders(List<String> extensions){
     var res= new LinkedHashMap<String,String>();
-    extensions.forEach(e -> value(fileExts+e+"\\UserChoiceLatest\\ProgId", "ProgId").or(() -> value(userChoiceKey(e), "ProgId")).or(() -> value("HKEY_CLASSES_ROOT\\"+e, ""))
+    extensions.forEach(e -> value(fileExts+e+"\\UserChoiceLatest\\ProgId", "ProgId").or(() -> value(userChoiceKey(e), "ProgId")).or(() -> value("HKEY_CLASSES_ROOT\\"+e, "").filter(p -> !p.isEmpty()))
       .ifPresent(p -> res.put(e, owner(p, e))));
     return res;
   }
