@@ -53,7 +53,7 @@ public interface ErrFactory<
   ///Required element missing, but another token was found instead; expected tokens listed.
   E missingButFound(Span at, String what, T found, Collection<TK> expectedTokens, Parser parser);
   ///Extra tokens remain within the current parsed group.
-  E extraContent(Span from, String what, Collection<TK> expectedTerminatorTokens, Parser parser);
+  E extraContent(Span from, Collection<TK> expectedTerminatorTokens, Parser parser);
   ///A probing parse strategy stalled while scanning a group.
   E probeStalledIn(String groupLabel, Span at, int startIdx, int endIdx, Parser parser);
   ///A probing parse strategy returned an invalid drop value.
